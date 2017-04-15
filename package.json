@@ -1,0 +1,24 @@
+{
+  "name": "networkvizjs",
+  "version": "0.0.1",
+  "description": "Graph visualization",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SpyR1014/networkVizJS.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/SpyR1014/networkVizJS/issues"
+  },
+  "homepage": "https://github.com/SpyR1014/networkVizJS#readme",
+  "dependencies": {
+    "d3": "^4.8.0",
+    "level-browserify": "^1.1.0",
+    "levelgraph": "^2.0.1"
+  }
+}
