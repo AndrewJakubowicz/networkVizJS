@@ -20,5 +20,8 @@
     "d3": "^4.8.0",
     "level-browserify": "^1.1.0",
     "levelgraph": "^2.0.1"
+  },
+  "devDependencies": {
+    "ava": "^0.19.1"
   }
 }
