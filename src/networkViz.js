@@ -2,55 +2,13 @@
  * A graph is just a large object with endpoints that
  * can be pressed with side effects.
  */
+var d3 = require("d3");
+var cola = require("webcola");
+var levelgraph = require("levelgraph");
+var level = require("level-browserify");
 
 
-
-/**
- * Factory for creating the graph.
- * Returns an object with endpoints for interacting
- * with the graph.
- * Library detection: http://ifandelse.com/its-not-hard-making-your-library-support-amd-and-commonjs/
- * and another good reference for library detection: https://gist.github.com/jrburke/1262861
- * 
- */
-(function (define) {
-    //The 'id' is optional, but recommended if this is
-    //a popular web library that is used mostly in
-    //non-AMD/Node environments. However, if want
-    //to make an anonymous module, remove the 'id'
-    //below, and remove the id use in the define shim.
-    define('networkVizJS', function (require) {
-        var d3 = require("d3");
-        var cola = require("webcola");
-        var levelgraph = require("levelgraph");
-        var level = require("level-browserify");
-
-        //Return the module definition.
-        return value;
-    });
-}(typeof define === 'function' && define.amd ? define : function (id, factory) {
-    if (typeof module !== 'undefined' && module.exports) {
-        //Node
-        module.exports = factory(require);
-    } else {
-        /**
-         * Creates a global function to use in the browser.
-         * Only works without dependencies.
-         * 
-         * TODO: add this to docs.
-         * 
-         * Therefore it's important to declare the following dependencies
-         * in script tags prior to the script tag for networkVizJS:
-         *  - levelgraph
-         *  - d3
-         *  - webcola
-         */
-        window[id] = factory(function(value) {
-            return window[value];
-        });
-    }
-}("networkVizJS", function(documentId){
-
+export default function networkVizJS(documentId){
 
 
     if (typeof documentId !== "string" || documentId === "") {
@@ -525,4 +483,4 @@
         setClickAway,
         recenterGraph
     }
-})));
+}

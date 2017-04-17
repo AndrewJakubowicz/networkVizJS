@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 155);
+/******/ 	return __webpack_require__(__webpack_require__.s = 153);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -81,8 +81,8 @@
 
 
 
-var base64 = __webpack_require__(136)
-var ieee754 = __webpack_require__(137)
+var base64 = __webpack_require__(134)
+var ieee754 = __webpack_require__(135)
 var isArray = __webpack_require__(62)
 
 exports.Buffer = Buffer
@@ -2223,11 +2223,11 @@ var EE = __webpack_require__(5).EventEmitter;
 var inherits = __webpack_require__(16);
 
 inherits(Stream, EE);
-Stream.Readable = __webpack_require__(141);
-Stream.Writable = __webpack_require__(143);
-Stream.Duplex = __webpack_require__(138);
-Stream.Transform = __webpack_require__(142);
-Stream.PassThrough = __webpack_require__(140);
+Stream.Readable = __webpack_require__(139);
+Stream.Writable = __webpack_require__(141);
+Stream.Duplex = __webpack_require__(136);
+Stream.Transform = __webpack_require__(140);
+Stream.PassThrough = __webpack_require__(138);
 
 // Backwards-compat with node 0.4.x
 Stream.Stream = Stream;
@@ -3678,7 +3678,7 @@ function isPrimitive(arg) {
 }
 exports.isPrimitive = isPrimitive;
 
-exports.isBuffer = __webpack_require__(147);
+exports.isBuffer = __webpack_require__(145);
 
 function objectToString(o) {
   return Object.prototype.toString.call(o);
@@ -3722,7 +3722,7 @@ exports.log = function() {
  *     prototype.
  * @param {function} superCtor Constructor function to inherit prototype from.
  */
-exports.inherits = __webpack_require__(146);
+exports.inherits = __webpack_require__(144);
 
 exports._extend = function(origin, add) {
   // Don't do anything if add isn't an object
@@ -6974,7 +6974,7 @@ util.inherits = __webpack_require__(16);
 
 /*<replacement>*/
 var internalUtil = {
-  deprecate: __webpack_require__(145)
+  deprecate: __webpack_require__(143)
 };
 /*</replacement>*/
 
@@ -7555,7 +7555,7 @@ exports._unrefActive = exports.active = function(item) {
 };
 
 // setimmediate attaches itself to the global object
-__webpack_require__(144);
+__webpack_require__(142);
 exports.setImmediate = setImmediate;
 exports.clearImmediate = clearImmediate;
 
@@ -8362,7 +8362,7 @@ util.inherits = __webpack_require__(2);
 /*</replacement>*/
 
 /*<replacement>*/
-var debugUtil = __webpack_require__(148);
+var debugUtil = __webpack_require__(146);
 var debug = undefined;
 if (debugUtil && debugUtil.debuglog) {
   debug = debugUtil.debuglog('stream');
@@ -9954,7 +9954,7 @@ util.inherits = __webpack_require__(2);
 /*</replacement>*/
 
 /*<replacement>*/
-var debugUtil = __webpack_require__(149);
+var debugUtil = __webpack_require__(147);
 var debug = void 0;
 if (debugUtil && debugUtil.debuglog) {
   debug = debugUtil.debuglog('stream');
@@ -11640,7 +11640,7 @@ function getLevelDOWN () {
     throw requireError(e)
   }
 
-  if (!__webpack_require__(151).satisfies(leveldownVersion, requiredVersion)) {
+  if (!__webpack_require__(149).satisfies(leveldownVersion, requiredVersion)) {
     throw new LevelUPError(
         'Installed version of LevelDOWN ('
       + leveldownVersion
@@ -11651,7 +11651,7 @@ function getLevelDOWN () {
   }
 
   try {
-    return leveldown = __webpack_require__(150)
+    return leveldown = __webpack_require__(148)
   } catch (e) {
     throw requireError(e)
   }
@@ -11758,7 +11758,7 @@ function onceStrict (fn) {
 
 var once = __webpack_require__(48)
 var eos = __webpack_require__(74)
-var fs = __webpack_require__(152) // we only need fs to get the ReadStream and WriteStream prototypes
+var fs = __webpack_require__(150) // we only need fs to get the ReadStream and WriteStream prototypes
 
 var noop = function () {}
 
@@ -11895,7 +11895,7 @@ var StringDecoder;
 
 
 /*<replacement>*/
-var debug = __webpack_require__(153);
+var debug = __webpack_require__(151);
 if (debug && debug.debuglog) {
   debug = debug.debuglog('stream');
 } else {
@@ -15765,7 +15765,7 @@ util.inherits = __webpack_require__(16);
 /*</replacement>*/
 
 /*<replacement>*/
-var debugUtil = __webpack_require__(154);
+var debugUtil = __webpack_require__(152);
 var debug = void 0;
 if (debugUtil && debugUtil.debuglog) {
   debug = debugUtil.debuglog('stream');
@@ -15774,7 +15774,7 @@ if (debugUtil && debugUtil.debuglog) {
 }
 /*</replacement>*/
 
-var BufferList = __webpack_require__(139);
+var BufferList = __webpack_require__(137);
 var StringDecoder;
 
 util.inherits(Readable, Stream);
@@ -16665,14 +16665,493 @@ function indexOf(xs, x) {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_networkViz__ = __webpack_require__(134);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_networkViz___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__src_networkViz__);
-/* harmony reexport (default from non-hamory) */ __webpack_require__.d(__webpack_exports__, "networkVizJS", function() { return __WEBPACK_IMPORTED_MODULE_0__src_networkViz___default.a; });
+/* harmony export (immutable) */ __webpack_exports__["a"] = networkVizJS;
 /**
- * Library endpoint
+ * A graph is just a large object with endpoints that
+ * can be pressed with side effects.
  */
+var d3 = __webpack_require__(69);
+var cola = __webpack_require__(125);
+var levelgraph = __webpack_require__(102);
+var level = __webpack_require__(87);
 
+
+function networkVizJS(documentId){
+
+
+    if (typeof documentId !== "string" || documentId === "") {
+        throw new Error("Document Id passed into graph isn't a string.");
+    }
+
+    /**
+     *  Options
+     */
+    let options = {
+        // Set this as a function that transforms the node -> color string
+        nodeToColor: undefined,
+        clickNode: (node) => console.log("clicked", node),
+        clickAway: () => console.log("clicked away from stuff"),
+        edgeColor: () => "black"
+    }
+
+    /**
+     * nodeMap allows hash lookup of nodes.
+     */
+    let nodeMap = new Map();
+    let predicateTypeToColorMap = new Map();
+    let tripletsDB = levelgraph(level(`Userdb-${Math.random()*100}`));
+    let nodes = [];
+    let links = [];
+    let mouseCoordinates = [0, 0]
+
+    const width = 900,
+          height = 600,
+          margin = 10,
+          pad = 12;
+    
+    // Here we are creating a responsive svg element.
+    let svg = d3.select(`#${documentId}`)
+                .append("div")
+                .classed("svg-container", true)
+                .append("svg")
+                .attr("preserveAspectRatio", "xMinYMin meet")
+                .attr("viewBox", `0 0 ${width} ${height}`)
+                .classed("svg-content-responsive", true);
+    
+    /**
+     * Keep track of the mouse.
+     */
+    svg.on("mousemove", function() {
+        mouseCoordinates = d3.mouse(this)
+    })
+    svg.on("click", () => {
+        options.clickAway();
+    })
+
+    /**
+     * Set up [webcola](http://marvl.infotech.monash.edu/webcola/).
+     * Later we'll be restarting the simulation whenever we mutate
+     * the node or link lists.
+     */
+    let simulation = cola.d3adaptor(d3)
+                         .avoidOverlaps(true)
+                         .flowLayout('x', 150)
+                         .jaccardLinkLengths(150)
+                         .handleDisconnected(false) // THIS MUST BE FALSE OR GRAPH JUMPS
+                         .size([width, height])
+                         .nodes(nodes)
+                         .links(links);
+    
+    /**
+     * Here we define the arrow heads to be used later.
+     * Each unique arrow head needs to be created.
+     */
+    const defs = svg.append("defs");
+
+    /**
+     * Appends a new marker to the dom, for the new
+     * marker color.
+     * @param {defs DOMElement} definitionElement 
+     * @param {string} color valid css color string
+     */
+    const createColorMarker = (definitionElement, color) => {
+        definitionElement.append("marker")
+            .attr("id",`arrow-${color}`)
+            .attr("viewBox", "0 -5 10 10")
+            .attr("refX", 8)
+            .attr("markerWidth", 6)
+            .attr("markerHeight", 6)
+            .attr("fill", color)
+            .attr("orient", "auto")
+            .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("class","arrowHead");
+    }
+
+    // Define svg groups
+    let g = svg.append("g"),
+        link = g.append("g")
+                .selectAll(".link"),
+        node = g.append("g")
+                .selectAll(".node");
+    
+    /**
+     * Add zoom/panning behaviour to svg.
+     */
+    let zoom = d3.zoom().scaleExtent([0.1, 5]).on("zoom", zoomed);
+    svg.call(zoom);
+    function zoomed() {
+        options.clickAway();
+        g.attr("transform", d3.event.transform);
+    }
+    
+
+
+    /**
+     * restart function adds and removes nodes.
+     * It also restarts the simulation.
+     * This is where aesthetics can be changed.
+     */
+    function restart(){
+        /////// NODE ///////
+
+        node = node.data(nodes, d => d.index);
+        node.exit().remove();
+        let nodeEnter = node.enter()
+                   .append("g")
+                   .each(d => {d.createMargin = false})
+                   .classed("node", true)
+                   .attr("cursor", "move")
+                   .call(simulation.drag);
+                   
+        
+        // Here we add node beauty.
+        // To fit nodes to the short-name calculate BBox
+        // from https://bl.ocks.org/mbostock/1160929
+        let text = nodeEnter.append("text")
+                    .attr("dx", -10)
+                    .attr("dy", -2)
+                    .attr("text-anchor", "middle")
+                    .style("font", "100 22px Helvetica Neue")
+                    .text(d => d.shortname || d.hash)
+                    .each(function(d){
+                        if (d.createMargin){
+                            return
+                        }
+                        const b = this.getBBox();
+                        const extra = 2 * margin + 2 * pad;
+                        d.width = b.width + extra;
+                        d.height = b.height + extra;
+                        d.createMargin = !d.createMargin;
+                    })
+                    .attr("x", d => d.width / 2)
+                    .attr("y", d => d.height / 2);
+
+        nodeEnter.insert("rect", "text")     // The second arg is what the rect will sit behind.
+                .classed("node", true)
+                .attr("fill", d => options.nodeToColor && options.nodeToColor(d) || "red")
+                .attr("rx", 5)
+                .attr("ry", 5);
+        
+        node = node.merge(nodeEnter)
+
+        /**
+         * Rebind the handlers on the nodes.
+         */
+        node.on('click', function(node) {
+            // coordinates is a tuple: [x,y]
+            setTimeout(() => {
+                options.clickNode(node, mouseCoordinates)
+            }, 50)
+            
+        })
+
+        /////// LINK ///////
+        link = link.data(links, d => d.source.index + "-" + d.target.index)
+        link.exit().remove();
+
+        link = link.enter()
+                   .append("path")
+                   .attr("class", "line")
+                   .attr("stroke-width", 2)
+                   .attr("stroke", d => predicateTypeToColorMap.get(d.edgeData.type) || "black")
+                   .attr("fill", "none")
+                   .attr("marker-end",d => `url(#arrow-${predicateTypeToColorMap.get(d.edgeData.type)})`)   // This needs to change to the color.
+                   .merge(link);
+        
+        /**
+         * Helper function for drawing the lines.
+         */
+        const lineFunction = d3.line()
+            .x(d => d.x)
+            .y(d => d.y);
+
+        /**
+         * Causes the links to bend around the rectangles.
+         * Source: https://github.com/tgdwyer/WebCola/blob/master/WebCola/examples/unix.html#L140
+         */
+        const routeEdges = function () {
+            simulation.prepareEdgeRouting();
+            link.attr("d", d => lineFunction(simulation.routeEdge(d)));
+            if (isIE()) link.each(function (d) { this.parentNode.insertBefore(this, this) });
+        }
+        // Restart the simulation.
+        simulation.links(links);    // Required because we create new link lists
+        simulation.start(10, 15, 20).on("tick", function() {
+            node.each(d => {
+                    d.innerBounds = d.bounds.inflate(-margin);
+                })
+                .attr("transform", d => `translate(${d.innerBounds.x},${d.innerBounds.y})`);
+            node.select('rect')
+                .attr("width", d => d.innerBounds.width())
+                .attr("height", d => d.innerBounds.height());
+
+            link.attr("d", d => {
+                let route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                return lineFunction([route.sourceIntersection, route.arrowStart]);
+            });
+            if (isIE()) link.each(function (d) { this.parentNode.insertBefore(this, this) });
+
+        }).on("end", routeEdges);
+        function isIE() { return ((navigator.appName == 'Microsoft Internet Explorer') || ((navigator.appName == 'Netscape') && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != null))); }
+    }
+
+    // Helper function for updating links after node mutations.
+    // Calls a function after links added.
+    function createNewLinks(){
+        tripletsDB.get({}, (err, l) => {
+            if (err){
+                throw new Error(err);
+            }
+            // Create edges based on LevelGraph triplets
+            links = l.map(({subject, object, edgeData}) => {
+                let source = nodeMap.get(subject);
+                let target = nodeMap.get(object);
+                return { source, target, edgeData }
+            });   
+            restart()
+        })
+    }
+
+    function addNode(nodeObject){
+        // Check that hash exists
+        if (!(nodeObject.hash)) {
+            var e = new Error("Node requires a hash field.");
+            console.error(e);
+            return
+        }
+
+        // Add node to graph
+        if (!nodeMap.has(nodeObject.hash)){
+            // Set the node
+            nodes.push(nodeObject)
+            nodeMap.set(nodeObject.hash, nodeObject);
+        }
+        createNewLinks();
+    }
+
+    /**
+     * Validates triplets.
+     * @param {object} tripletObject 
+     */
+    function tripletValidation(tripletObject){
+        /**
+         * Check that minimum requirements are met.
+         */
+        if (tripletObject === undefined) {
+            var e = new Error("TripletObject undefined");
+            console.error(e);
+            return false
+        }
+
+        // Node needs a unique hash associated with it.
+        let subject = tripletObject.subject,
+            predicate = tripletObject.predicate,
+            object = tripletObject.object;
+
+        if (!(subject && predicate && object && true)){
+            throw new Error("Triplets added need to include all three fields.")
+            return false
+        }
+
+        // Check that hash exists
+        if (!(subject.hash && object.hash)) {
+            var e = new Error("Subject and Object require a hash field.");
+            console.error(e);
+            return false
+        }
+
+        // Check that type field exists on predicate
+        if (!predicate.type) {
+            var e = new Error("Predicate requires type field.");
+            console.error(e);
+            return false
+        }
+
+        // Check that type field is a string on predicate
+        if (typeof predicate.type !== "string") {
+            var e = new Error("Predicate type field must be a string");
+            console.error(e);
+            return false
+        }
+        return true
+    }
+
+    function addTriplet(tripletObject){
+        if (!tripletValidation(tripletObject)){
+            return
+        }
+        // Node needs a unique hash associated with it.
+        let subject = tripletObject.subject,
+            predicate = tripletObject.predicate,
+            object = tripletObject.object;
+
+        /**
+         * If a predicate type already has a color,
+         * it is not redefined.
+         */
+        if (!predicateTypeToColorMap.has(predicate.type)){
+            predicateTypeToColorMap.set(predicate.type, options.edgeColor(predicate.type));
+
+            // Create an arrow head for the new color
+            createColorMarker(defs, options.edgeColor(predicate.type));
+        }
+
+        /**
+         * Put the triplet into the LevelGraph database
+         * and mutates the d3 nodes and links list to
+         * visually pop on the node/s.
+         */
+        tripletsDB.put({
+            subject: subject.hash,
+            predicate: predicate.type,
+            object: object.hash,
+            edgeData: predicate
+        }, err => {
+            if (err){
+                throw new Error(err);
+            }
+            
+            // Add nodes to graph
+            if (!nodeMap.has(subject.hash)){
+                // Set the node
+                nodes.push(subject)
+                nodeMap.set(subject.hash, subject);
+            }
+            if (!nodeMap.has(object.hash)){
+                nodes.push(object)
+                nodeMap.set(object.hash, object);
+            }
+
+            createNewLinks();
+        });
+    }
+
+    function addEdge(triplet){
+        if (!tripletValidation(triplet)){
+            return
+        }
+        // Node needs a unique hash associated with it.
+        let subject = triplet.subject,
+            predicate = triplet.predicate,
+            object = triplet.object;
+        
+        if (!(nodeMap.has(subject.hash) && nodeMap.has(object.hash))){
+            // console.error("Cannot add edge between nodes that don't exist.")
+            return
+        }
+
+        /**
+         * Put the triplet into the LevelGraph database
+         * and mutates the d3 nodes and links list to
+         * visually pop on the node/s.
+         */
+        tripletsDB.put({
+            subject: subject.hash,
+            predicate: predicate.type,
+            object: object.hash,
+            edgeData: predicate
+        }, err => {
+            if (err){
+                throw new Error(err);
+            }
+
+            createNewLinks();
+        });
+
+    }
+
+    /**
+     * Removes the node and all triplets associated with it.
+     * @param {String} nodeHash hash of the node to remove.
+     */
+    function removeNode(nodeHash){
+        tripletsDB.get({subject: nodeHash}, function(err, l1){
+            if (err){
+                return console.error(err)
+            }
+            tripletsDB.get({object: nodeHash}, function(err, l2){
+                if (err){
+                    return console.error(err)
+                }
+                // Check if the node exists
+                if (l1.length + l2.length === 0){
+                    return console.error("There was nothing to remove")
+                }
+
+                [...l1, ...l2].forEach(triplet => tripletsDB.del(triplet, function(err){
+                    if (err){
+                        return console.error(err);
+                    }
+                }));
+
+
+                // Remove the node
+                let nodeIndex = -1;
+                for (let i = 0; i < nodes.length; i++){
+                    if (nodes[i].hash === nodeHash){
+                        nodeIndex = i;
+                        break;
+                    }
+                }
+                if (nodeIndex === -1){
+                    return console.error("There is no node");
+                }
+
+                nodeMap.delete(nodeHash);
+                nodes.splice(nodeIndex, 1);
+
+                createNewLinks();
+            });
+        });
+    }
+
+    function setNodeToColor(nodeToColorFunc){
+        options.nodeToColor = nodeToColorFunc;
+    }
+
+    /**
+     * Function that fires when a node is clicked.
+     * @param {function} selectNodeFunc 
+     */
+    function setSelectNode(selectNodeFunc){
+        options.clickNode = selectNodeFunc;
+    }
+
+    /**
+     * Invoking this function will recenter the graph.
+     */
+    function recenterGraph(){
+        svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity.translate(0, 0).scale(1))
+    }
+
+    /**
+     * Replaces function to call when clicking away from a node.
+     * @param {function} clickAwayCallback 
+     */
+    function setClickAway(clickAwayCallback){
+        options.clickAway = clickAwayCallback;
+    }
+
+    /**
+     * Function called when choosing edge color based on predicate.
+     * @param {function} edgeColorCallback takes string 'predicate.type' to a color.
+     */
+    function setEdgeColor(edgeColorCallback){
+        options.edgeColor = edgeColorCallback;
+    }
+
+    return {
+        addTriplet,
+        addEdge,
+        removeNode,
+        addNode,
+        setNodeToColor,
+        setSelectNode,
+        setClickAway,
+        recenterGraph
+    }
+}
 
 
 /***/ }),
@@ -40799,53 +41278,6 @@ function hasKeys(source) {
 /* 134 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var __WEBPACK_AMD_DEFINE_RESULT__;/**
- * A graph is just a large object with endpoints that
- * can be pressed with side effects.
- */
-
-
-
-/**
- * Factory for creating the graph.
- * Returns an object with endpoints for interacting
- * with the graph.
- * Library detection: http://ifandelse.com/its-not-hard-making-your-library-support-amd-and-commonjs/
- * and another good reference for library detection: https://gist.github.com/jrburke/1262861
- * 
- */
-(function (define) {
-    //The 'id' is optional, but recommended if this is
-    //a popular web library that is used mostly in
-    //non-AMD/Node environments. However, if want
-    //to make an anonymous module, remove the 'id'
-    //below, and remove the id use in the define shim.
-    !(__WEBPACK_AMD_DEFINE_RESULT__ = function (require) {
-        var d3 = __webpack_require__(69);
-        var cola = __webpack_require__(125);
-        var levelgraph = __webpack_require__(102);
-        var level = __webpack_require__(87);
-
-        //Return the module definition.
-        return value;
-    }.call(exports, __webpack_require__, exports, module),
-				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-}(__webpack_require__(135)));
-
-
-/***/ }),
-/* 135 */
-/***/ (function(module, exports) {
-
-module.exports = function() {
-	throw new Error("define cannot be used indirect");
-};
-
-
-/***/ }),
-/* 136 */
-/***/ (function(module, exports, __webpack_require__) {
-
 "use strict";
 
 
@@ -40964,7 +41396,7 @@ function fromByteArray (uint8) {
 
 
 /***/ }),
-/* 137 */
+/* 135 */
 /***/ (function(module, exports) {
 
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
@@ -41054,14 +41486,14 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
 
 
 /***/ }),
-/* 138 */
+/* 136 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = __webpack_require__(11)
 
 
 /***/ }),
-/* 139 */
+/* 137 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -41131,14 +41563,14 @@ BufferList.prototype.concat = function (n) {
 };
 
 /***/ }),
-/* 140 */
+/* 138 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = __webpack_require__(63)
 
 
 /***/ }),
-/* 141 */
+/* 139 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(process) {var Stream = (function (){
@@ -41161,21 +41593,21 @@ if (!process.browser && process.env.READABLE_STREAM === 'disable' && Stream) {
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1)))
 
 /***/ }),
-/* 142 */
+/* 140 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = __webpack_require__(30)
 
 
 /***/ }),
-/* 143 */
+/* 141 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = __webpack_require__(31)
 
 
 /***/ }),
-/* 144 */
+/* 142 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global, process) {(function (global, undefined) {
@@ -41368,7 +41800,7 @@ module.exports = __webpack_require__(31)
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(10), __webpack_require__(1)))
 
 /***/ }),
-/* 145 */
+/* 143 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {
@@ -41442,7 +41874,7 @@ function config (name) {
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(10)))
 
 /***/ }),
-/* 146 */
+/* 144 */
 /***/ (function(module, exports) {
 
 if (typeof Object.create === 'function') {
@@ -41471,7 +41903,7 @@ if (typeof Object.create === 'function') {
 
 
 /***/ }),
-/* 147 */
+/* 145 */
 /***/ (function(module, exports) {
 
 module.exports = function isBuffer(arg) {
@@ -41480,6 +41912,18 @@ module.exports = function isBuffer(arg) {
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
+
+/***/ }),
+/* 146 */
+/***/ (function(module, exports) {
+
+/* (ignored) */
+
+/***/ }),
+/* 147 */
+/***/ (function(module, exports) {
+
+/* (ignored) */
 
 /***/ }),
 /* 148 */
@@ -41513,22 +41957,14 @@ module.exports = function isBuffer(arg) {
 
 /***/ }),
 /* 153 */
-/***/ (function(module, exports) {
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
 
-/* (ignored) */
-
-/***/ }),
-/* 154 */
-/***/ (function(module, exports) {
-
-/* (ignored) */
-
-/***/ }),
-/* 155 */
-/***/ (function(module, exports, __webpack_require__) {
-
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_networkViz__ = __webpack_require__(65);
 console.log("loaded graph")
-var graph = __webpack_require__(65);
+
+var graph = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__src_networkViz__["a" /* default */])("exampleGraph")
 console.log("loaded graph2")
 
 

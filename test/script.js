@@ -1,3 +1,4 @@
 console.log("loaded graph")
-var graph = require('../index.js');
+import networkVizJS from '../src/networkViz';
+var graph = networkVizJS("exampleGraph")
 console.log("loaded graph2")

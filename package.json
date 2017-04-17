@@ -1,8 +1,8 @@
 {
   "name": "networkvizjs",
   "version": "0.0.1",
-  "description": "Graph visualization",
-  "main": "index.js",
+  "description": "Easy graph visualization",
+  "main": "src/networkViz.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -10,7 +10,7 @@
     "type": "git",
     "url": "git+https://github.com/SpyR1014/networkVizJS.git"
   },
-  "author": "",
+  "author": "Andrew Jakubowicz",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/SpyR1014/networkVizJS/issues"
