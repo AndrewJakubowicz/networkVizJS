@@ -4,7 +4,9 @@
   "description": "Easy graph visualization",
   "main": "src/networkViz.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "ava \"src/**/*.test.js\" --verbose",
+    "watch:test": "npm t -- --watch",
+    "cover": "nyc npm run test"
   },
   "repository": {
     "type": "git",
@@ -20,8 +22,5 @@
     "d3": "^4.8.0",
     "level-browserify": "^1.1.0",
     "levelgraph": "^2.0.1"
-  },
-  "devDependencies": {
-    "ava": "^0.19.1"
   }
 }
