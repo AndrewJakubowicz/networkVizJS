@@ -4,9 +4,7 @@
   "description": "Easy graph visualization",
   "main": "src/networkViz.js",
   "scripts": {
-    "test": "ava \"src/**/*.test.js\" --verbose",
-    "watch:test": "npm t -- --watch",
-    "cover": "nyc npm run test"
+    "test": "echo \"No tests yet\""
   },
   "repository": {
     "type": "git",
@@ -19,8 +17,8 @@
   },
   "homepage": "https://github.com/SpyR1014/networkVizJS#readme",
   "dependencies": {
-    "d3": "^4.8.0",
-    "level-browserify": "^1.1.0",
-    "levelgraph": "^2.0.1"
+    "d3": "4.8.0",
+    "level-browserify": "1.1.0",
+    "levelgraph": "2.0.1"
   }
 }
