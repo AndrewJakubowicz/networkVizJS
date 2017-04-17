@@ -41967,6 +41967,7 @@ console.log("loaded graph")
 var graph = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__src_networkViz__["a" /* default */])("exampleGraph")
 console.log("loaded graph2")
 
+graph.addNode({hash:"testNode1"})
 
 /***/ })
 /******/ ]);
