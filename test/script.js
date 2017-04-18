@@ -1,5 +1,5 @@
-import networkVizJS from '../src/networkViz';
-var graph = networkVizJS("exampleGraph")
+/** networkVizJS is already defined on the webpage */
+var graph = networkVizJS.default("exampleGraph")
 
 graph.edgeOptions.setStrokeWidth(d => d.edgeData.width);
 graph.edgeOptions.setColor(predicate => {console.log(predicate); return "green"})
@@ -10,11 +10,11 @@ setTimeout(() => {
 }, 1000)
 
 setTimeout(() => {
-    graph.addNode({hash:"testNode4"})
+    graph.addNode({hash:"Stacey"})
 }, 6000)
 
 setTimeout(() => {
-    graph.addTriplet({subject: {hash:"testNode1"}, predicate:{type:"someType", length:80, color:"green", width: 1}, object: {hash:"child"}});
+    graph.addTriplet({subject: {hash:"testNode1"}, predicate:{type:"someType", length:800, color:"pink", width: 10}, object: {hash:"child"}});
 }, 3000)
 
 

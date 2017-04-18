@@ -2,10 +2,12 @@
  * A graph is just a large object with endpoints that
  * can be pressed with side effects.
  */
-var d3 = require("d3");
 var cola = require("webcola");
 var levelgraph = require("levelgraph");
 var level = require("level-browserify");
+
+import d3 from 'd3';
+
 
 
 export default function networkVizJS(documentId, userLayoutOptions = {}){

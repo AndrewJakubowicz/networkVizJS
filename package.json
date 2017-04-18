@@ -2,9 +2,12 @@
   "name": "networkvizjs",
   "version": "0.0.1",
   "description": "Easy graph visualization",
-  "main": "src/networkViz.js",
+  "main": "dist/networkViz.js",
   "scripts": {
-    "test": "echo \"No tests yet\""
+    "test": "echo \"No tests yet\"",
+    "build:main": "babel --copy-files --out-dir dist --ignore *.test.js src",
+    "build:umd": "webpack --output-filename index.umd.js",
+    "build:umd.min": "webpack --output-filename index.umd.min.js -p"
   },
   "repository": {
     "type": "git",
@@ -20,5 +23,12 @@
     "d3": "4.8.0",
     "level-browserify": "1.1.0",
     "levelgraph": "2.0.1"
+  },
+  "devDependencies": {
+    "babel-cli": "6.24.1",
+    "babel-core": "6.24.1",
+    "babel-loader": "6.4.1",
+    "babel-preset-env": "1.4.0",
+    "webpack": "2.4.1"
   }
 }
