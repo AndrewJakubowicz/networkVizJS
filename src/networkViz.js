@@ -8,7 +8,27 @@ var levelgraph = require("levelgraph");
 var level = require("level-browserify");
 
 
-export default function networkVizJS(documentId){
+export default function networkVizJS(documentId, userLayoutOptions = {}){
+
+    /**
+     * Default options for webcola
+     */
+    let defaultLayoutOptions = {
+        layoutType: "flowLayout", // Define webcola length layout algorithm
+        avoidOverlaps: true,
+        handleDisconnected: false,
+        flowDirection: "y"
+    }
+
+    /**
+     * This creates the default object, and then overwrites any parameters
+     * with the user parameters.
+     */
+    // let layoutOptions = {
+    //     ...defaultLayoutOptions,
+    //     ...userLayoutOptions
+    // }
+    let layoutOptions = defaultLayoutOptions;
 
 
     if (typeof documentId !== "string" || documentId === "") {
@@ -26,7 +46,7 @@ export default function networkVizJS(documentId){
         clickAway: () => console.log("clicked away from stuff"),
         edgeColor: () => "black",
         edgeStroke: undefined,
-        edgeLength: undefined
+        edgeLength: d => {console.log(`length`, d); return 150}
     }
 
     /**
@@ -68,14 +88,7 @@ export default function networkVizJS(documentId){
      * Later we'll be restarting the simulation whenever we mutate
      * the node or link lists.
      */
-    let simulation = cola.d3adaptor(d3)
-                         .avoidOverlaps(true)
-                         .flowLayout('y', 150)
-                         .jaccardLinkLengths(150)
-                         .handleDisconnected(false) // THIS MUST BE FALSE OR GRAPH JUMPS
-                         .size([width, height])
-                         .nodes(nodes)
-                         .links(links);
+    let simulation = updateColaLayout();
     
     /**
      * Here we define the arrow heads to be used later.
@@ -189,9 +202,9 @@ export default function networkVizJS(documentId){
                    .append("path")
                    .attr("class", "line")
                    .attr("stroke-width", d => options.edgeStroke && options.edgeStroke(d) || 2)
-                   .attr("stroke", d => predicateTypeToColorMap.get(d.edgeData.type) || "black")
+                   .attr("stroke", d => options.edgeColor(d.edgeData))
                    .attr("fill", "none")
-                   .attr("marker-end",d => `url(#arrow-${predicateTypeToColorMap.get(d.edgeData.type)})`)   // This needs to change to the color.
+                   .attr("marker-end",d => `url(#arrow-${options.edgeColor(d.edgeData)})`)
                    .merge(link);
         
         /**
@@ -206,6 +219,9 @@ export default function networkVizJS(documentId){
          * Source: https://github.com/tgdwyer/WebCola/blob/master/WebCola/examples/unix.html#L140
          */
         const routeEdges = function () {
+            if (links.length == 0) {
+                return
+            }
             simulation.prepareEdgeRouting();
             link.attr("d", d => lineFunction(simulation.routeEdge(d)));
             if (isIE()) link.each(function (d) { this.parentNode.insertBefore(this, this) });
@@ -214,12 +230,16 @@ export default function networkVizJS(documentId){
         simulation.links(links);    // Required because we create new link lists
         simulation.start(10, 15, 20).on("tick", function() {
             node.each(d => {
-                    d.innerBounds = d.bounds.inflate(-margin);
+                    if (d.bounds) {
+                        d.innerBounds = d.bounds.inflate(-margin);
+                    }
                 })
-                .attr("transform", d => `translate(${d.innerBounds.x},${d.innerBounds.y})`);
+                .attr("transform", d => d.innerBounds ?
+                    `translate(${d.innerBounds.x},${d.innerBounds.y})`
+                    :`translate(${d.x},${d.y})`);
             node.select('rect')
-                .attr("width", d => d.innerBounds.width())
-                .attr("height", d => d.innerBounds.height());
+                .attr("width", d => d.innerBounds && d.innerBounds.width() || d.width)
+                .attr("height", d => d.innerBounds && d.innerBounds.height() || d.height);
 
             link.attr("d", d => {
                 let route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
@@ -262,7 +282,7 @@ export default function networkVizJS(documentId){
             nodes.push(nodeObject)
             nodeMap.set(nodeObject.hash, nodeObject);
         }
-        createNewLinks();
+        restart();
     }
 
     /**
@@ -325,11 +345,11 @@ export default function networkVizJS(documentId){
          * If a predicate type already has a color,
          * it is not redefined.
          */
-        if (!predicateTypeToColorMap.has(predicate.type)){
-            predicateTypeToColorMap.set(predicate.type, options.edgeColor(predicate.type));
+        if (!predicateTypeToColorMap.has(options.edgeColor(predicate))){
+            predicateTypeToColorMap.set(options.edgeColor(predicate), true);
 
             // Create an arrow head for the new color
-            createColorMarker(defs, options.edgeColor(predicate.type));
+            createColorMarker(defs, options.edgeColor(predicate));
         }
 
         /**
@@ -485,6 +505,45 @@ export default function networkVizJS(documentId){
         options.edgeStroke = edgeStrokeCallback;
     }
 
+    /**
+     * Function for setting the ideal edge lengths.
+     * This takes an edge object and should return a number.
+     * Edge object has the following shape: {source, edgeData, target}.
+     * This will become the min length.
+     */
+    function setEdgeLength(edgeLengthCallback){
+        options.edgeLength = edgeLengthCallback;
+        restart();
+    }
+
+    /**
+     * Function for updating webcola options.
+     * Returns a new simulation and uses the defined layout variable.
+     */
+    function updateColaLayout(){
+        let tempSimulation = cola.d3adaptor(d3)
+                         .size([width, height])
+                         .avoidOverlaps(layoutOptions.avoidOverlaps)
+                         .handleDisconnected(layoutOptions.handleDisconnected);
+        
+        switch (layoutOptions.layoutType){
+            case "jaccardLinkLengths":
+                tempSimulation = tempSimulation.jaccardLinkLengths(options.edgeLength)
+                break;
+            case "flowLayout":
+                tempSimulation = tempSimulation.flowLayout(layoutOptions.flowDirection, options.edgeLength);
+                break;
+            case "linkDistance":
+            default:
+                tempSimulation = tempSimulation.linkDistance(options.edgeLength);
+                break;
+        }
+        // Bind the nodes and links to the simulation
+        return tempSimulation.nodes(nodes)
+                            .links(links);
+                         
+    }
+
     return {
         addTriplet,
         addEdge,
@@ -494,6 +553,36 @@ export default function networkVizJS(documentId){
         setSelectNode,
         setClickAway,
         recenterGraph,
-        setEdgeStroke
+        edgeOptions: {
+            setStrokeWidth: setEdgeStroke,
+            setLength: setEdgeLength,
+            setColor: setEdgeColor
+        },
+        colaOptions: {
+            flowLayout: {
+                down: () => {
+                    layoutOptions.flowDirection = 'y';
+                    if (layoutOptions.layoutType == "flowLayout"){
+                        simulation.flowLayout(layoutOptions.flowDirection, options.edgeLength);
+                    } else {
+                        layoutOptions.layoutType = "flowLayout";
+                        simulation = updateColaLayout();
+                    }
+
+                    restart();
+                },
+                right: () => {
+                    layoutOptions.flowDirection = 'x';
+                    if (layoutOptions.layoutType == "flowLayout"){
+                        simulation.flowLayout(layoutOptions.flowDirection, options.edgeLength);
+                    } else {
+                        layoutOptions.layoutType = "flowLayout";
+                        simulation = updateColaLayout();
+                    }
+                    
+                    restart();
+                }
+            }
+        }
     }
 }
