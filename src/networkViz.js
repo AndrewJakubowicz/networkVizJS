@@ -18,7 +18,8 @@ export default function networkVizJS(documentId, userLayoutOptions = {}){
         avoidOverlaps: true,
         handleDisconnected: false,
         flowDirection: "y",
-        enableEdgeRouting: true
+        enableEdgeRouting: true,
+        nodeShape: "circle"
     }
 
     /**
@@ -175,12 +176,17 @@ export default function networkVizJS(documentId, userLayoutOptions = {}){
                     })
                     .attr("x", d => d.width / 2)
                     .attr("y", d => d.height / 2);
-
-        nodeEnter.insert("rect", "text")     // The second arg is what the rect will sit behind.
+        if (layoutOptions.nodeShape == "rect"){
+            nodeEnter.insert("rect", "text")     // The second arg is what the rect will sit behind.
                 .classed("node", true)
-                .attr("fill", d => options.nodeToColor && options.nodeToColor(d) || "red")
-                .attr("rx", 5)
-                .attr("ry", 5);
+                .attr("fill", d => options.nodeToColor && options.nodeToColor(d) || "red");
+
+        } else if (layoutOptions.nodeShape == "circle"){
+            nodeEnter.insert("circle", "text")     // The second arg is what the rect will sit behind.
+                .classed("node", true)
+                .attr("fill", d => options.nodeToColor && options.nodeToColor(d) || "red");
+        }
+        
         
         node = node.merge(nodeEnter)
 
@@ -241,6 +247,11 @@ export default function networkVizJS(documentId, userLayoutOptions = {}){
             node.select('rect')
                 .attr("width", d => d.innerBounds && d.innerBounds.width() || d.width)
                 .attr("height", d => d.innerBounds && d.innerBounds.height() || d.height);
+
+            node.select('circle')
+                .attr("r", d => (d.innerBounds && d.innerBounds.width() || d.width) / 2)
+                .attr("cx", d => (d.innerBounds && d.innerBounds.width() || d.width) / 2)
+                .attr("cy", d => (d.innerBounds && d.innerBounds.height() || d.height) / 2)
 
             link.attr("d", d => {
                 let route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
