@@ -17,7 +17,8 @@ export default function networkVizJS(documentId, userLayoutOptions = {}){
         layoutType: "flowLayout", // Define webcola length layout algorithm
         avoidOverlaps: true,
         handleDisconnected: false,
-        flowDirection: "y"
+        flowDirection: "y",
+        enableEdgeRouting: true
     }
 
     /**
@@ -219,7 +220,7 @@ export default function networkVizJS(documentId, userLayoutOptions = {}){
          * Source: https://github.com/tgdwyer/WebCola/blob/master/WebCola/examples/unix.html#L140
          */
         const routeEdges = function () {
-            if (links.length == 0) {
+            if (links.length == 0 || !layoutOptions.enableEdgeRouting) {
                 return
             }
             simulation.prepareEdgeRouting();
