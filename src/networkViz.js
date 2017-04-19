@@ -19,6 +19,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         height: 600,
         pad: 5,
         margin: 10,
+        edgeLabelText: undefined,
         // These are "live options"
         nodeToColor: undefined,
         nodeStrokeWidth: 2,
@@ -214,10 +215,13 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                    .attr("marker-end",d => `url(#arrow-${layoutOptions.edgeColor(d.edgeData)})`);
         
         /** Optional label text */
-        linkEnter.append("text")
-            .attr("text-anchor", "middle")
-            .style("font", "100 22px Helvetica Neue")
-            .text(d => d.edgeData.shortname || d.edgeData.type);
+        if (layoutOptions.edgeLabelText !== "undefined"){
+            linkEnter.append("text")
+                .attr("text-anchor", "middle")
+                .style("font", "100 22px Helvetica Neue")
+                .text(layoutOptions.edgeLabelText);
+        }
+        
 
 
         link = link.merge(linkEnter);
@@ -409,6 +413,11 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         return true
     }
 
+    /**
+     * Adds a triplet object. Adds the node if it's not already added.
+     * Otherwise it just adds the edge
+     * @param {object} tripletObject 
+     */
     function addTriplet(tripletObject){
         if (!tripletValidation(tripletObject)){
             return
@@ -610,11 +619,19 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                          .avoidOverlaps(layoutOptions.avoidOverlaps)
                          .handleDisconnected(layoutOptions.handleDisconnected);
         
+        // TODO: Work out what's up with the edge length.
         switch (layoutOptions.layoutType){
             case "jaccardLinkLengths":
+                // layoutOptions.edgeLength needs to be a number for jaccard to work.
+                if (layoutOptions.edgeLength === "undefined" || typeof layoutOptions.edgeLength !== "number"){
+                    console.error("'edgeLength' needs to be set to a number for jaccardLinkLengths to work properly")
+                }
                 tempSimulation = tempSimulation.jaccardLinkLengths(layoutOptions.edgeLength)
                 break;
             case "flowLayout":
+                if (layoutOptions.edgeLength === "undefined" || typeof layoutOptions.edgeLength !== "number"){
+                    console.error("'edgeLength' needs to be set to a number for jaccardLinkLengths to work properly")
+                }
                 tempSimulation = tempSimulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
                 break;
             case "linkDistance":
@@ -628,6 +645,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                          
     }
 
+    // Public api
     return {
         addTriplet,
         addEdge,

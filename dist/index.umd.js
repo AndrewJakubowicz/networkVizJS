@@ -33469,6 +33469,7 @@ module.exports = function networkVizJS(documentId) {
         height: 600,
         pad: 5,
         margin: 10,
+        edgeLabelText: undefined,
         // These are "live options"
         nodeToColor: undefined,
         nodeStrokeWidth: 2,
@@ -33642,9 +33643,9 @@ module.exports = function networkVizJS(documentId) {
         });
 
         /** Optional label text */
-        linkEnter.append("text").attr("text-anchor", "middle").style("font", "100 22px Helvetica Neue").text(function (d) {
-            return d.edgeData.shortname || d.edgeData.type;
-        });
+        if (layoutOptions.edgeLabelText !== "undefined") {
+            linkEnter.append("text").attr("text-anchor", "middle").style("font", "100 22px Helvetica Neue").text(layoutOptions.edgeLabelText);
+        }
 
         link = link.merge(linkEnter);
 
@@ -33849,6 +33850,11 @@ module.exports = function networkVizJS(documentId) {
         return true;
     }
 
+    /**
+     * Adds a triplet object. Adds the node if it's not already added.
+     * Otherwise it just adds the edge
+     * @param {object} tripletObject 
+     */
     function addTriplet(tripletObject) {
         if (!tripletValidation(tripletObject)) {
             return;
@@ -34062,6 +34068,7 @@ module.exports = function networkVizJS(documentId) {
         return tempSimulation.nodes(nodes).links(links);
     }
 
+    // Public api
     return {
         addTriplet: addTriplet,
         addEdge: addEdge,

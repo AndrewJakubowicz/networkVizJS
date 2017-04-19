@@ -35,14 +35,14 @@ setTimeout(() => {
  * of a node dynamically.
  */
 var graph2 = networkVizJS("exampleGraph2", {
-    layoutType: "flowLayout",
+    layoutType: "linkDistance",
     avoidOverlaps: true,
     handleDisconnected: false,
-    flowDirection: "y",
     enableEdgeRouting: false,
     nodeShape: "rect",
     width: 300,
     height: 300,
+    edgeLength: d => d.edgeData.length
 });
 
 graph2.nodeOptions.setNodeColor(d => d.color || 'white');
@@ -50,9 +50,11 @@ graph2.nodeOptions.nodeStrokeWidth(d => d.strokeWidth || 2);
 graph2.nodeOptions.nodeStrokeColor(d => d.stroke || "black");
 
 let changingNode = {hash:"changingColor", color: "red", strokeWidth: 10, stroke: "violet"};
-
-graph2.addNode([changingNode, {hash: "anotherNode"}, {hash: "more Nodes woooooo"}]);
-
+let node2 = {hash: "anotherNode"};
+let node3 = {hash: "more Nodes woooooo"};
+graph2.addNode([changingNode, node2, node3]);
+graph2.addTriplet({subject: changingNode, predicate: {type:"-", length: 200}, object: node3})
+graph2.addTriplet({subject: node3, predicate: {type:"-", length: 30}, object: node2})
 setInterval(()=> {
     changingNode.color = "green";
     changingNode.strokeWidth = 2;
