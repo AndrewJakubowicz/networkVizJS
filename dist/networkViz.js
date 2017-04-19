@@ -1,32 +1,28 @@
-"use strict";
+'use strict';
 
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-exports.default = networkVizJS;
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
-var _d = require("d3");
+var _webcola = require('webcola');
 
-var _d2 = _interopRequireDefault(_d);
+var cola = _interopRequireWildcard(_webcola);
 
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+var _d = require('d3');
+
+var d3 = _interopRequireWildcard(_d);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
-/**
- * A graph is just a large object with endpoints that
- * can be pressed with side effects.
- */
-var cola = require("webcola");
-var levelgraph = require("levelgraph");
-var level = require("level-browserify");
+var levelgraph = require('levelgraph');
+var level = require('level-browserify');
 
-function networkVizJS(documentId) {
+module.exports = function networkVizJS(documentId) {
     var userLayoutOptions = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
 
     /**
-     * Default options for webcola
+     * Default options for webcola and graph
      */
     var defaultLayoutOptions = {
         layoutType: "flowLayout", // Define webcola length layout algorithm
@@ -34,30 +30,15 @@ function networkVizJS(documentId) {
         handleDisconnected: false,
         flowDirection: "y",
         enableEdgeRouting: true,
-        nodeShape: "circle"
-    };
-
-    /**
-     * This creates the default object, and then overwrites any parameters
-     * with the user parameters.
-     */
-    // let layoutOptions = {
-    //     ...defaultLayoutOptions,
-    //     ...userLayoutOptions
-    // }
-    var layoutOptions = defaultLayoutOptions;
-
-    if (typeof documentId !== "string" || documentId === "") {
-        throw new Error("Document Id passed into graph isn't a string.");
-    }
-
-    /**
-     *  Options
-     * TODO: wrap validation on each of the settings
-     */
-    var options = {
-        // Set this as a function that transforms the node -> color string
+        nodeShape: "rect",
+        width: 900,
+        height: 600,
+        pad: 5,
+        margin: 10,
+        // These are "live options"
         nodeToColor: undefined,
+        nodeStrokeWidth: 2,
+        nodeStrokeColor: "black",
         clickNode: function clickNode(node) {
             return console.log("clicked", node);
         },
@@ -69,36 +50,46 @@ function networkVizJS(documentId) {
         },
         edgeStroke: undefined,
         edgeLength: function edgeLength(d) {
-            console.log("length", d);return 150;
+            console.log('length', d);return 150;
         }
     };
+
+    /**
+     * This creates the default object, and then overwrites any parameters
+     * with the user parameters.
+     */
+    var layoutOptions = _extends({}, defaultLayoutOptions, userLayoutOptions);
+
+    if (typeof documentId !== "string" || documentId === "") {
+        throw new Error("Document Id passed into graph isn't a string.");
+    }
 
     /**
      * nodeMap allows hash lookup of nodes.
      */
     var nodeMap = new Map();
     var predicateTypeToColorMap = new Map();
-    var tripletsDB = levelgraph(level("Userdb-" + Math.random() * 100));
+    var tripletsDB = levelgraph(level('Userdb-' + Math.random() * 100));
     var nodes = [];
     var links = [];
     var mouseCoordinates = [0, 0];
 
-    var width = 900,
-        height = 600,
-        margin = 10,
-        pad = 12;
+    var width = layoutOptions.width,
+        height = layoutOptions.height,
+        margin = layoutOptions.margin,
+        pad = layoutOptions.pad;
 
     // Here we are creating a responsive svg element.
-    var svg = _d2.default.select("#" + documentId).append("div").classed("svg-container", true).append("svg").attr("preserveAspectRatio", "xMinYMin meet").attr("viewBox", "0 0 " + width + " " + height).classed("svg-content-responsive", true);
+    var svg = d3.select('#' + documentId).append("div").classed("svg-container", true).append("svg").attr("preserveAspectRatio", "xMinYMin meet").attr("viewBox", '0 0 ' + width + ' ' + height).classed("svg-content-responsive", true);
 
     /**
      * Keep track of the mouse.
      */
     svg.on("mousemove", function () {
-        mouseCoordinates = _d2.default.mouse(this);
+        mouseCoordinates = d3.mouse(this);
     });
     svg.on("click", function () {
-        options.clickAway();
+        layoutOptions.clickAway();
     });
 
     /**
@@ -121,7 +112,7 @@ function networkVizJS(documentId) {
      * @param {string} color valid css color string
      */
     var createColorMarker = function createColorMarker(definitionElement, color) {
-        definitionElement.append("marker").attr("id", "arrow-" + color).attr("viewBox", "0 -5 10 10").attr("refX", 8).attr("markerWidth", 6).attr("markerHeight", 6).attr("fill", color).attr("orient", "auto").append("path").attr("d", "M0,-5L10,0L0,5").attr("class", "arrowHead");
+        definitionElement.append("marker").attr("id", 'arrow-' + color).attr("viewBox", "0 -5 10 10").attr("refX", 8).attr("markerWidth", 6).attr("markerHeight", 6).attr("fill", color).attr("orient", "auto").append("path").attr("d", "M0,-5L10,0L0,5").attr("class", "arrowHead");
     };
 
     // Define svg groups
@@ -132,11 +123,11 @@ function networkVizJS(documentId) {
     /**
      * Add zoom/panning behaviour to svg.
      */
-    var zoom = _d2.default.zoom().scaleExtent([0.1, 5]).on("zoom", zoomed);
+    var zoom = d3.zoom().scaleExtent([0.1, 5]).on("zoom", zoomed);
     svg.call(zoom);
     function zoomed() {
-        options.clickAway();
-        g.attr("transform", _d2.default.event.transform);
+        layoutOptions.clickAway();
+        g.attr("transform", d3.event.transform);
     }
 
     /**
@@ -151,9 +142,7 @@ function networkVizJS(documentId) {
             return d.index;
         });
         node.exit().remove();
-        var nodeEnter = node.enter().append("g").each(function (d) {
-            d.createMargin = false;
-        }).classed("node", true).attr("cursor", "move").call(simulation.drag);
+        var nodeEnter = node.enter().append("g").classed("node", true).attr("cursor", "move").call(simulation.drag);
 
         // Here we add node beauty.
         // To fit nodes to the short-name calculate BBox
@@ -161,38 +150,44 @@ function networkVizJS(documentId) {
         var text = nodeEnter.append("text").attr("dx", -10).attr("dy", -2).attr("text-anchor", "middle").style("font", "100 22px Helvetica Neue").text(function (d) {
             return d.shortname || d.hash;
         }).each(function (d) {
-            if (d.createMargin) {
-                return;
-            }
             var b = this.getBBox();
             var extra = 2 * margin + 2 * pad;
             d.width = b.width + extra;
             d.height = b.height + extra;
-            d.createMargin = !d.createMargin;
         }).attr("x", function (d) {
             return d.width / 2;
         }).attr("y", function (d) {
             return d.height / 2;
         });
         // Choose the node shape and style.
+        var nodeShape = void 0;
         if (layoutOptions.nodeShape == "rect") {
-            nodeEnter.insert("rect", "text"); // The second arg is what the rect will sit behind.
+            nodeShape = nodeEnter.insert("rect", "text"); // The second arg is what the rect will sit behind.
         } else if (layoutOptions.nodeShape == "circle") {
-            nodeEnter.insert("circle", "text"); // The second arg is what the rect will sit behind.
+            nodeShape = nodeEnter.insert("circle", "text"); // The second arg is what the rect will sit behind.
         }
-        nodeEnter.classed("node", true).attr("fill", function (d) {
-            return options.nodeToColor && options.nodeToColor(d) || "aqua";
-        });
+        nodeShape.classed("node", true);
 
+        // Merge the entered nodes to the update nodes.        
         node = node.merge(nodeEnter);
 
+        /**
+         * Here we can update node properties that have already been attached.
+         * When restart() is called, these are the properties that will be affected
+         * by mutation.
+         */
+        var updateShapes = node.select('rect').merge(node.select('circle'));
+        // These changes apply to both rect and circle
+        updateShapes.attr("fill", function (d) {
+            return layoutOptions.nodeToColor && layoutOptions.nodeToColor(d) || "aqua";
+        }).attr("stroke", layoutOptions.nodeStrokeColor).attr("stroke-width", layoutOptions.nodeStrokeWidth);
         /**
          * Rebind the handlers on the nodes.
          */
         node.on('click', function (node) {
             // coordinates is a tuple: [x,y]
             setTimeout(function () {
-                options.clickNode(node, mouseCoordinates);
+                layoutOptions.clickNode(node, mouseCoordinates);
             }, 50);
         });
 
@@ -203,17 +198,17 @@ function networkVizJS(documentId) {
         link.exit().remove();
 
         link = link.enter().append("path").attr("class", "line").attr("stroke-width", function (d) {
-            return options.edgeStroke && options.edgeStroke(d) || 2;
+            return layoutOptions.edgeStroke && layoutOptions.edgeStroke(d) || 2;
         }).attr("stroke", function (d) {
-            return options.edgeColor(d.edgeData);
+            return layoutOptions.edgeColor(d.edgeData);
         }).attr("fill", "none").attr("marker-end", function (d) {
-            return "url(#arrow-" + options.edgeColor(d.edgeData) + ")";
+            return 'url(#arrow-' + layoutOptions.edgeColor(d.edgeData) + ')';
         }).merge(link);
 
         /**
          * Helper function for drawing the lines.
          */
-        var lineFunction = _d2.default.line().x(function (d) {
+        var lineFunction = d3.line().x(function (d) {
             return d.x;
         }).y(function (d) {
             return d.y;
@@ -243,14 +238,17 @@ function networkVizJS(documentId) {
                     d.innerBounds = d.bounds.inflate(-margin);
                 }
             }).attr("transform", function (d) {
-                return d.innerBounds ? "translate(" + d.innerBounds.x + "," + d.innerBounds.y + ")" : "translate(" + d.x + "," + d.y + ")";
+                return d.innerBounds ? 'translate(' + d.innerBounds.x + ',' + d.innerBounds.y + ')' : 'translate(' + d.x + ',' + d.y + ')';
             });
+            /**
+             * Update the width and height here because otherwise the height and width
+             * calculations don't occur.
+             */
             node.select('rect').attr("width", function (d) {
                 return d.innerBounds && d.innerBounds.width() || d.width;
             }).attr("height", function (d) {
                 return d.innerBounds && d.innerBounds.height() || d.height;
             });
-
             node.select('circle').attr("r", function (d) {
                 return (d.innerBounds && d.innerBounds.width() || d.width) / 2;
             }).attr("cx", function (d) {
@@ -370,11 +368,11 @@ function networkVizJS(documentId) {
          * If a predicate type already has a color,
          * it is not redefined.
          */
-        if (!predicateTypeToColorMap.has(options.edgeColor(predicate))) {
-            predicateTypeToColorMap.set(options.edgeColor(predicate), true);
+        if (!predicateTypeToColorMap.has(layoutOptions.edgeColor(predicate))) {
+            predicateTypeToColorMap.set(layoutOptions.edgeColor(predicate), true);
 
             // Create an arrow head for the new color
-            createColorMarker(defs, options.edgeColor(predicate));
+            createColorMarker(defs, layoutOptions.edgeColor(predicate));
         }
 
         /**
@@ -487,7 +485,13 @@ function networkVizJS(documentId) {
     }
 
     function setNodeToColor(nodeToColorFunc) {
-        options.nodeToColor = nodeToColorFunc;
+        layoutOptions.nodeToColor = nodeToColorFunc;
+    }
+    function nodeStrokeWidth(nodeStrokeWidthFunc) {
+        layoutOptions.nodeStrokeWidth = nodeStrokeWidthFunc;
+    }
+    function nodeStrokeColor(nodeStrokeColor) {
+        layoutOptions.nodeStrokeColor = nodeStrokeColor;
     }
 
     /**
@@ -495,14 +499,14 @@ function networkVizJS(documentId) {
      * @param {function} selectNodeFunc 
      */
     function setSelectNode(selectNodeFunc) {
-        options.clickNode = selectNodeFunc;
+        layoutOptions.clickNode = selectNodeFunc;
     }
 
     /**
      * Invoking this function will recenter the graph.
      */
     function recenterGraph() {
-        svg.transition().duration(300).call(zoom.transform, _d2.default.zoomIdentity.translate(0, 0).scale(1));
+        svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity.translate(0, 0).scale(1));
     }
 
     /**
@@ -510,7 +514,7 @@ function networkVizJS(documentId) {
      * @param {function} clickAwayCallback 
      */
     function setClickAway(clickAwayCallback) {
-        options.clickAway = clickAwayCallback;
+        layoutOptions.clickAway = clickAwayCallback;
     }
 
     /**
@@ -518,7 +522,7 @@ function networkVizJS(documentId) {
      * @param {function} edgeColorCallback takes string 'predicate.type' to a color.
      */
     function setEdgeColor(edgeColorCallback) {
-        options.edgeColor = edgeColorCallback;
+        layoutOptions.edgeColor = edgeColorCallback;
     }
 
     /**
@@ -527,7 +531,7 @@ function networkVizJS(documentId) {
      * @param {function} edgeStrokeCallback 
      */
     function setEdgeStroke(edgeStrokeCallback) {
-        options.edgeStroke = edgeStrokeCallback;
+        layoutOptions.edgeStroke = edgeStrokeCallback;
     }
 
     /**
@@ -537,7 +541,7 @@ function networkVizJS(documentId) {
      * This will become the min length.
      */
     function setEdgeLength(edgeLengthCallback) {
-        options.edgeLength = edgeLengthCallback;
+        layoutOptions.edgeLength = edgeLengthCallback;
         restart();
     }
 
@@ -546,18 +550,18 @@ function networkVizJS(documentId) {
      * Returns a new simulation and uses the defined layout variable.
      */
     function updateColaLayout() {
-        var tempSimulation = cola.d3adaptor(_d2.default).size([width, height]).avoidOverlaps(layoutOptions.avoidOverlaps).handleDisconnected(layoutOptions.handleDisconnected);
+        var tempSimulation = cola.d3adaptor(d3).size([width, height]).avoidOverlaps(layoutOptions.avoidOverlaps).handleDisconnected(layoutOptions.handleDisconnected);
 
         switch (layoutOptions.layoutType) {
             case "jaccardLinkLengths":
-                tempSimulation = tempSimulation.jaccardLinkLengths(options.edgeLength);
+                tempSimulation = tempSimulation.jaccardLinkLengths(layoutOptions.edgeLength);
                 break;
             case "flowLayout":
-                tempSimulation = tempSimulation.flowLayout(layoutOptions.flowDirection, options.edgeLength);
+                tempSimulation = tempSimulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
                 break;
             case "linkDistance":
             default:
-                tempSimulation = tempSimulation.linkDistance(options.edgeLength);
+                tempSimulation = tempSimulation.linkDistance(layoutOptions.edgeLength);
                 break;
         }
         // Bind the nodes and links to the simulation
@@ -569,10 +573,14 @@ function networkVizJS(documentId) {
         addEdge: addEdge,
         removeNode: removeNode,
         addNode: addNode,
-        setNodeToColor: setNodeToColor,
-        setSelectNode: setSelectNode,
         setClickAway: setClickAway,
         recenterGraph: recenterGraph,
+        restart: restart,
+        nodeOptions: {
+            setNodeColor: setNodeToColor,
+            nodeStrokeWidth: nodeStrokeWidth,
+            nodeStrokeColor: nodeStrokeColor
+        },
         edgeOptions: {
             setStrokeWidth: setEdgeStroke,
             setLength: setEdgeLength,
@@ -583,7 +591,7 @@ function networkVizJS(documentId) {
                 down: function down() {
                     layoutOptions.flowDirection = 'y';
                     if (layoutOptions.layoutType == "flowLayout") {
-                        simulation.flowLayout(layoutOptions.flowDirection, options.edgeLength);
+                        simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
                     } else {
                         layoutOptions.layoutType = "flowLayout";
                         simulation = updateColaLayout();
@@ -594,7 +602,7 @@ function networkVizJS(documentId) {
                 right: function right() {
                     layoutOptions.flowDirection = 'x';
                     if (layoutOptions.layoutType == "flowLayout") {
-                        simulation.flowLayout(layoutOptions.flowDirection, options.edgeLength);
+                        simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
                     } else {
                         layoutOptions.layoutType = "flowLayout";
                         simulation = updateColaLayout();
@@ -605,4 +613,4 @@ function networkVizJS(documentId) {
             }
         }
     };
-}
+};

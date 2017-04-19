@@ -6,7 +6,7 @@ let level = require('level-browserify');
 module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
 
     /**
-     * Default options for webcola
+     * Default options for webcola and graph
      */
     let defaultLayoutOptions = {
         layoutType: "flowLayout", // Define webcola length layout algorithm
@@ -14,7 +14,20 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         handleDisconnected: false,
         flowDirection: "y",
         enableEdgeRouting: true,
-        nodeShape: "rect"
+        nodeShape: "rect",
+        width: 900,
+        height: 600,
+        pad: 5,
+        margin: 10,
+        // These are "live options"
+        nodeToColor: undefined,
+        nodeStrokeWidth: 2,
+        nodeStrokeColor: "black",
+        clickNode: (node) => console.log("clicked", node),
+        clickAway: () => console.log("clicked away from stuff"),
+        edgeColor: () => "black",
+        edgeStroke: undefined,
+        edgeLength: d => {console.log(`length`, d); return 150}
     }
 
     /**
@@ -32,20 +45,6 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
     }
 
     /**
-     *  Options
-     * TODO: wrap validation on each of the settings
-     */
-    let options = {
-        // Set this as a function that transforms the node -> color string
-        nodeToColor: undefined,
-        clickNode: (node) => console.log("clicked", node),
-        clickAway: () => console.log("clicked away from stuff"),
-        edgeColor: () => "black",
-        edgeStroke: undefined,
-        edgeLength: d => {console.log(`length`, d); return 150}
-    }
-
-    /**
      * nodeMap allows hash lookup of nodes.
      */
     let nodeMap = new Map();
@@ -55,10 +54,10 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
     let links = [];
     let mouseCoordinates = [0, 0]
 
-    const width = 900,
-          height = 600,
-          margin = 10,
-          pad = 12;
+    const width = layoutOptions.width,
+          height = layoutOptions.height,
+          margin = layoutOptions.margin,
+          pad = layoutOptions.pad;
     
     // Here we are creating a responsive svg element.
     let svg = d3.select(`#${documentId}`)
@@ -76,7 +75,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         mouseCoordinates = d3.mouse(this)
     })
     svg.on("click", () => {
-        options.clickAway();
+        layoutOptions.clickAway();
     })
 
     /**
@@ -125,7 +124,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
     let zoom = d3.zoom().scaleExtent([0.1, 5]).on("zoom", zoomed);
     svg.call(zoom);
     function zoomed() {
-        options.clickAway();
+        layoutOptions.clickAway();
         g.attr("transform", d3.event.transform);
     }
     
@@ -143,7 +142,6 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         node.exit().remove();
         let nodeEnter = node.enter()
                    .append("g")
-                   .each(d => {d.createMargin = false})
                    .classed("node", true)
                    .attr("cursor", "move")
                    .call(simulation.drag);
@@ -159,14 +157,10 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                     .style("font", "100 22px Helvetica Neue")
                     .text(d => d.shortname || d.hash)
                     .each(function(d){
-                        if (d.createMargin){
-                            return
-                        }
                         const b = this.getBBox();
                         const extra = 2 * margin + 2 * pad;
                         d.width = b.width + extra;
                         d.height = b.height + extra;
-                        d.createMargin = !d.createMargin;
                     })
                     .attr("x", d => d.width / 2)
                     .attr("y", d => d.height / 2);
@@ -178,18 +172,28 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
             nodeShape = nodeEnter.insert("circle", "text")     // The second arg is what the rect will sit behind.
         }
         nodeShape.classed("node", true)
-                .attr("fill", d => options.nodeToColor && options.nodeToColor(d) || "aqua");
         
-        
-        node = node.merge(nodeEnter)
+        // Merge the entered nodes to the update nodes.        
+        node = node.merge(nodeEnter);
 
+        /**
+         * Here we can update node properties that have already been attached.
+         * When restart() is called, these are the properties that will be affected
+         * by mutation.
+         */  
+        let updateShapes = node.select('rect').merge(node.select('circle'))
+        // These changes apply to both rect and circle
+        updateShapes
+                .attr("fill", d => layoutOptions.nodeToColor && layoutOptions.nodeToColor(d) || "aqua")
+                .attr("stroke", layoutOptions.nodeStrokeColor)
+                .attr("stroke-width", layoutOptions.nodeStrokeWidth)
         /**
          * Rebind the handlers on the nodes.
          */
         node.on('click', function(node) {
             // coordinates is a tuple: [x,y]
             setTimeout(() => {
-                options.clickNode(node, mouseCoordinates)
+                layoutOptions.clickNode(node, mouseCoordinates)
             }, 50)
             
         })
@@ -201,10 +205,10 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         link = link.enter()
                    .append("path")
                    .attr("class", "line")
-                   .attr("stroke-width", d => options.edgeStroke && options.edgeStroke(d) || 2)
-                   .attr("stroke", d => options.edgeColor(d.edgeData))
+                   .attr("stroke-width", d => layoutOptions.edgeStroke && layoutOptions.edgeStroke(d) || 2)
+                   .attr("stroke", d => layoutOptions.edgeColor(d.edgeData))
                    .attr("fill", "none")
-                   .attr("marker-end",d => `url(#arrow-${options.edgeColor(d.edgeData)})`)
+                   .attr("marker-end",d => `url(#arrow-${layoutOptions.edgeColor(d.edgeData)})`)
                    .merge(link);
         
         /**
@@ -237,14 +241,18 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                 .attr("transform", d => d.innerBounds ?
                     `translate(${d.innerBounds.x},${d.innerBounds.y})`
                     :`translate(${d.x},${d.y})`);
+            /**
+             * Update the width and height here because otherwise the height and width
+             * calculations don't occur.
+             */
             node.select('rect')
                 .attr("width", d => d.innerBounds && d.innerBounds.width() || d.width)
                 .attr("height", d => d.innerBounds && d.innerBounds.height() || d.height);
-
             node.select('circle')
                 .attr("r", d => (d.innerBounds && d.innerBounds.width() || d.width) / 2)
                 .attr("cx", d => (d.innerBounds && d.innerBounds.width() || d.width) / 2)
                 .attr("cy", d => (d.innerBounds && d.innerBounds.height() || d.height) / 2)
+                
 
             link.attr("d", d => {
                 let route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
@@ -350,11 +358,11 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
          * If a predicate type already has a color,
          * it is not redefined.
          */
-        if (!predicateTypeToColorMap.has(options.edgeColor(predicate))){
-            predicateTypeToColorMap.set(options.edgeColor(predicate), true);
+        if (!predicateTypeToColorMap.has(layoutOptions.edgeColor(predicate))){
+            predicateTypeToColorMap.set(layoutOptions.edgeColor(predicate), true);
 
             // Create an arrow head for the new color
-            createColorMarker(defs, options.edgeColor(predicate));
+            createColorMarker(defs, layoutOptions.edgeColor(predicate));
         }
 
         /**
@@ -467,15 +475,22 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
     }
 
     function setNodeToColor(nodeToColorFunc){
-        options.nodeToColor = nodeToColorFunc;
+        layoutOptions.nodeToColor = nodeToColorFunc;
     }
+    function nodeStrokeWidth(nodeStrokeWidthFunc){
+        layoutOptions.nodeStrokeWidth = nodeStrokeWidthFunc;
+    }
+    function nodeStrokeColor(nodeStrokeColor){
+        layoutOptions.nodeStrokeColor = nodeStrokeColor;
+    }
+    
 
     /**
      * Function that fires when a node is clicked.
      * @param {function} selectNodeFunc 
      */
     function setSelectNode(selectNodeFunc){
-        options.clickNode = selectNodeFunc;
+        layoutOptions.clickNode = selectNodeFunc;
     }
 
     /**
@@ -490,7 +505,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
      * @param {function} clickAwayCallback 
      */
     function setClickAway(clickAwayCallback){
-        options.clickAway = clickAwayCallback;
+        layoutOptions.clickAway = clickAwayCallback;
     }
 
     /**
@@ -498,7 +513,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
      * @param {function} edgeColorCallback takes string 'predicate.type' to a color.
      */
     function setEdgeColor(edgeColorCallback){
-        options.edgeColor = edgeColorCallback;
+        layoutOptions.edgeColor = edgeColorCallback;
     }
 
     /**
@@ -507,7 +522,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
      * @param {function} edgeStrokeCallback 
      */
     function setEdgeStroke(edgeStrokeCallback){
-        options.edgeStroke = edgeStrokeCallback;
+        layoutOptions.edgeStroke = edgeStrokeCallback;
     }
 
     /**
@@ -517,7 +532,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
      * This will become the min length.
      */
     function setEdgeLength(edgeLengthCallback){
-        options.edgeLength = edgeLengthCallback;
+        layoutOptions.edgeLength = edgeLengthCallback;
         restart();
     }
 
@@ -533,14 +548,14 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         
         switch (layoutOptions.layoutType){
             case "jaccardLinkLengths":
-                tempSimulation = tempSimulation.jaccardLinkLengths(options.edgeLength)
+                tempSimulation = tempSimulation.jaccardLinkLengths(layoutOptions.edgeLength)
                 break;
             case "flowLayout":
-                tempSimulation = tempSimulation.flowLayout(layoutOptions.flowDirection, options.edgeLength);
+                tempSimulation = tempSimulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
                 break;
             case "linkDistance":
             default:
-                tempSimulation = tempSimulation.linkDistance(options.edgeLength);
+                tempSimulation = tempSimulation.linkDistance(layoutOptions.edgeLength);
                 break;
         }
         // Bind the nodes and links to the simulation
@@ -554,10 +569,14 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         addEdge,
         removeNode,
         addNode,
-        setNodeToColor,
-        setSelectNode,
         setClickAway,
         recenterGraph,
+        restart,
+        nodeOptions: {
+            setNodeColor: setNodeToColor,
+            nodeStrokeWidth,
+            nodeStrokeColor,
+        },
         edgeOptions: {
             setStrokeWidth: setEdgeStroke,
             setLength: setEdgeLength,
@@ -568,7 +587,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                 down: () => {
                     layoutOptions.flowDirection = 'y';
                     if (layoutOptions.layoutType == "flowLayout"){
-                        simulation.flowLayout(layoutOptions.flowDirection, options.edgeLength);
+                        simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
                     } else {
                         layoutOptions.layoutType = "flowLayout";
                         simulation = updateColaLayout();
@@ -579,7 +598,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                 right: () => {
                     layoutOptions.flowDirection = 'x';
                     if (layoutOptions.layoutType == "flowLayout"){
-                        simulation.flowLayout(layoutOptions.flowDirection, options.edgeLength);
+                        simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
                     } else {
                         layoutOptions.layoutType = "flowLayout";
                         simulation = updateColaLayout();
