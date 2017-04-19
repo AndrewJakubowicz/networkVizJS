@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 
+ - Verification for cola layout
+ - Limited restart to styles only
  - Label text for edges with routing
  - Node graph mutation (stroke, stroke-width, fill)
  - Added npm build scripts

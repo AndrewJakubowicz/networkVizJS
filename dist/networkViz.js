@@ -134,11 +134,9 @@ module.exports = function networkVizJS(documentId) {
     }
 
     /**
-     * restart function adds and removes nodes.
-     * It also restarts the simulation.
-     * This is where aesthetics can be changed.
+     * This updates the d3 visuals without restarting the layout.
      */
-    function restart() {
+    function updateStyles() {
         /////// NODE ///////
 
         node = node.data(nodes, function (d) {
@@ -216,7 +214,15 @@ module.exports = function networkVizJS(documentId) {
         }
 
         link = link.merge(linkEnter);
+    }
 
+    /**
+     * restart function adds and removes nodes.
+     * It also restarts the simulation.
+     * This is where aesthetics can be changed.
+     */
+    function restart() {
+        updateStyles();
         /**
          * Helper function for drawing the lines.
          */
@@ -620,11 +626,19 @@ module.exports = function networkVizJS(documentId) {
     function updateColaLayout() {
         var tempSimulation = cola.d3adaptor(d3).size([width, height]).avoidOverlaps(layoutOptions.avoidOverlaps).handleDisconnected(layoutOptions.handleDisconnected);
 
+        // TODO: Work out what's up with the edge length.
         switch (layoutOptions.layoutType) {
             case "jaccardLinkLengths":
+                // layoutOptions.edgeLength needs to be a number for jaccard to work.
+                if (layoutOptions.edgeLength === "undefined" || typeof layoutOptions.edgeLength !== "number") {
+                    console.error("'edgeLength' needs to be set to a number for jaccardLinkLengths to work properly");
+                }
                 tempSimulation = tempSimulation.jaccardLinkLengths(layoutOptions.edgeLength);
                 break;
             case "flowLayout":
+                if (layoutOptions.edgeLength === "undefined" || !(typeof layoutOptions.edgeLength === "number" || typeof layoutOptions.edgeLength === "function")) {
+                    console.error("'edgeLength' needs to be set to a number or function for flowLayout to work properly");
+                }
                 tempSimulation = tempSimulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
                 break;
             case "linkDistance":
@@ -644,7 +658,7 @@ module.exports = function networkVizJS(documentId) {
         addNode: addNode,
         setClickAway: setClickAway,
         recenterGraph: recenterGraph,
-        restart: restart,
+        restart: updateStyles,
         nodeOptions: {
             setNodeColor: setNodeToColor,
             nodeStrokeWidth: nodeStrokeWidth,

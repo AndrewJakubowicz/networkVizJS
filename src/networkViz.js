@@ -129,14 +129,10 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         g.attr("transform", d3.event.transform);
     }
     
-
-
     /**
-     * restart function adds and removes nodes.
-     * It also restarts the simulation.
-     * This is where aesthetics can be changed.
+     * This updates the d3 visuals without restarting the layout.
      */
-    function restart(){
+    function updateStyles(){
         /////// NODE ///////
 
         node = node.data(nodes, d => d.index);
@@ -225,7 +221,15 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
 
 
         link = link.merge(linkEnter);
-        
+    }
+
+    /**
+     * restart function adds and removes nodes.
+     * It also restarts the simulation.
+     * This is where aesthetics can be changed.
+     */
+    function restart(){
+        updateStyles();
         /**
          * Helper function for drawing the lines.
          */
@@ -629,8 +633,8 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                 tempSimulation = tempSimulation.jaccardLinkLengths(layoutOptions.edgeLength)
                 break;
             case "flowLayout":
-                if (layoutOptions.edgeLength === "undefined" || typeof layoutOptions.edgeLength !== "number"){
-                    console.error("'edgeLength' needs to be set to a number for jaccardLinkLengths to work properly")
+                if (layoutOptions.edgeLength === "undefined" || !(typeof layoutOptions.edgeLength === "number" || typeof layoutOptions.edgeLength === "function")){
+                    console.error("'edgeLength' needs to be set to a number or function for flowLayout to work properly")
                 }
                 tempSimulation = tempSimulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
                 break;
@@ -653,7 +657,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         addNode,
         setClickAway,
         recenterGraph,
-        restart,
+        restart: updateStyles,
         nodeOptions: {
             setNodeColor: setNodeToColor,
             nodeStrokeWidth,

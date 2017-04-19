@@ -1,9 +1,11 @@
 /** networkVizJS is already defined on the webpage */
-var graph1 = networkVizJS("exampleGraph1")
+var graph1 = networkVizJS("exampleGraph1", {
+    edgeLength: ({edgeData}) => edgeData.length,
+    edgeLabelText: ({edgeData}) => edgeData.type
+})
 
 graph1.edgeOptions.setStrokeWidth(d => d.edgeData.width);
 graph1.edgeOptions.setColor(predicate => {console.log(predicate); return "green"})
-graph1.edgeOptions.setLength(({edgeData}) => edgeData.length)
 
 setTimeout(() => {
     graph1.addNode({hash:"testNode1"})
