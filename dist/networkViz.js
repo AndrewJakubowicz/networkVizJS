@@ -174,17 +174,15 @@ function networkVizJS(documentId) {
         }).attr("y", function (d) {
             return d.height / 2;
         });
+        // Choose the node shape and style.
         if (layoutOptions.nodeShape == "rect") {
-            nodeEnter.insert("rect", "text") // The second arg is what the rect will sit behind.
-            .classed("node", true).attr("fill", function (d) {
-                return options.nodeToColor && options.nodeToColor(d) || "red";
-            });
+            nodeEnter.insert("rect", "text"); // The second arg is what the rect will sit behind.
         } else if (layoutOptions.nodeShape == "circle") {
-            nodeEnter.insert("circle", "text") // The second arg is what the rect will sit behind.
-            .classed("node", true).attr("fill", function (d) {
-                return options.nodeToColor && options.nodeToColor(d) || "red";
-            });
+            nodeEnter.insert("circle", "text"); // The second arg is what the rect will sit behind.
         }
+        nodeEnter.classed("node", true).attr("fill", function (d) {
+            return options.nodeToColor && options.nodeToColor(d) || "aqua";
+        });
 
         node = node.merge(nodeEnter);
 

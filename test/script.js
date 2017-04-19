@@ -1,5 +1,5 @@
 /** networkVizJS is already defined on the webpage */
-var graph = networkVizJS.default("exampleGraph")
+var graph = networkVizJS("exampleGraph")
 
 graph.edgeOptions.setStrokeWidth(d => d.edgeData.width);
 graph.edgeOptions.setColor(predicate => {console.log(predicate); return "green"})

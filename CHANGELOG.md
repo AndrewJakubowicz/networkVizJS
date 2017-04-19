@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 
+ - Added npm build scripts
+ - Added userOptions on initialization
  - Added UMD library definition (full d3 at the moment)
  - Add options for different webcola options (flowLayout, jaccardLinkLength)
  - Add options for circles/rect graphs

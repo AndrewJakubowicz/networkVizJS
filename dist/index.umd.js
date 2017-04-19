@@ -33432,23 +33432,24 @@ function extend() {
 "use strict";
 
 
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-exports.default = networkVizJS;
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+var _webcola = __webpack_require__(64);
+
+var cola = _interopRequireWildcard(_webcola);
+
+var _d = __webpack_require__(61);
+
+var d3 = _interopRequireWildcard(_d);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
-/**
- * A graph is just a large object with endpoints that
- * can be pressed with side effects.
- */
-var d3 = __webpack_require__(61);
-var cola = __webpack_require__(64);
 var levelgraph = __webpack_require__(63);
 var level = __webpack_require__(62);
 
-function networkVizJS(documentId) {
+module.exports = function networkVizJS(documentId) {
     var userLayoutOptions = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
 
@@ -33461,18 +33462,14 @@ function networkVizJS(documentId) {
         handleDisconnected: false,
         flowDirection: "y",
         enableEdgeRouting: true,
-        nodeShape: "circle"
+        nodeShape: "rect"
     };
 
     /**
      * This creates the default object, and then overwrites any parameters
      * with the user parameters.
      */
-    // let layoutOptions = {
-    //     ...defaultLayoutOptions,
-    //     ...userLayoutOptions
-    // }
-    var layoutOptions = defaultLayoutOptions;
+    var layoutOptions = _extends({}, defaultLayoutOptions, userLayoutOptions);
 
     if (typeof documentId !== "string" || documentId === "") {
         throw new Error("Document Id passed into graph isn't a string.");
@@ -33496,7 +33493,7 @@ function networkVizJS(documentId) {
         },
         edgeStroke: undefined,
         edgeLength: function edgeLength(d) {
-            console.log("length", d);return 150;
+            console.log('length', d);return 150;
         }
     };
 
@@ -33505,7 +33502,7 @@ function networkVizJS(documentId) {
      */
     var nodeMap = new Map();
     var predicateTypeToColorMap = new Map();
-    var tripletsDB = levelgraph(level("Userdb-" + Math.random() * 100));
+    var tripletsDB = levelgraph(level('Userdb-' + Math.random() * 100));
     var nodes = [];
     var links = [];
     var mouseCoordinates = [0, 0];
@@ -33516,7 +33513,7 @@ function networkVizJS(documentId) {
         pad = 12;
 
     // Here we are creating a responsive svg element.
-    var svg = d3.select("#" + documentId).append("div").classed("svg-container", true).append("svg").attr("preserveAspectRatio", "xMinYMin meet").attr("viewBox", "0 0 " + width + " " + height).classed("svg-content-responsive", true);
+    var svg = d3.select('#' + documentId).append("div").classed("svg-container", true).append("svg").attr("preserveAspectRatio", "xMinYMin meet").attr("viewBox", '0 0 ' + width + ' ' + height).classed("svg-content-responsive", true);
 
     /**
      * Keep track of the mouse.
@@ -33548,7 +33545,7 @@ function networkVizJS(documentId) {
      * @param {string} color valid css color string
      */
     var createColorMarker = function createColorMarker(definitionElement, color) {
-        definitionElement.append("marker").attr("id", "arrow-" + color).attr("viewBox", "0 -5 10 10").attr("refX", 8).attr("markerWidth", 6).attr("markerHeight", 6).attr("fill", color).attr("orient", "auto").append("path").attr("d", "M0,-5L10,0L0,5").attr("class", "arrowHead");
+        definitionElement.append("marker").attr("id", 'arrow-' + color).attr("viewBox", "0 -5 10 10").attr("refX", 8).attr("markerWidth", 6).attr("markerHeight", 6).attr("fill", color).attr("orient", "auto").append("path").attr("d", "M0,-5L10,0L0,5").attr("class", "arrowHead");
     };
 
     // Define svg groups
@@ -33601,17 +33598,16 @@ function networkVizJS(documentId) {
         }).attr("y", function (d) {
             return d.height / 2;
         });
+        // Choose the node shape and style.
+        var nodeShape = void 0;
         if (layoutOptions.nodeShape == "rect") {
-            nodeEnter.insert("rect", "text") // The second arg is what the rect will sit behind.
-            .classed("node", true).attr("fill", function (d) {
-                return options.nodeToColor && options.nodeToColor(d) || "red";
-            });
+            nodeShape = nodeEnter.insert("rect", "text"); // The second arg is what the rect will sit behind.
         } else if (layoutOptions.nodeShape == "circle") {
-            nodeEnter.insert("circle", "text") // The second arg is what the rect will sit behind.
-            .classed("node", true).attr("fill", function (d) {
-                return options.nodeToColor && options.nodeToColor(d) || "red";
-            });
+            nodeShape = nodeEnter.insert("circle", "text"); // The second arg is what the rect will sit behind.
         }
+        nodeShape.classed("node", true).attr("fill", function (d) {
+            return options.nodeToColor && options.nodeToColor(d) || "aqua";
+        });
 
         node = node.merge(nodeEnter);
 
@@ -33636,7 +33632,7 @@ function networkVizJS(documentId) {
         }).attr("stroke", function (d) {
             return options.edgeColor(d.edgeData);
         }).attr("fill", "none").attr("marker-end", function (d) {
-            return "url(#arrow-" + options.edgeColor(d.edgeData) + ")";
+            return 'url(#arrow-' + options.edgeColor(d.edgeData) + ')';
         }).merge(link);
 
         /**
@@ -33672,7 +33668,7 @@ function networkVizJS(documentId) {
                     d.innerBounds = d.bounds.inflate(-margin);
                 }
             }).attr("transform", function (d) {
-                return d.innerBounds ? "translate(" + d.innerBounds.x + "," + d.innerBounds.y + ")" : "translate(" + d.x + "," + d.y + ")";
+                return d.innerBounds ? 'translate(' + d.innerBounds.x + ',' + d.innerBounds.y + ')' : 'translate(' + d.x + ',' + d.y + ')';
             });
             node.select('rect').attr("width", function (d) {
                 return d.innerBounds && d.innerBounds.width() || d.width;
@@ -34034,7 +34030,7 @@ function networkVizJS(documentId) {
             }
         }
     };
-}
+};
 
 /***/ }),
 /* 69 */

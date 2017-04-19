@@ -1,16 +1,9 @@
-/**
- * A graph is just a large object with endpoints that
- * can be pressed with side effects.
- */
-var cola = require("webcola");
-var levelgraph = require("levelgraph");
-var level = require("level-browserify");
+import * as cola from 'webcola';
+import * as d3 from 'd3';
+let levelgraph = require('levelgraph');
+let level = require('level-browserify');
 
-import d3 from 'd3';
-
-
-
-export default function networkVizJS(documentId, userLayoutOptions = {}){
+module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
 
     /**
      * Default options for webcola
@@ -21,18 +14,17 @@ export default function networkVizJS(documentId, userLayoutOptions = {}){
         handleDisconnected: false,
         flowDirection: "y",
         enableEdgeRouting: true,
-        nodeShape: "circle"
+        nodeShape: "rect"
     }
 
     /**
      * This creates the default object, and then overwrites any parameters
      * with the user parameters.
      */
-    // let layoutOptions = {
-    //     ...defaultLayoutOptions,
-    //     ...userLayoutOptions
-    // }
-    let layoutOptions = defaultLayoutOptions;
+    let layoutOptions = {
+        ...defaultLayoutOptions,
+        ...userLayoutOptions
+    };
 
 
     if (typeof documentId !== "string" || documentId === "") {
@@ -178,16 +170,15 @@ export default function networkVizJS(documentId, userLayoutOptions = {}){
                     })
                     .attr("x", d => d.width / 2)
                     .attr("y", d => d.height / 2);
+        // Choose the node shape and style.
+        let nodeShape;
         if (layoutOptions.nodeShape == "rect"){
-            nodeEnter.insert("rect", "text")     // The second arg is what the rect will sit behind.
-                .classed("node", true)
-                .attr("fill", d => options.nodeToColor && options.nodeToColor(d) || "red");
-
+            nodeShape = nodeEnter.insert("rect", "text")     // The second arg is what the rect will sit behind.
         } else if (layoutOptions.nodeShape == "circle"){
-            nodeEnter.insert("circle", "text")     // The second arg is what the rect will sit behind.
-                .classed("node", true)
-                .attr("fill", d => options.nodeToColor && options.nodeToColor(d) || "red");
+            nodeShape = nodeEnter.insert("circle", "text")     // The second arg is what the rect will sit behind.
         }
+        nodeShape.classed("node", true)
+                .attr("fill", d => options.nodeToColor && options.nodeToColor(d) || "aqua");
         
         
         node = node.merge(nodeEnter)
