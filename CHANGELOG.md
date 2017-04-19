@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 
+ - Toggle on/off drag
  - Verification for cola layout
  - Limited restart to styles only
  - Label text for edges with routing

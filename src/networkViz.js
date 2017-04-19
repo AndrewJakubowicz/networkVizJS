@@ -19,6 +19,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         height: 600,
         pad: 5,
         margin: 10,
+        allowDrag: false,
         edgeLabelText: undefined,
         // These are "live options"
         nodeToColor: undefined,
@@ -139,9 +140,16 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         node.exit().remove();
         let nodeEnter = node.enter()
                    .append("g")
-                   .classed("node", true)
-                   .attr("cursor", "move")
-                   .call(simulation.drag);
+                   .classed("node", true);
+                   
+        // Only allow dragging nodes if turned on.
+        if (layoutOptions.allowDrag){
+            console.log("drag added")
+            nodeEnter.attr("cursor", "move").call(simulation.drag);
+        } else {
+            nodeEnter.attr("cursor", "default");
+        }
+        
                    
         
         // Here we add node beauty.

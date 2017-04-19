@@ -1,7 +1,8 @@
 /** networkVizJS is already defined on the webpage */
 var graph1 = networkVizJS("exampleGraph1", {
     edgeLength: ({edgeData}) => edgeData.length,
-    edgeLabelText: ({edgeData}) => edgeData.type
+    edgeLabelText: ({edgeData}) => edgeData.type,
+    allowDrag: true
 })
 
 graph1.edgeOptions.setStrokeWidth(d => d.edgeData.width);
