@@ -33432,6 +33432,8 @@ function extend() {
 "use strict";
 
 
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
 var _webcola = __webpack_require__(64);
@@ -33723,20 +33725,52 @@ module.exports = function networkVizJS(documentId) {
         });
     }
 
-    function addNode(nodeObject) {
-        // Check that hash exists
-        if (!nodeObject.hash) {
-            var e = new Error("Node requires a hash field.");
+    /**
+     * Take a node object or list of nodes and add them.
+     * @param {object | object[]} nodeObject 
+     */
+    function addNode(nodeObjectOrArray) {
+        /** Define helper functions at the top */
+        /**
+         * Checks if object is an array:
+         * http://stackoverflow.com/a/34116242/6421793
+         * @param {object|array} obj 
+         */
+        function isArray(obj) {
+            return !!obj && obj.constructor === Array;
+        }
+        function addNodeObjectHelper(nodeObject) {
+            // Check that hash exists
+            if (!nodeObject.hash) {
+                var e = new Error("Node requires a hash field.");
+                console.error(e);
+                return;
+            }
+
+            // Add node to graph
+            if (!nodeMap.has(nodeObject.hash)) {
+                // Set the node
+                nodes.push(nodeObject);
+                nodeMap.set(nodeObject.hash, nodeObject);
+            }
+        }
+
+        /**
+         * Check that the input is valid
+         */
+        if ((typeof nodeObjectOrArray === 'undefined' ? 'undefined' : _typeof(nodeObjectOrArray)) !== "object") {
+            var e = new Error("Parameter must be either an object or an array");
             console.error(e);
             return;
         }
-
-        // Add node to graph
-        if (!nodeMap.has(nodeObject.hash)) {
-            // Set the node
-            nodes.push(nodeObject);
-            nodeMap.set(nodeObject.hash, nodeObject);
+        if (isArray(nodeObjectOrArray)) {
+            // Run through the array adding the nodes
+            nodeObjectOrArray.forEach(addNodeObjectHelper);
+        } else {
+            addNodeObjectHelper(nodeObjectOrArray);
         }
+
+        // Draw the changes.
         restart();
     }
 

@@ -281,20 +281,52 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         })
     }
 
-    function addNode(nodeObject){
-        // Check that hash exists
-        if (!(nodeObject.hash)) {
-            var e = new Error("Node requires a hash field.");
+    /**
+     * Take a node object or list of nodes and add them.
+     * @param {object | object[]} nodeObject 
+     */
+    function addNode(nodeObjectOrArray){
+        /** Define helper functions at the top */
+        /**
+         * Checks if object is an array:
+         * http://stackoverflow.com/a/34116242/6421793
+         * @param {object|array} obj 
+         */
+        function isArray(obj){
+            return !!obj && obj.constructor === Array;
+        }
+        function addNodeObjectHelper(nodeObject){
+            // Check that hash exists
+            if (!(nodeObject.hash)) {
+                var e = new Error("Node requires a hash field.");
+                console.error(e);
+                return
+            }
+
+            // Add node to graph
+            if (!nodeMap.has(nodeObject.hash)){
+                // Set the node
+                nodes.push(nodeObject)
+                nodeMap.set(nodeObject.hash, nodeObject);
+            }
+        }
+
+        /**
+         * Check that the input is valid
+         */
+        if (typeof nodeObjectOrArray !== "object"){
+            var e = new Error("Parameter must be either an object or an array");
             console.error(e);
             return
         }
-
-        // Add node to graph
-        if (!nodeMap.has(nodeObject.hash)){
-            // Set the node
-            nodes.push(nodeObject)
-            nodeMap.set(nodeObject.hash, nodeObject);
+        if (isArray(nodeObjectOrArray)){
+            // Run through the array adding the nodes
+            nodeObjectOrArray.forEach(addNodeObjectHelper)
+        } else {
+            addNodeObjectHelper(nodeObjectOrArray);
         }
+        
+        // Draw the changes.
         restart();
     }
 

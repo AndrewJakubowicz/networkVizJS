@@ -45,13 +45,13 @@ var graph2 = networkVizJS("exampleGraph2", {
     height: 300,
 });
 
-graph2.nodeOptions.setNodeColor(d => d.color);
-graph2.nodeOptions.nodeStrokeWidth(d => d.strokeWidth);
-graph2.nodeOptions.nodeStrokeColor(d => d.stroke);
+graph2.nodeOptions.setNodeColor(d => d.color || 'white');
+graph2.nodeOptions.nodeStrokeWidth(d => d.strokeWidth || 2);
+graph2.nodeOptions.nodeStrokeColor(d => d.stroke || "black");
 
 let changingNode = {hash:"changingColor", color: "red", strokeWidth: 10, stroke: "violet"};
 
-graph2.addNode(changingNode);
+graph2.addNode([changingNode, {hash: "anotherNode"}, {hash: "more Nodes woooooo"}]);
 
 setInterval(()=> {
     changingNode.color = "green";
