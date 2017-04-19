@@ -199,13 +199,22 @@ module.exports = function networkVizJS(documentId) {
         });
         link.exit().remove();
 
-        link = link.enter().append("path").attr("class", "line").attr("stroke-width", function (d) {
+        var linkEnter = link.enter().append("g").classed("line", true);
+
+        linkEnter.append("path").attr("stroke-width", function (d) {
             return layoutOptions.edgeStroke && layoutOptions.edgeStroke(d) || 2;
         }).attr("stroke", function (d) {
             return layoutOptions.edgeColor(d.edgeData);
         }).attr("fill", "none").attr("marker-end", function (d) {
             return 'url(#arrow-' + layoutOptions.edgeColor(d.edgeData) + ')';
-        }).merge(link);
+        });
+
+        /** Optional label text */
+        linkEnter.append("text").attr("text-anchor", "middle").style("font", "100 22px Helvetica Neue").text(function (d) {
+            return d.edgeData.shortname || d.edgeData.type;
+        });
+
+        link = link.merge(linkEnter);
 
         /**
          * Helper function for drawing the lines.
@@ -224,12 +233,23 @@ module.exports = function networkVizJS(documentId) {
             if (links.length == 0 || !layoutOptions.enableEdgeRouting) {
                 return;
             }
+
             simulation.prepareEdgeRouting();
-            link.attr("d", function (d) {
+            link.select('path').attr("d", function (d) {
                 return lineFunction(simulation.routeEdge(d));
             });
-            if (isIE()) link.each(function (d) {
+            if (isIE()) link.select('path').each(function (d) {
                 this.parentNode.insertBefore(this, this);
+            });
+
+            link.select('text').attr("x", function (d) {
+                var arrayX = simulation.routeEdge(d);
+                var middleIndex = Math.floor(arrayX.length / 2) - 1;
+                return (arrayX[middleIndex].x + arrayX[middleIndex + 1].x) / 2;
+            }).attr("y", function (d) {
+                var arrayY = simulation.routeEdge(d);
+                var middleIndex = Math.floor(arrayY.length / 2) - 1;
+                return (arrayY[middleIndex].y + arrayY[middleIndex + 1].y) / 2;
             });
         };
         // Restart the simulation.
@@ -259,12 +279,20 @@ module.exports = function networkVizJS(documentId) {
                 return (d.innerBounds && d.innerBounds.height() || d.height) / 2;
             });
 
-            link.attr("d", function (d) {
+            link.select('path').attr("d", function (d) {
                 var route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
                 return lineFunction([route.sourceIntersection, route.arrowStart]);
             });
             if (isIE()) link.each(function (d) {
                 this.parentNode.insertBefore(this, this);
+            });
+
+            link.select('text').attr('x', function (d) {
+                var route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                return (route.sourceIntersection.x + route.targetIntersection.x) / 2;
+            }).attr('y', function (d) {
+                var route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                return (route.sourceIntersection.y + route.targetIntersection.y) / 2;
             });
         }).on("end", routeEdges);
         function isIE() {

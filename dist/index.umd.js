@@ -33680,7 +33680,6 @@ module.exports = function networkVizJS(documentId) {
                 return (arrayX[middleIndex].x + arrayX[middleIndex + 1].x) / 2;
             }).attr("y", function (d) {
                 var arrayY = simulation.routeEdge(d);
-                console.log(arrayY);
                 var middleIndex = Math.floor(arrayY.length / 2) - 1;
                 return (arrayY[middleIndex].y + arrayY[middleIndex + 1].y) / 2;
             });
