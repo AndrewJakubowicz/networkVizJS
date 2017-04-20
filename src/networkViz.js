@@ -13,16 +13,13 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         avoidOverlaps: true,
         handleDisconnected: false,
         flowDirection: "y",
-        /**
-         * TODO: add error when `Edge routing can cause bugs if dragging when it tries to route.`
-         */
-        enableEdgeRouting: false,
+        enableEdgeRouting: true,
         nodeShape: "rect",
         width: 900,
         height: 600,
         pad: 5,
         margin: 10,
-        allowDrag: false,
+        allowDrag: true,
         edgeLabelText: undefined,
         // These are "live options"
         nodeToColor: undefined,
@@ -147,7 +144,6 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                    
         // Only allow dragging nodes if turned on.
         if (layoutOptions.allowDrag){
-            console.log("drag added")
             nodeEnter.attr("cursor", "move").call(simulation.drag);
         } else {
             nodeEnter.attr("cursor", "default");
@@ -207,7 +203,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         })
 
         /////// LINK ///////
-        link = link.data(links, d => {console.log("link.data input: ", d); return d.source.index + "-" + d.target.index})
+        link = link.data(links, d => d.source.index + "-" + d.target.index);
         link.exit().remove();
 
         let linkEnter = link.enter()
@@ -272,7 +268,6 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
             });
         }
         // Restart the simulation.
-        simulation.nodes(nodes);
         simulation.links(links);    // Required because we create new link lists
         simulation.start(10, 15, 20).on("tick", function() {
             node.each(d => {
@@ -354,9 +349,11 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                 console.error(e);
                 return
             }
+            
 
             // Add node to graph
             if (!nodeMap.has(nodeObject.hash)){
+                simulation.stop();
                 // Set the node
                 nodes.push(nodeObject)
                 nodeMap.set(nodeObject.hash, nodeObject);
@@ -480,6 +477,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                     }
                     
                     // Add nodes to graph
+                    simulation.stop();
                     if (!nodeMap.has(subject.hash)){
                         // Set the node
                         nodes.push(subject)
@@ -566,7 +564,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                     if (nodeIndex === -1){
                         return console.error("There is no node");
                     }
-
+                    simulation.stop();
                     nodes.splice(nodeIndex, 1);
                     nodeMap.delete(nodeHash);
 

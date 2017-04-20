@@ -5,7 +5,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
-## [Unreleased]
+## 0.0.3
+
+### Changed
+
+ - Graph modification calls `stop()` the layout preventing bugs.
+    - Fixed infinite loop bug
+ - Improved overall performance
 
 ## 0.0.2
 

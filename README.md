@@ -31,6 +31,6 @@ After this you can access the library `networkVizJS` globally.
 
 ## Examples
 
-- [Dynamically changing graph](https://bl.ocks.org/SpyR1014/d82570c509028e6b0a519ef885ab58f0)
+- [Easy Dynamically changing graph](https://bl.ocks.org/SpyR1014/d82570c509028e6b0a519ef885ab58f0)
 
 ... more to come

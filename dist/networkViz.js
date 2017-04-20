@@ -37,7 +37,7 @@ module.exports = function networkVizJS(documentId) {
         height: 600,
         pad: 5,
         margin: 10,
-        allowDrag: false,
+        allowDrag: true,
         edgeLabelText: undefined,
         // These are "live options"
         nodeToColor: undefined,
@@ -148,7 +148,6 @@ module.exports = function networkVizJS(documentId) {
 
         // Only allow dragging nodes if turned on.
         if (layoutOptions.allowDrag) {
-            console.log("drag added");
             nodeEnter.attr("cursor", "move").call(simulation.drag);
         } else {
             nodeEnter.attr("cursor", "default");
@@ -361,6 +360,7 @@ module.exports = function networkVizJS(documentId) {
 
             // Add node to graph
             if (!nodeMap.has(nodeObject.hash)) {
+                simulation.stop();
                 // Set the node
                 nodes.push(nodeObject);
                 nodeMap.set(nodeObject.hash, nodeObject);
@@ -447,44 +447,58 @@ module.exports = function networkVizJS(documentId) {
             predicate = tripletObject.predicate,
             object = tripletObject.object;
 
-        /**
-         * If a predicate type already has a color,
-         * it is not redefined.
-         */
-        if (!predicateTypeToColorMap.has(layoutOptions.edgeColor(predicate))) {
-            predicateTypeToColorMap.set(layoutOptions.edgeColor(predicate), true);
+        // Check that predicate doesn't already exist
+        new Promise(function (resolve, reject) {
+            return tripletsDB.get({ subject: subject.hash,
+                predicate: predicate.type,
+                object: object.hash }, function (err, list) {
+                if (err) reject(err);
+                resolve(list.length === 0);
+            });
+        }).then(function (doesntExist) {
+            if (!doesntExist) {
+                return new Error("That edge already exists. Hashs' and predicate type needs to be unique!");
+            }
+            /**
+            * If a predicate type already has a color,
+            * it is not redefined.
+            */
+            if (!predicateTypeToColorMap.has(layoutOptions.edgeColor(predicate))) {
+                predicateTypeToColorMap.set(layoutOptions.edgeColor(predicate), true);
 
-            // Create an arrow head for the new color
-            createColorMarker(defs, layoutOptions.edgeColor(predicate));
-        }
-
-        /**
-         * Put the triplet into the LevelGraph database
-         * and mutates the d3 nodes and links list to
-         * visually pop on the node/s.
-         */
-        tripletsDB.put({
-            subject: subject.hash,
-            predicate: predicate.type,
-            object: object.hash,
-            edgeData: predicate
-        }, function (err) {
-            if (err) {
-                throw new Error(err);
+                // Create an arrow head for the new color
+                createColorMarker(defs, layoutOptions.edgeColor(predicate));
             }
 
-            // Add nodes to graph
-            if (!nodeMap.has(subject.hash)) {
-                // Set the node
-                nodes.push(subject);
-                nodeMap.set(subject.hash, subject);
-            }
-            if (!nodeMap.has(object.hash)) {
-                nodes.push(object);
-                nodeMap.set(object.hash, object);
-            }
+            /**
+             * Put the triplet into the LevelGraph database
+             * and mutates the d3 nodes and links list to
+             * visually pop on the node/s.
+             */
+            tripletsDB.put({
+                subject: subject.hash,
+                predicate: predicate.type,
+                object: object.hash,
+                edgeData: predicate
+            }, function (err) {
+                if (err) {
+                    throw new Error(err);
+                }
 
-            createNewLinks();
+                // Add nodes to graph
+                simulation.stop();
+                if (!nodeMap.has(subject.hash)) {
+                    // Set the node
+                    nodes.push(subject);
+                    nodeMap.set(subject.hash, subject);
+                }
+                if (!nodeMap.has(object.hash)) {
+                    nodes.push(object);
+                    nodeMap.set(object.hash, object);
+                }
+
+                createNewLinks();
+            });
         });
     }
 
@@ -546,23 +560,28 @@ module.exports = function networkVizJS(documentId) {
                         }
                     });
                 });
+                tripletsDB.del([].concat(_toConsumableArray(l1), _toConsumableArray(l2)), function (err) {
+                    if (err) {
+                        return new Error(err);
+                    };
 
-                // Remove the node
-                var nodeIndex = -1;
-                for (var i = 0; i < nodes.length; i++) {
-                    if (nodes[i].hash === nodeHash) {
-                        nodeIndex = i;
-                        break;
+                    // Once the edges are deleted we can remove the node.
+                    var nodeIndex = -1;
+                    for (var i = 0; i < nodes.length; i++) {
+                        if (nodes[i].hash === nodeHash) {
+                            nodeIndex = i;
+                            break;
+                        }
                     }
-                }
-                if (nodeIndex === -1) {
-                    return console.error("There is no node");
-                }
+                    if (nodeIndex === -1) {
+                        return console.error("There is no node");
+                    }
+                    simulation.stop();
+                    nodes.splice(nodeIndex, 1);
+                    nodeMap.delete(nodeHash);
 
-                nodeMap.delete(nodeHash);
-                nodes.splice(nodeIndex, 1);
-
-                createNewLinks();
+                    createNewLinks();
+                });
             });
         });
     }

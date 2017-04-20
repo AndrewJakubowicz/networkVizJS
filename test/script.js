@@ -38,14 +38,14 @@ setTimeout(() => {
  * of a node dynamically.
  */
 var graph2 = networkVizJS("exampleGraph2", {
-    layoutType: "linkDistance",
+    layoutType: "jaccardLinkLengths",
     avoidOverlaps: true,
     handleDisconnected: false,
-    enableEdgeRouting: false,
+    enableEdgeRouting: true,
     nodeShape: "rect",
     width: 300,
     height: 300,
-    edgeLength: d => d.edgeData.length
+    edgeLength: 100
 });
 
 graph2.nodeOptions.setNodeColor(d => d.color || 'white');
@@ -77,7 +77,7 @@ function graph3(){
     layoutType: "linkDistance",
     nodeShape: "circle",
     allowDrag: true,
-    enableEdgeRouting: false
+    enableEdgeRouting: true
     });
     // Helper function for creating the edges between nodes.
     const createEdge = function(source, target){
