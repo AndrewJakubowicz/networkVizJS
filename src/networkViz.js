@@ -13,7 +13,10 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         avoidOverlaps: true,
         handleDisconnected: false,
         flowDirection: "y",
-        enableEdgeRouting: true,
+        /**
+         * TODO: add error when `Edge routing can cause bugs if dragging when it tries to route.`
+         */
+        enableEdgeRouting: false,
         nodeShape: "rect",
         width: 900,
         height: 600,
@@ -204,7 +207,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         })
 
         /////// LINK ///////
-        link = link.data(links, d => d.source.index + "-" + d.target.index)
+        link = link.data(links, d => {console.log("link.data input: ", d); return d.source.index + "-" + d.target.index})
         link.exit().remove();
 
         let linkEnter = link.enter()
@@ -269,6 +272,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
             });
         }
         // Restart the simulation.
+        simulation.nodes(nodes);
         simulation.links(links);    // Required because we create new link lists
         simulation.start(10, 15, 20).on("tick", function() {
             node.each(d => {
@@ -438,46 +442,57 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         let subject = tripletObject.subject,
             predicate = tripletObject.predicate,
             object = tripletObject.object;
-
-        /**
-         * If a predicate type already has a color,
-         * it is not redefined.
-         */
-        if (!predicateTypeToColorMap.has(layoutOptions.edgeColor(predicate))){
-            predicateTypeToColorMap.set(layoutOptions.edgeColor(predicate), true);
-
-            // Create an arrow head for the new color
-            createColorMarker(defs, layoutOptions.edgeColor(predicate));
-        }
-
-        /**
-         * Put the triplet into the LevelGraph database
-         * and mutates the d3 nodes and links list to
-         * visually pop on the node/s.
-         */
-        tripletsDB.put({
-            subject: subject.hash,
+        
+        // Check that predicate doesn't already exist
+        new Promise((resolve, reject) => tripletsDB.get({subject: subject.hash,
             predicate: predicate.type,
-            object: object.hash,
-            edgeData: predicate
-        }, err => {
-            if (err){
-                throw new Error(err);
-            }
-            
-            // Add nodes to graph
-            if (!nodeMap.has(subject.hash)){
-                // Set the node
-                nodes.push(subject)
-                nodeMap.set(subject.hash, subject);
-            }
-            if (!nodeMap.has(object.hash)){
-                nodes.push(object)
-                nodeMap.set(object.hash, object);
-            }
+            object: object.hash}, function(err, list){
+                if (err) reject(err);
+                resolve(list.length === 0);
+            })).then(doesntExist => {
+                if (!doesntExist){
+                    return new Error("That edge already exists. Hashs' and predicate type needs to be unique!")
+                }
+                 /**
+                 * If a predicate type already has a color,
+                 * it is not redefined.
+                 */
+                if (!predicateTypeToColorMap.has(layoutOptions.edgeColor(predicate))){
+                    predicateTypeToColorMap.set(layoutOptions.edgeColor(predicate), true);
 
-            createNewLinks();
-        });
+                    // Create an arrow head for the new color
+                    createColorMarker(defs, layoutOptions.edgeColor(predicate));
+                }
+
+                /**
+                 * Put the triplet into the LevelGraph database
+                 * and mutates the d3 nodes and links list to
+                 * visually pop on the node/s.
+                 */
+                tripletsDB.put({
+                    subject: subject.hash,
+                    predicate: predicate.type,
+                    object: object.hash,
+                    edgeData: predicate
+                }, err => {
+                    if (err){
+                        throw new Error(err);
+                    }
+                    
+                    // Add nodes to graph
+                    if (!nodeMap.has(subject.hash)){
+                        // Set the node
+                        nodes.push(subject)
+                        nodeMap.set(subject.hash, subject);
+                    }
+                    if (!nodeMap.has(object.hash)){
+                        nodes.push(object)
+                        nodeMap.set(object.hash, object);
+                    }
+
+                    createNewLinks();
+                });
+            });
     }
 
     function addEdge(triplet){
@@ -537,24 +552,26 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                         return console.error(err);
                     }
                 }));
+                tripletsDB.del([...l1, ...l2], function(err){
+                    if (err) { return new Error(err)};
 
-
-                // Remove the node
-                let nodeIndex = -1;
-                for (let i = 0; i < nodes.length; i++){
-                    if (nodes[i].hash === nodeHash){
-                        nodeIndex = i;
-                        break;
+                    // Once the edges are deleted we can remove the node.
+                    let nodeIndex = -1;
+                    for (let i = 0; i < nodes.length; i++){
+                        if (nodes[i].hash === nodeHash){
+                            nodeIndex = i;
+                            break;
+                        }
                     }
-                }
-                if (nodeIndex === -1){
-                    return console.error("There is no node");
-                }
+                    if (nodeIndex === -1){
+                        return console.error("There is no node");
+                    }
 
-                nodeMap.delete(nodeHash);
-                nodes.splice(nodeIndex, 1);
+                    nodes.splice(nodeIndex, 1);
+                    nodeMap.delete(nodeHash);
 
-                createNewLinks();
+                    createNewLinks();
+                });
             });
         });
     }
