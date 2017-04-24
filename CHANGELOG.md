@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+ - api for restarting the graph (split into style and layout restart)
+
+### Added
+
+ - shortnames can be updated, and nodes will reflect the change after a layout restart.
 
 ## 0.0.3
 

@@ -52,22 +52,25 @@ graph2.nodeOptions.setNodeColor(d => d.color || 'white');
 graph2.nodeOptions.nodeStrokeWidth(d => d.strokeWidth || 2);
 graph2.nodeOptions.nodeStrokeColor(d => d.stroke || "black");
 
-let changingNode = {hash:"changingColor", color: "red", strokeWidth: 10, stroke: "violet"};
-let node2 = {hash: "anotherNode"};
-let node3 = {hash: "more Nodes woooooo"};
+let changingNode = {hash:"changingColor", shortname:":)", color: "red", strokeWidth: 10, stroke: "violet"};
+let node2 = {hash: "@spyr1014"};
+let node3 = {hash: "dynamic nodes!"};
 graph2.addNode([changingNode, node2, node3]);
 graph2.addTriplet({subject: changingNode, predicate: {type:"-", length: 200}, object: node3})
 graph2.addTriplet({subject: node3, predicate: {type:"-", length: 30}, object: node2})
 setInterval(()=> {
-    changingNode.color = "green";
+    changingNode.color = "white";
+    changingNode.shortname = "networkVizJS";
     changingNode.strokeWidth = 2;
-    graph2.restart();
-}, 2000)
+    graph2.restart.layout();
+}, 2500)
 
 setInterval(()=> {
-    changingNode.color = "blue";
-    graph2.restart();
-}, 2500);
+    changingNode.color = "lightgreen";
+    changingNode.shortname = "IS AWESOME =D =D =D"
+    graph2.restart.layout();
+}, 1900);
+
 
 function graph3(){
     // Initialise the graph. The first parameter is the div ID to create the graph in.
@@ -77,7 +80,7 @@ function graph3(){
     layoutType: "linkDistance",
     nodeShape: "circle",
     allowDrag: true,
-    enableEdgeRouting: true
+    enableEdgeRouting: false
     });
     // Helper function for creating the edges between nodes.
     const createEdge = function(source, target){

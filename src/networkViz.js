@@ -129,6 +129,25 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         layoutOptions.clickAway();
         g.attr("transform", d3.event.transform);
     }
+
+    /**
+     * Resets width or radius of nodes.
+     * Used to support dynamically changing the node size
+     * if the text is changing.
+     */
+    function updateRectCircleSize(){
+        /**
+         * Update the width and height here because otherwise the height and width
+         * calculations don't occur.
+         */
+        node.select('rect')
+            .attr("width", d => d.innerBounds && d.innerBounds.width() || d.width)
+            .attr("height", d => d.innerBounds && d.innerBounds.height() || d.height);
+        node.select('circle')
+            .attr("r", d => (d.innerBounds && d.innerBounds.width() || d.width) / 2)
+            .attr("cx", d => (d.innerBounds && d.innerBounds.width() || d.width) / 2)
+            .attr("cy", d => (d.innerBounds && d.innerBounds.height() || d.height) / 2)
+    }
     
     /**
      * This updates the d3 visuals without restarting the layout.
@@ -154,20 +173,13 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         // Here we add node beauty.
         // To fit nodes to the short-name calculate BBox
         // from https://bl.ocks.org/mbostock/1160929
-        let text = nodeEnter.append("text")
+        nodeEnter.append("text")
                     .attr("dx", -10)
                     .attr("dy", -2)
                     .attr("text-anchor", "middle")
-                    .style("font", "100 22px Helvetica Neue")
-                    .text(d => d.shortname || d.hash)
-                    .each(function(d){
-                        const b = this.getBBox();
-                        const extra = 2 * margin + 2 * pad;
-                        d.width = b.width + extra;
-                        d.height = b.height + extra;
-                    })
-                    .attr("x", d => d.width / 2)
-                    .attr("y", d => d.height / 2);
+                    .style("font", "100 22px Helvetica Neue");
+
+                    
         // Choose the node shape and style.
         let nodeShape;
         if (layoutOptions.nodeShape == "rect"){
@@ -181,6 +193,21 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         node = node.merge(nodeEnter);
 
         /**
+         * Update the text property (allowing dynamically changing text)
+         */
+        node.select("text")
+                    .text(d => d.shortname || d.hash)
+                    .each(function(d){
+                        console.log("text BBox called for", d)
+                        const b = this.getBBox();
+                        const extra = 2 * margin + 2 * pad;
+                        d.width = b.width + extra;
+                        d.height = b.height + extra;
+                    })
+                    .attr("x", d => d.width / 2)
+                    .attr("y", d => d.height / 2);
+
+        /**
          * Here we can update node properties that have already been attached.
          * When restart() is called, these are the properties that will be affected
          * by mutation.
@@ -190,7 +217,11 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         updateShapes
                 .attr("fill", d => layoutOptions.nodeToColor && layoutOptions.nodeToColor(d) || "aqua")
                 .attr("stroke", layoutOptions.nodeStrokeColor)
-                .attr("stroke-width", layoutOptions.nodeStrokeWidth)
+                .attr("stroke-width", layoutOptions.nodeStrokeWidth);
+
+        // update size
+        updateRectCircleSize();
+
         /**
          * Rebind the handlers on the nodes.
          */
@@ -274,21 +305,12 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                     if (d.bounds) {
                         d.innerBounds = d.bounds.inflate(-margin);
                     }
-                })
-                .attr("transform", d => d.innerBounds ?
+                });
+            node.attr("transform", d => d.innerBounds ?
                     `translate(${d.innerBounds.x},${d.innerBounds.y})`
                     :`translate(${d.x},${d.y})`);
-            /**
-             * Update the width and height here because otherwise the height and width
-             * calculations don't occur.
-             */
-            node.select('rect')
-                .attr("width", d => d.innerBounds && d.innerBounds.width() || d.width)
-                .attr("height", d => d.innerBounds && d.innerBounds.height() || d.height);
-            node.select('circle')
-                .attr("r", d => (d.innerBounds && d.innerBounds.width() || d.width) / 2)
-                .attr("cx", d => (d.innerBounds && d.innerBounds.width() || d.width) / 2)
-                .attr("cy", d => (d.innerBounds && d.innerBounds.height() || d.height) / 2)
+            
+            updateRectCircleSize();
                 
 
             link.select('path').attr("d", d => {
@@ -680,7 +702,10 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         addNode,
         setClickAway,
         recenterGraph,
-        restart: updateStyles,
+        restart: {
+            styles: updateStyles,
+            layout: restart,
+        },
         nodeOptions: {
             setNodeColor: setNodeToColor,
             nodeStrokeWidth,
