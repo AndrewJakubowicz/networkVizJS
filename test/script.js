@@ -14,7 +14,15 @@
 var graph1 = networkVizJS("exampleGraph1", {
     edgeLength: ({edgeData}) => edgeData.length,
     edgeLabelText: ({edgeData}) => edgeData.type,
-    allowDrag: true
+    allowDrag: true,
+    nodeDragStart: () => {
+        d3.select('#temp-node-menu')
+            .remove();
+    },
+    clickNode: (d) => {
+        // Toggle nodes to be fixed or dynamic.
+        d.fixed = !d.fixed;
+    }
 })
 
 graph1.edgeOptions.setStrokeWidth(d => d.edgeData.width);
