@@ -1,5 +1,5 @@
 const path = require("path");
-
+const webpack = require("webpack")
 const include = path.join(__dirname, 'src')
 
 module.exports = {
@@ -21,5 +21,9 @@ module.exports = {
             }
         }
         ]
+    },
+    externals: {
+        d3: 'd3',
+        webcola: 'cola'
     }
 }

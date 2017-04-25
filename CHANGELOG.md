@@ -8,10 +8,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+ - d3 and webcola is now external
  - api for restarting the graph (split into style and layout restart)
 
 ### Added
 
+ - getSVGElement endpoint for getting reference to the svg 'canvas'.
+    - useful for getting absolute x and y co-ordinates.
  - shortnames can be updated, and nodes will reflect the change after a layout restart.
 
 ## 0.0.3

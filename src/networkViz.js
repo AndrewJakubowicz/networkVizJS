@@ -21,6 +21,9 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         margin: 10,
         allowDrag: true,
         edgeLabelText: undefined,
+        // Both mouseout and mouseover take data AND the selection (arg1, arg2)
+        mouseOverNode: undefined,
+        mouseOutNode: undefined,
         // These are "live options"
         nodeToColor: undefined,
         nodeStrokeWidth: 2,
@@ -198,14 +201,14 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         node.select("text")
                     .text(d => d.shortname || d.hash)
                     .each(function(d){
-                        console.log("text BBox called for", d)
                         const b = this.getBBox();
                         const extra = 2 * margin + 2 * pad;
                         d.width = b.width + extra;
                         d.height = b.height + extra;
                     })
                     .attr("x", d => d.width / 2)
-                    .attr("y", d => d.height / 2);
+                    .attr("y", d => d.height / 2)
+                    .attr("pointer-events", "none");
 
         /**
          * Here we can update node properties that have already been attached.
@@ -231,7 +234,17 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                 layoutOptions.clickNode(node, mouseCoordinates)
             }, 50)
             
-        })
+        });
+
+        // These CANNOT be arrow functions or this context is wrong.
+        updateShapes.on('mouseover', function(d){
+            let element = d3.select(this);
+            layoutOptions.mouseOverNode(d, element);
+        });
+        updateShapes.on('mouseout', function(d) {
+            let element = d3.select(this);
+            layoutOptions.mouseOutNode(d, element);
+        });
 
         /////// LINK ///////
         link = link.data(links, d => d.source.index + "-" + d.target.index);
@@ -659,6 +672,24 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
     }
 
     /**
+     * Function to call when mouse over registers on a node.
+     * It takes a d3 mouse over event.
+     * @param {function} mouseOverCallback 
+     */
+    function setMouseOver(mouseOverCallback){
+        layoutOptions.mouseOverNode = mouseOverCallback;
+    }
+
+    /**
+     * Function to call when mouse out registers on a node.
+     * It takes a d3 mouse over event.
+     * @param {function} mouseOutCallback 
+     */
+    function setMouseOut(mouseOutCallback){
+        layoutOptions.mouseOutNode = mouseOutCallback;
+    }
+
+    /**
      * Function for updating webcola options.
      * Returns a new simulation and uses the defined layout variable.
      */
@@ -696,6 +727,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
 
     // Public api
     return {
+        getSVGElement: () => svg,
         addTriplet,
         addEdge,
         removeNode,
@@ -710,6 +742,8 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
             setNodeColor: setNodeToColor,
             nodeStrokeWidth,
             nodeStrokeColor,
+            setMouseOver,
+            setMouseOut
         },
         edgeOptions: {
             setStrokeWidth: setEdgeStroke,
