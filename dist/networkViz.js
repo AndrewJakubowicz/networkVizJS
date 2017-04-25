@@ -38,11 +38,17 @@ module.exports = function networkVizJS(documentId) {
         pad: 5,
         margin: 10,
         allowDrag: true,
+        // This callback is called when a drag event starts on a node.
+        nodeDragStart: undefined,
         edgeLabelText: undefined,
+        // Both mouseout and mouseover take data AND the selection (arg1, arg2)
+        mouseOverNode: undefined,
+        mouseOutNode: undefined,
         // These are "live options"
         nodeToColor: undefined,
         nodeStrokeWidth: 2,
         nodeStrokeColor: "black",
+        // TODO: clickNode (node, element) => void
         clickNode: function clickNode(node) {
             return console.log("clicked", node);
         },
@@ -56,6 +62,10 @@ module.exports = function networkVizJS(documentId) {
         edgeLength: function edgeLength(d) {
             console.log('length', d);return 150;
         }
+    };
+
+    var internalOptions = {
+        isDragging: false
     };
 
     /**
@@ -76,7 +86,6 @@ module.exports = function networkVizJS(documentId) {
     var tripletsDB = levelgraph(level('Userdb-' + Math.random() * 100));
     var nodes = [];
     var links = [];
-    var mouseCoordinates = [0, 0];
 
     var width = layoutOptions.width,
         height = layoutOptions.height,
@@ -86,12 +95,6 @@ module.exports = function networkVizJS(documentId) {
     // Here we are creating a responsive svg element.
     var svg = d3.select('#' + documentId).append("div").classed("svg-container", true).append("svg").attr("preserveAspectRatio", "xMinYMin meet").attr("viewBox", '0 0 ' + width + ' ' + height).classed("svg-content-responsive", true);
 
-    /**
-     * Keep track of the mouse.
-     */
-    svg.on("mousemove", function () {
-        mouseCoordinates = d3.mouse(this);
-    });
     svg.on("click", function () {
         layoutOptions.clickAway();
     });
@@ -102,6 +105,16 @@ module.exports = function networkVizJS(documentId) {
      * the node or link lists.
      */
     var simulation = updateColaLayout();
+
+    // Setting up the modified drag.
+    // Calling webcola drag without arguments returns the drag event.
+    var modifiedDrag = simulation.drag();
+    modifiedDrag.on("start", function () {
+        layoutOptions.nodeDragStart && layoutOptions.nodeDragStart();
+        internalOptions.isDragging = true;
+    }).on("end", function () {
+        internalOptions.isDragging = false;
+    });
 
     /**
      * Here we define the arrow heads to be used later.
@@ -135,6 +148,30 @@ module.exports = function networkVizJS(documentId) {
     }
 
     /**
+     * Resets width or radius of nodes.
+     * Used to support dynamically changing the node size
+     * if the text is changing.
+     */
+    function updateRectCircleSize() {
+        /**
+         * Update the width and height here because otherwise the height and width
+         * calculations don't occur.
+         */
+        node.select('rect').attr("width", function (d) {
+            return d.innerBounds && d.innerBounds.width() || d.width;
+        }).attr("height", function (d) {
+            return d.innerBounds && d.innerBounds.height() || d.height;
+        });
+        node.select('circle').attr("r", function (d) {
+            return (d.innerBounds && d.innerBounds.width() || d.width) / 2;
+        }).attr("cx", function (d) {
+            return (d.innerBounds && d.innerBounds.width() || d.width) / 2;
+        }).attr("cy", function (d) {
+            return (d.innerBounds && d.innerBounds.height() || d.height) / 2;
+        });
+    }
+
+    /**
      * This updates the d3 visuals without restarting the layout.
      */
     function updateStyles() {
@@ -148,7 +185,7 @@ module.exports = function networkVizJS(documentId) {
 
         // Only allow dragging nodes if turned on.
         if (layoutOptions.allowDrag) {
-            nodeEnter.attr("cursor", "move").call(simulation.drag);
+            nodeEnter.attr("cursor", "move").call(modifiedDrag);
         } else {
             nodeEnter.attr("cursor", "default");
         }
@@ -156,18 +193,8 @@ module.exports = function networkVizJS(documentId) {
         // Here we add node beauty.
         // To fit nodes to the short-name calculate BBox
         // from https://bl.ocks.org/mbostock/1160929
-        var text = nodeEnter.append("text").attr("dx", -10).attr("dy", -2).attr("text-anchor", "middle").style("font", "100 22px Helvetica Neue").text(function (d) {
-            return d.shortname || d.hash;
-        }).each(function (d) {
-            var b = this.getBBox();
-            var extra = 2 * margin + 2 * pad;
-            d.width = b.width + extra;
-            d.height = b.height + extra;
-        }).attr("x", function (d) {
-            return d.width / 2;
-        }).attr("y", function (d) {
-            return d.height / 2;
-        });
+        nodeEnter.append("text").attr("dx", -10).attr("dy", -2).attr("text-anchor", "middle").style("font", "100 22px Helvetica Neue");
+
         // Choose the node shape and style.
         var nodeShape = void 0;
         if (layoutOptions.nodeShape == "rect") {
@@ -181,6 +208,22 @@ module.exports = function networkVizJS(documentId) {
         node = node.merge(nodeEnter);
 
         /**
+         * Update the text property (allowing dynamically changing text)
+         */
+        node.select("text").text(function (d) {
+            return d.shortname || d.hash;
+        }).each(function (d) {
+            var b = this.getBBox();
+            var extra = 2 * margin + 2 * pad;
+            d.width = b.width + extra;
+            d.height = b.height + extra;
+        }).attr("x", function (d) {
+            return d.width / 2;
+        }).attr("y", function (d) {
+            return d.height / 2;
+        }).attr("pointer-events", "none");
+
+        /**
          * Here we can update node properties that have already been attached.
          * When restart() is called, these are the properties that will be affected
          * by mutation.
@@ -190,13 +233,31 @@ module.exports = function networkVizJS(documentId) {
         updateShapes.attr("fill", function (d) {
             return layoutOptions.nodeToColor && layoutOptions.nodeToColor(d) || "aqua";
         }).attr("stroke", layoutOptions.nodeStrokeColor).attr("stroke-width", layoutOptions.nodeStrokeWidth);
-        /**
-         * Rebind the handlers on the nodes.
-         */
-        node.on('click', function (node) {
+
+        // update size
+        updateRectCircleSize();
+
+        // These CANNOT be arrow functions or this context is wrong.
+        updateShapes.on('mouseover', function (d) {
+            if (internalOptions.isDragging) {
+                return;
+            }
+
+            var element = d3.select(this);
+            layoutOptions.mouseOverNode(d, element);
+        }).on('mouseout', function (d) {
+            if (internalOptions.isDragging) {
+                return;
+            }
+
+            var element = d3.select(this);
+            layoutOptions.mouseOutNode(d, element);
+        }).on('click', function (d) {
+
             // coordinates is a tuple: [x,y]
+            var elem = d3.select(this);
             setTimeout(function () {
-                layoutOptions.clickNode(node, mouseCoordinates);
+                layoutOptions.clickNode(d, elem);
             }, 50);
         });
 
@@ -274,25 +335,12 @@ module.exports = function networkVizJS(documentId) {
                 if (d.bounds) {
                     d.innerBounds = d.bounds.inflate(-margin);
                 }
-            }).attr("transform", function (d) {
+            });
+            node.attr("transform", function (d) {
                 return d.innerBounds ? 'translate(' + d.innerBounds.x + ',' + d.innerBounds.y + ')' : 'translate(' + d.x + ',' + d.y + ')';
             });
-            /**
-             * Update the width and height here because otherwise the height and width
-             * calculations don't occur.
-             */
-            node.select('rect').attr("width", function (d) {
-                return d.innerBounds && d.innerBounds.width() || d.width;
-            }).attr("height", function (d) {
-                return d.innerBounds && d.innerBounds.height() || d.height;
-            });
-            node.select('circle').attr("r", function (d) {
-                return (d.innerBounds && d.innerBounds.width() || d.width) / 2;
-            }).attr("cx", function (d) {
-                return (d.innerBounds && d.innerBounds.width() || d.width) / 2;
-            }).attr("cy", function (d) {
-                return (d.innerBounds && d.innerBounds.height() || d.height) / 2;
-            });
+
+            updateRectCircleSize();
 
             link.select('path').attr("d", function (d) {
                 var route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
@@ -613,6 +661,7 @@ module.exports = function networkVizJS(documentId) {
 
     /**
      * Replaces function to call when clicking away from a node.
+     * TODO: prevent triggering when zooming.
      * @param {function} clickAwayCallback 
      */
     function setClickAway(clickAwayCallback) {
@@ -648,6 +697,24 @@ module.exports = function networkVizJS(documentId) {
     }
 
     /**
+     * Function to call when mouse over registers on a node.
+     * It takes a d3 mouse over event.
+     * @param {function} mouseOverCallback 
+     */
+    function setMouseOver(mouseOverCallback) {
+        layoutOptions.mouseOverNode = mouseOverCallback;
+    }
+
+    /**
+     * Function to call when mouse out registers on a node.
+     * It takes a d3 mouse over event.
+     * @param {function} mouseOutCallback 
+     */
+    function setMouseOut(mouseOutCallback) {
+        layoutOptions.mouseOutNode = mouseOutCallback;
+    }
+
+    /**
      * Function for updating webcola options.
      * Returns a new simulation and uses the defined layout variable.
      */
@@ -680,17 +747,25 @@ module.exports = function networkVizJS(documentId) {
 
     // Public api
     return {
+        getSVGElement: function getSVGElement() {
+            return svg;
+        },
         addTriplet: addTriplet,
         addEdge: addEdge,
         removeNode: removeNode,
         addNode: addNode,
         setClickAway: setClickAway,
         recenterGraph: recenterGraph,
-        restart: updateStyles,
+        restart: {
+            styles: updateStyles,
+            layout: restart
+        },
         nodeOptions: {
             setNodeColor: setNodeToColor,
             nodeStrokeWidth: nodeStrokeWidth,
-            nodeStrokeColor: nodeStrokeColor
+            nodeStrokeColor: nodeStrokeColor,
+            setMouseOver: setMouseOver,
+            setMouseOut: setMouseOut
         },
         edgeOptions: {
             setStrokeWidth: setEdgeStroke,
