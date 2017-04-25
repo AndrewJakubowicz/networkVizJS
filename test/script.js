@@ -1,4 +1,16 @@
 /** networkVizJS is already defined on the webpage */
+
+// function makeAbsoluteContext(element, svgDocument) {
+//   return function(x,y) {
+//     var offset = svgDocument.getBoundingClientRect();
+//     var matrix = element.getScreenCTM();
+//     return {
+//       x: (matrix.a * x) + (matrix.c * y) + matrix.e - offset.left,
+//       y: (matrix.b * x) + (matrix.d * y) + matrix.f - offset.top
+//     };
+//   };
+// }
+
 var graph1 = networkVizJS("exampleGraph1", {
     edgeLength: ({edgeData}) => edgeData.length,
     edgeLabelText: ({edgeData}) => edgeData.type,
@@ -7,17 +19,41 @@ var graph1 = networkVizJS("exampleGraph1", {
 
 graph1.edgeOptions.setStrokeWidth(d => d.edgeData.width);
 graph1.edgeOptions.setColor(predicate => {console.log(predicate); return "green"})
+graph1.nodeOptions.setMouseOver((e, elem) => {
+
+    var svg = graph1.getSVGElement().node();
+    let point = svg.createSVGPoint();
+    let ctm = elem.node().getScreenCTM();
+    // Point relative to svg canvas
+    let normalisedPoint = point.matrixTransform(ctm);
+    
+    d3.select('body').append('svg')
+        .attr("id", "temp-node-menu")
+        .style("position", "fixed")
+        .attr("height", 10)
+        .attr("width", 10)
+        .style("top", normalisedPoint.y)
+        .style("left", normalisedPoint.x)
+        .append('circle')
+        .attr('cx', 5)
+        .attr('cy', 5)
+        .attr('r', 5);
+})
+graph1.nodeOptions.setMouseOut((e, el) => {
+    d3.select('#temp-node-menu')
+        .remove();
+})
 
 setTimeout(() => {
     graph1.addNode({hash:"testNode1"})
 }, 1000)
 
 setTimeout(() => {
-    graph1.addNode({hash:"Stacey"})
+    graph1.addNode({hash:"A longer node wow"})
 }, 6000)
 
 setTimeout(() => {
-    graph1.addTriplet({subject: {hash:"testNode1"}, predicate:{type:"someType", length:800, color:"pink", width: 10}, object: {hash:"child"}});
+    graph1.addTriplet({subject: {hash:"testNode1"}, predicate:{type:"someType", length:200, color:"pink", width: 10}, object: {hash:"龴ↀ◡ↀ龴"}});
 }, 3000)
 
 
