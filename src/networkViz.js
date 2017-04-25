@@ -20,6 +20,8 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         pad: 5,
         margin: 10,
         allowDrag: true,
+        // This callback is called when a drag event starts on a node.
+        nodeDragStart: undefined,
         edgeLabelText: undefined,
         // Both mouseout and mouseover take data AND the selection (arg1, arg2)
         mouseOverNode: undefined,
@@ -28,11 +30,16 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         nodeToColor: undefined,
         nodeStrokeWidth: 2,
         nodeStrokeColor: "black",
+        // TODO: clickNode (node, element) => void
         clickNode: (node) => console.log("clicked", node),
         clickAway: () => console.log("clicked away from stuff"),
         edgeColor: () => "black",
         edgeStroke: undefined,
         edgeLength: d => {console.log(`length`, d); return 150}
+    }
+
+    let internalOptions = {
+        isDragging: false
     }
 
     /**
@@ -57,7 +64,6 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
     let tripletsDB = levelgraph(level(`Userdb-${Math.random()*100}`));
     let nodes = [];
     let links = [];
-    let mouseCoordinates = [0, 0]
 
     const width = layoutOptions.width,
           height = layoutOptions.height,
@@ -73,12 +79,6 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                 .attr("viewBox", `0 0 ${width} ${height}`)
                 .classed("svg-content-responsive", true);
     
-    /**
-     * Keep track of the mouse.
-     */
-    svg.on("mousemove", function() {
-        mouseCoordinates = d3.mouse(this)
-    })
     svg.on("click", () => {
         layoutOptions.clickAway();
     })
@@ -90,6 +90,16 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
      */
     let simulation = updateColaLayout();
     
+    // Setting up the modified drag.
+    // Calling webcola drag without arguments returns the drag event.
+    let modifiedDrag = simulation.drag();
+    modifiedDrag.on("start", () => {
+        layoutOptions.nodeDragStart && layoutOptions.nodeDragStart()
+        internalOptions.isDragging = true;
+    }).on("end", ()=>{
+        internalOptions.isDragging = false;
+    });
+
     /**
      * Here we define the arrow heads to be used later.
      * Each unique arrow head needs to be created.
@@ -166,11 +176,10 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                    
         // Only allow dragging nodes if turned on.
         if (layoutOptions.allowDrag){
-            nodeEnter.attr("cursor", "move").call(simulation.drag);
+            nodeEnter.attr("cursor", "move").call(modifiedDrag);  
         } else {
             nodeEnter.attr("cursor", "default");
         }
-        
                    
         
         // Here we add node beauty.
@@ -225,26 +234,27 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         // update size
         updateRectCircleSize();
 
-        /**
-         * Rebind the handlers on the nodes.
-         */
-        node.on('click', function(node) {
-            // coordinates is a tuple: [x,y]
-            setTimeout(() => {
-                layoutOptions.clickNode(node, mouseCoordinates)
-            }, 50)
-            
-        });
 
         // These CANNOT be arrow functions or this context is wrong.
         updateShapes.on('mouseover', function(d){
+            if (internalOptions.isDragging){ return }
+
             let element = d3.select(this);
             layoutOptions.mouseOverNode(d, element);
-        });
-        updateShapes.on('mouseout', function(d) {
+        }).on('mouseout', function(d) {
+            if (internalOptions.isDragging){ return }
+
             let element = d3.select(this);
             layoutOptions.mouseOutNode(d, element);
-        });
+        }).on('click', function(d) {
+
+            // coordinates is a tuple: [x,y]
+            let elem = d3.select(this);
+            setTimeout(() => {
+                layoutOptions.clickNode(d, elem)
+            }, 50)
+            
+        })
 
         /////// LINK ///////
         link = link.data(links, d => d.source.index + "-" + d.target.index);
@@ -637,6 +647,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
 
     /**
      * Replaces function to call when clicking away from a node.
+     * TODO: prevent triggering when zooming.
      * @param {function} clickAwayCallback 
      */
     function setClickAway(clickAwayCallback){

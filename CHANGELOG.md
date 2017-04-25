@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+ - dragStart callback
+ - mouseOver and mouseOut callbacks don't fire while dragging.
+ - mouseOver and mouseOut callbacks added to nodes.
  - getSVGElement endpoint for getting reference to the svg 'canvas'.
     - useful for getting absolute x and y co-ordinates.
  - shortnames can be updated, and nodes will reflect the change after a layout restart.
