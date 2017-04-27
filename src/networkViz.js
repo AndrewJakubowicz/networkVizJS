@@ -240,12 +240,12 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
             if (internalOptions.isDragging){ return }
 
             let element = d3.select(this);
-            layoutOptions.mouseOverNode(d, element);
+            layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
         }).on('mouseout', function(d) {
             if (internalOptions.isDragging){ return }
 
             let element = d3.select(this);
-            layoutOptions.mouseOutNode(d, element);
+            layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
         }).on('click', function(d) {
 
             // coordinates is a tuple: [x,y]
