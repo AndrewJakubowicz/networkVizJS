@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+ - mouseup callbacl
  - dragStart callback
  - mouseOver and mouseOut callbacks don't fire while dragging.
  - mouseOver and mouseOut callbacks added to nodes.

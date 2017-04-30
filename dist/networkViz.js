@@ -44,6 +44,7 @@ module.exports = function networkVizJS(documentId) {
         // Both mouseout and mouseover take data AND the selection (arg1, arg2)
         mouseOverNode: undefined,
         mouseOutNode: undefined,
+        mouseUpNode: undefined,
         // These are "live options"
         nodeToColor: undefined,
         nodeStrokeWidth: 2,
@@ -244,21 +245,21 @@ module.exports = function networkVizJS(documentId) {
             }
 
             var element = d3.select(this);
-            layoutOptions.mouseOverNode(d, element);
+            layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
         }).on('mouseout', function (d) {
             if (internalOptions.isDragging) {
                 return;
             }
 
             var element = d3.select(this);
-            layoutOptions.mouseOutNode(d, element);
+            layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
         }).on('click', function (d) {
-
-            // coordinates is a tuple: [x,y]
             var elem = d3.select(this);
             setTimeout(function () {
                 layoutOptions.clickNode(d, elem);
             }, 50);
+        }).on("mouseup", function (d) {
+            layoutOptions.mouseUpNode && layoutOptions.mouseUpNode(d, d3.select(this));
         });
 
         /////// LINK ///////
