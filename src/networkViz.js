@@ -754,6 +754,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
             setNodeColor: setNodeToColor,
             nodeStrokeWidth,
             nodeStrokeColor,
+            setClickNode: setSelectNode,
             setMouseOver,
             setMouseOut
         },
