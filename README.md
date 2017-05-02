@@ -24,7 +24,7 @@ npm install --save networkvizjs
 Add the following script tag to your html page.
 
 ```html
-<script src="https://unpkg.com/networkvizjs@0.0.1/dist/index.umd.min.js"></script>
+<script src="https://unpkg.com/networkvizjs@0.0.4/dist/index.umd.min.js"></script>
 ```
 
 After this you can access the library `networkVizJS` globally.

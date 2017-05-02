@@ -13266,16 +13266,25 @@ module.exports = function networkVizJS(documentId) {
                 }
                 // Check if the node exists
                 if (l1.length + l2.length === 0) {
-                    return console.error("There was nothing to remove");
+                    // Once the edges are deleted we can remove the node.
+                    var nodeIndex = -1;
+                    for (var i = 0; i < nodes.length; i++) {
+                        if (nodes[i].hash === nodeHash) {
+                            nodeIndex = i;
+                            break;
+                        }
+                    }
+                    if (nodeIndex === -1) {
+                        return console.error("There is no node");
+                    }
+                    simulation.stop();
+                    nodes.splice(nodeIndex, 1);
+                    nodeMap.delete(nodeHash);
+
+                    createNewLinks();
+                    return;
                 }
 
-                [].concat(_toConsumableArray(l1), _toConsumableArray(l2)).forEach(function (triplet) {
-                    return tripletsDB.del(triplet, function (err) {
-                        if (err) {
-                            return console.error(err);
-                        }
-                    });
-                });
                 tripletsDB.del([].concat(_toConsumableArray(l1), _toConsumableArray(l2)), function (err) {
                     if (err) {
                         return new Error(err);
@@ -13283,9 +13292,9 @@ module.exports = function networkVizJS(documentId) {
 
                     // Once the edges are deleted we can remove the node.
                     var nodeIndex = -1;
-                    for (var i = 0; i < nodes.length; i++) {
-                        if (nodes[i].hash === nodeHash) {
-                            nodeIndex = i;
+                    for (var _i = 0; _i < nodes.length; _i++) {
+                        if (nodes[_i].hash === nodeHash) {
+                            nodeIndex = _i;
                             break;
                         }
                     }

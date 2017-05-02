@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+ - removeNode now removes disconnected nodes.
  - d3 and webcola is now external
  - api for restarting the graph (split into style and layout restart)
 

@@ -588,14 +588,25 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                 }
                 // Check if the node exists
                 if (l1.length + l2.length === 0){
-                    return console.error("There was nothing to remove")
+                    // Once the edges are deleted we can remove the node.
+                    let nodeIndex = -1;
+                    for (let i = 0; i < nodes.length; i++){
+                        if (nodes[i].hash === nodeHash){
+                            nodeIndex = i;
+                            break;
+                        }
+                    }
+                    if (nodeIndex === -1){
+                        return console.error("There is no node");
+                    }
+                    simulation.stop();
+                    nodes.splice(nodeIndex, 1);
+                    nodeMap.delete(nodeHash);
+
+                    createNewLinks();
+                    return
                 }
 
-                [...l1, ...l2].forEach(triplet => tripletsDB.del(triplet, function(err){
-                    if (err){
-                        return console.error(err);
-                    }
-                }));
                 tripletsDB.del([...l1, ...l2], function(err){
                     if (err) { return new Error(err)};
 
