@@ -153,22 +153,20 @@ module.exports = function networkVizJS(documentId) {
      * Used to support dynamically changing the node size
      * if the text is changing.
      */
-    function updateRectCircleSize() {
+    function updatePathDimensions() {
         /**
          * Update the width and height here because otherwise the height and width
          * calculations don't occur.
          */
-        node.select('rect').attr("width", function (d) {
-            return d.innerBounds && d.innerBounds.width() || d.width;
-        }).attr("height", function (d) {
-            return d.innerBounds && d.innerBounds.height() || d.height;
-        });
-        node.select('circle').attr("r", function (d) {
-            return (d.innerBounds && d.innerBounds.width() || d.width) / 2;
-        }).attr("cx", function (d) {
-            return (d.innerBounds && d.innerBounds.width() || d.width) / 2;
-        }).attr("cy", function (d) {
-            return (d.innerBounds && d.innerBounds.height() || d.height) / 2;
+        node.select('path').attr('transform', function (d) {
+            // Scale appropriately using http://stackoverflow.com/a/9877871/6421793
+            var currentWidth = this.getBBox().width,
+                w = d.innerBounds && d.innerBounds.width() || d.width,
+                currentHeight = this.getBBox().height,
+                h = d.innerBounds && d.innerBounds.height() || d.height,
+                scaleW = w / currentWidth,
+                scaleH = h / currentHeight;
+            return 'translate(' + -w / 2 + ',' + -h / 2 + ') scale(' + scaleW + ',' + scaleH + ')';
         });
     }
 
@@ -198,12 +196,19 @@ module.exports = function networkVizJS(documentId) {
 
         // Choose the node shape and style.
         var nodeShape = void 0;
-        if (layoutOptions.nodeShape == "rect") {
-            nodeShape = nodeEnter.insert("rect", "text"); // The second arg is what the rect will sit behind.
-        } else if (layoutOptions.nodeShape == "circle") {
-            nodeShape = nodeEnter.insert("circle", "text"); // The second arg is what the rect will sit behind.
+        nodeShape = nodeEnter.insert("path", "text");
+
+        if (typeof layoutOptions.nodeShape == "string" && layoutOptions.nodeShape == "rect") {
+            // nodeShape = nodeEnter.insert("rect", "text")     // The second arg is what the rect will sit behind.
+            nodeShape.attr('d', 'M16 48 L48 48 L48 16 L16 16 Z');
+        } else if (typeof layoutOptions.nodeShape == "string" && layoutOptions.nodeShape == "circle") {
+            // Circle path technique from:
+            // http://stackoverflow.com/a/10477334/6421793
+            nodeShape.attr('d', 'M20,40a20,20 0 1,0 40,0a20,20 0 1,0 -40,0');
+        } else if (typeof layoutOptions.nodeShape == "function") {
+            nodeShape.attr('d', layoutOptions.nodeShape);
         }
-        nodeShape.classed("node", true);
+        nodeShape.classed("node", true).attr('vector-effect', 'non-scaling-stroke');
 
         // Merge the entered nodes to the update nodes.        
         node = node.merge(nodeEnter);
@@ -229,14 +234,14 @@ module.exports = function networkVizJS(documentId) {
          * When restart() is called, these are the properties that will be affected
          * by mutation.
          */
-        var updateShapes = node.select('rect').merge(node.select('circle'));
+        var updateShapes = node.select('path');
         // These changes apply to both rect and circle
         updateShapes.attr("fill", function (d) {
             return layoutOptions.nodeToColor && layoutOptions.nodeToColor(d) || "aqua";
         }).attr("stroke", layoutOptions.nodeStrokeColor).attr("stroke-width", layoutOptions.nodeStrokeWidth);
 
         // update size
-        updateRectCircleSize();
+        updatePathDimensions();
 
         // These CANNOT be arrow functions or this context is wrong.
         updateShapes.on('mouseover', function (d) {
@@ -341,7 +346,7 @@ module.exports = function networkVizJS(documentId) {
                 return d.innerBounds ? 'translate(' + d.innerBounds.x + ',' + d.innerBounds.y + ')' : 'translate(' + d.x + ',' + d.y + ')';
             });
 
-            updateRectCircleSize();
+            updatePathDimensions();
 
             link.select('path').attr("d", function (d) {
                 var route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);

@@ -149,18 +149,22 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
      * Used to support dynamically changing the node size
      * if the text is changing.
      */
-    function updateRectCircleSize(){
+    function updatePathDimensions(){
         /**
          * Update the width and height here because otherwise the height and width
          * calculations don't occur.
          */
-        node.select('rect')
-            .attr("width", d => d.innerBounds && d.innerBounds.width() || d.width)
-            .attr("height", d => d.innerBounds && d.innerBounds.height() || d.height);
-        node.select('circle')
-            .attr("r", d => (d.innerBounds && d.innerBounds.width() || d.width) / 2)
-            .attr("cx", d => (d.innerBounds && d.innerBounds.width() || d.width) / 2)
-            .attr("cy", d => (d.innerBounds && d.innerBounds.height() || d.height) / 2)
+        node.select('path')
+            .attr('transform', function(d) {
+                // Scale appropriately using http://stackoverflow.com/a/9877871/6421793
+                let currentWidth = this.getBBox().width,
+                    w = d.innerBounds && d.innerBounds.width() || d.width,
+                    currentHeight = this.getBBox().height,
+                    h = d.innerBounds && d.innerBounds.height() || d.height,
+                    scaleW = w / currentWidth,
+                    scaleH = h / currentHeight;
+                return `translate(${-w/2},${-h/2}) scale(${scaleW},${scaleH})`;
+            });
     }
     
     /**
@@ -195,12 +199,20 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                     
         // Choose the node shape and style.
         let nodeShape;
-        if (layoutOptions.nodeShape == "rect"){
-            nodeShape = nodeEnter.insert("rect", "text")     // The second arg is what the rect will sit behind.
-        } else if (layoutOptions.nodeShape == "circle"){
-            nodeShape = nodeEnter.insert("circle", "text")     // The second arg is what the rect will sit behind.
+        nodeShape = nodeEnter.insert("path", "text")
+
+        if (typeof layoutOptions.nodeShape == "string" && layoutOptions.nodeShape == "rect"){
+            // nodeShape = nodeEnter.insert("rect", "text")     // The second arg is what the rect will sit behind.
+            nodeShape.attr('d', 'M16 48 L48 48 L48 16 L16 16 Z');
+        } else if (typeof layoutOptions.nodeShape == "string" && layoutOptions.nodeShape == "circle"){
+            // Circle path technique from:
+            // http://stackoverflow.com/a/10477334/6421793
+            nodeShape.attr('d', 'M20,40a20,20 0 1,0 40,0a20,20 0 1,0 -40,0');
+        } else if (typeof layoutOptions.nodeShape == "function"){
+            nodeShape.attr('d', layoutOptions.nodeShape);
         }
         nodeShape.classed("node", true)
+            .attr('vector-effect', 'non-scaling-stroke');
         
         // Merge the entered nodes to the update nodes.        
         node = node.merge(nodeEnter);
@@ -225,7 +237,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
          * When restart() is called, these are the properties that will be affected
          * by mutation.
          */  
-        let updateShapes = node.select('rect').merge(node.select('circle'))
+        let updateShapes = node.select('path');
         // These changes apply to both rect and circle
         updateShapes
                 .attr("fill", d => layoutOptions.nodeToColor && layoutOptions.nodeToColor(d) || "aqua")
@@ -233,7 +245,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                 .attr("stroke-width", layoutOptions.nodeStrokeWidth);
 
         // update size
-        updateRectCircleSize();
+        updatePathDimensions();
 
 
         // These CANNOT be arrow functions or this context is wrong.
@@ -334,7 +346,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                     `translate(${d.innerBounds.x},${d.innerBounds.y})`
                     :`translate(${d.x},${d.y})`);
             
-            updateRectCircleSize();
+            updatePathDimensions();
                 
 
             link.select('path').attr("d", d => {

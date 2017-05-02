@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+ - All nodes are now paths. (This allows for path to be defined in the node's data)
  - removeNode now removes disconnected nodes.
  - d3 and webcola is now external
  - api for restarting the graph (split into style and layout restart)
