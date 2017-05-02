@@ -36,7 +36,8 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         clickAway: () => console.log("clicked away from stuff"),
         edgeColor: () => "black",
         edgeStroke: undefined,
-        edgeLength: d => {console.log(`length`, d); return 150}
+        edgeLength: d => {console.log(`length`, d); return 150},
+        clickEdge: (d, element) => undefined
     }
 
     let internalOptions = {
@@ -284,6 +285,14 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                    .attr("fill", "none")
                    .attr("marker-end",d => `url(#arrow-${layoutOptions.edgeColor(d.edgeData)})`);
         
+        linkEnter.on('click', function(d) {
+            let elem = d3.select(this);
+            setTimeout(() => {
+                layoutOptions.clickEdge(d, elem)
+            }, 50)
+            
+        })
+
         /** Optional label text */
         if (layoutOptions.edgeLabelText !== "undefined"){
             linkEnter.append("text")
@@ -784,7 +793,8 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         edgeOptions: {
             setStrokeWidth: setEdgeStroke,
             setLength: setEdgeLength,
-            setColor: setEdgeColor
+            setColor: setEdgeColor,
+            setClickEdge: (callback) => {layoutOptions.clickEdge = callback}
         },
         colaOptions: {
             flowLayout: {

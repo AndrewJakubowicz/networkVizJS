@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+ - clickEdge added
  - click on node callback (setClickNode)
  - mouseup callback
  - dragStart callback

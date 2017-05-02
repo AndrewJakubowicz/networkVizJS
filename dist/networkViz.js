@@ -62,6 +62,9 @@ module.exports = function networkVizJS(documentId) {
         edgeStroke: undefined,
         edgeLength: function edgeLength(d) {
             console.log('length', d);return 150;
+        },
+        clickEdge: function clickEdge(d, element) {
+            return undefined;
         }
     };
 
@@ -281,6 +284,13 @@ module.exports = function networkVizJS(documentId) {
             return layoutOptions.edgeColor(d.edgeData);
         }).attr("fill", "none").attr("marker-end", function (d) {
             return 'url(#arrow-' + layoutOptions.edgeColor(d.edgeData) + ')';
+        });
+
+        linkEnter.on('click', function (d) {
+            var elem = d3.select(this);
+            setTimeout(function () {
+                layoutOptions.clickEdge(d, elem);
+            }, 50);
         });
 
         /** Optional label text */
@@ -786,7 +796,10 @@ module.exports = function networkVizJS(documentId) {
         edgeOptions: {
             setStrokeWidth: setEdgeStroke,
             setLength: setEdgeLength,
-            setColor: setEdgeColor
+            setColor: setEdgeColor,
+            setClickEdge: function setClickEdge(callback) {
+                layoutOptions.clickEdge = callback;
+            }
         },
         colaOptions: {
             flowLayout: {
