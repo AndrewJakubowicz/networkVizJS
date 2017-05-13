@@ -64,6 +64,10 @@ setTimeout(() => {
     graph1.addTriplet({subject: {hash:"testNode1"}, predicate:{type:"someType", length:200, color:"pink", width: 10}, object: {hash:"龴ↀ◡ↀ龴"}});
 }, 3000)
 
+setTimeout(() => {
+    graph1.mergeNodeToGroup("testNode1", "A longer node wow");
+}, 6500)
+
 
 // setInterval(() => {
 //     graph1.colaOptions.flowLayout.down();

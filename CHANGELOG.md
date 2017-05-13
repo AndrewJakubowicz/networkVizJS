@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+ - Grouping nodes added! - Only to 1 deep.
  - clickEdge added
  - click on node callback (setClickNode)
  - mouseup callback

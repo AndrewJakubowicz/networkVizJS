@@ -66,6 +66,8 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
     let tripletsDB = levelgraph(level(`Userdb-${Math.random()*100}`));
     let nodes = [];
     let links = [];
+    let groups = [];
+    let groupByHashes = [];
 
     const width = layoutOptions.width,
           height = layoutOptions.height,
@@ -130,10 +132,13 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
 
     // Define svg groups
     let g = svg.append("g"),
+        group = g.append("g")
+                .selectAll(".group"),
         link = g.append("g")
                 .selectAll(".link"),
         node = g.append("g")
                 .selectAll(".node");
+        
     
     /**
      * Add zoom/panning behaviour to svg.
@@ -172,6 +177,18 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
      * This updates the d3 visuals without restarting the layout.
      */
     function updateStyles(){
+        ///// GROUPS /////
+        group = group.data(groups);
+
+        let groupEnter = group.enter()
+            .append('rect')
+            .attr('rx', 8)
+            .attr('ry', 8)
+            .attr('class', 'group')
+            .style('fill', 'green');
+            // .call(simulation.drag);
+        group = group.merge(groupEnter);
+
         /////// NODE ///////
 
         node = node.data(nodes, d => d.index);
@@ -344,8 +361,9 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
             });
         }
         // Restart the simulation.
-        simulation.links(links);    // Required because we create new link lists
-        simulation.start(10, 15, 20).on("tick", function() {
+        simulation.links(links)    // Required because we create new link lists
+                .groups(groups)
+                .start(10, 15, 20).on("tick", function() {
             node.each(d => {
                     if (d.bounds) {
                         d.innerBounds = d.bounds.inflate(-margin);
@@ -372,7 +390,12 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                 .attr('y', d => {
                     let route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
                     return (route.sourceIntersection.y + route.targetIntersection.y)/2;
-                })
+                });
+
+            group.attr('x', function(d){ return d.bounds.x; })
+                .attr('y', function(d){ return d.bounds.y; })
+                .attr('width', function(d){ return d.bounds.width(); })
+                .attr('height', function(d){ return d.bounds.height(); });
 
         }).on("end", routeEdges);
         function isIE() { return ((navigator.appName == 'Microsoft Internet Explorer') || ((navigator.appName == 'Netscape') && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != null))); }
@@ -383,7 +406,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
     function createNewLinks(){
         tripletsDB.get({}, (err, l) => {
             if (err){
-                throw new Error(err);
+                console.error(new Error(err));
             }
             // Create edges based on LevelGraph triplets
             links = l.map(({subject, object, edgeData}) => {
@@ -466,8 +489,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
             object = tripletObject.object;
 
         if (!(subject && predicate && object && true)){
-            throw new Error("Triplets added need to include all three fields.")
-            return false
+            console.error(new Error("Triplets added need to include all three fields."));
         }
 
         // Check that hash exists
@@ -540,7 +562,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                     edgeData: predicate
                 }, err => {
                     if (err){
-                        throw new Error(err);
+                        console.error(new Error(err));
                     }
                     
                     // Add nodes to graph
@@ -586,7 +608,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
             edgeData: predicate
         }, err => {
             if (err){
-                throw new Error(err);
+                console.error(new Error(err));
             }
 
             createNewLinks();
@@ -764,16 +786,121 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                 break;
         }
         // Bind the nodes and links to the simulation
+
         return tempSimulation.nodes(nodes)
-                            .links(links);
-                         
+                                .links(links)
+                                .groups(groups).start(10, 15, 20);
+    }
+
+    /**
+     * Merges a node into another group.
+     * If this node was in another group previously it removes it from the prior group.
+     */
+    function mergeNodeToGroup(nodeInGroupHash, nodeToMergeHash){
+        /**
+         * Groups need to be defined using indexes.
+         */
+        let indexOfGroupNode = -1;
+        let indexOfNodeToMerge = -1;
+        for (let i = 0; i < nodes.length; i++){
+            if (nodes[i].hash == nodeInGroupHash){
+                indexOfGroupNode = i;
+            }
+            if (nodes[i].hash == nodeToMergeHash){
+                indexOfNodeToMerge = i;
+            }
+            if (indexOfGroupNode !== -1 && indexOfNodeToMerge !== -1){
+                break;
+            }
+        }
+        // Verify that the initial node exists.
+        if (indexOfGroupNode == -1){
+            return console.error("You're trying to merge with a node that doesn't exist. Check that the node hash is correct.");
+        }
+        if (indexOfNodeToMerge == -1){
+            return console.error("The node you are trying to merge doesn't exist. Check the node hash is correct or add the node to the graph.")
+        }
+
+        // Find the set that the merge node is part of.
+        // Also remove the node we're merging from any sets it might be in.
+        let indexInSets = -1
+        groupByHashes.forEach((set, index) => {
+            if (set.has(nodeInGroupHash)){
+                indexInSets = index;
+                set.add(nodeToMergeHash)
+            }
+            if (set.has(nodeToMergeHash) && !set.has(nodeInGroupHash)){
+                set.delete(nodeToMergeHash);
+            }
+        });
+
+        if (indexInSets === -1){
+            // Create a new grouping.
+            groupByHashes.push(new Set([nodeToMergeHash, nodeInGroupHash]));
+        }
+
+        simulation.stop()
+        // Here we create a new group object with the updated group unions.
+        let newGroupObject = [];
+        groupByHashes.forEach(set => {
+            let indexOfSet = []
+            let setArray = [...set];
+            let nodeIndex;
+            for (let i = 0; i < setArray.length; i ++){
+                nodeIndex = nodeMap.get(setArray[i]).index;
+                indexOfSet.push(nodeIndex);
+            }
+            // Create and push an object with the indexes of the nodes.
+            newGroupObject.push({leaves: indexOfSet});
+        });
+        groups = newGroupObject;
+
+        // // Traverse the group data to find the group with the indexOfGroupNode
+        // let groupIndex = -1;
+        // groups.forEach((grpObj, index) => {
+        //     // Check that leaves exists.
+        //     if (!(grpObj && grpObj.leaves)){
+        //         return
+        //     }
+        //     for (let i = 0; i < grpObj.leaves.length; i ++){
+        //         if (grpObj.leaves[i] == indexOfGroupNode){
+        //             // Set which group the prior node belongs too.
+        //             if (groupIndex != -1){
+        //                 console.error("This suggests that the node is in more than 1 group - illegal.")
+        //             }
+        //             // At the moment just update to the most recent group.
+        //             groupIndex = index;
+        //         }
+        //     }
+        // });
+
+        // // Now we have the groupIndex.
+        // // If the group index exists, push the new node on.
+        // simulation.stop();
+        // if (groupIndex !== -1){
+        //     console.log("merging nodes")
+        //     groups[groupIndex].leaves.push(indexOfNodeToMerge);
+        // } else {
+        //     // Create a new grouping and add both nodes.
+        //     groups.push({leaves: [indexOfNodeToMerge, indexOfGroupNode]});
+        //     console.log(groups);
+        // }
+        restart();
     }
 
     // Public api
+    /**
+     * TODO:
+     * Actually check which of these are absolutely garbage.
+     * Allow reference to the graph in the options object.
+     * Solutions?:
+     *  - Maybe have a "this" reference passed into the callbacks.
+     */
     return {
         getSVGElement: () => svg,
         addTriplet,
         addEdge,
+        mergeNodeToGroup,
         removeNode,
         addNode,
         setClickAway,
