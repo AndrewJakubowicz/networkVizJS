@@ -1,33 +1,16 @@
-'use strict';
-
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
-
-var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
-
-var _webcola = require('webcola');
-
-var cola = _interopRequireWildcard(_webcola);
-
-var _d = require('d3');
-
-var d3 = _interopRequireWildcard(_d);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
-function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
-
-var levelgraph = require('levelgraph');
-var level = require('level-browserify');
-
-module.exports = function networkVizJS(documentId) {
-    var userLayoutOptions = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const d3 = require("d3");
+const cola = require("webcola");
+let levelgraph = require('levelgraph');
+let level = require('level-browserify');
+const updateColaLayout_1 = require("./updateColaLayout");
+function networkVizJS(documentId, userLayoutOptions) {
     /**
      * Default options for webcola and graph
      */
-    var defaultLayoutOptions = {
-        layoutType: "flowLayout", // Define webcola length layout algorithm
+    let defaultLayoutOptions = {
+        layoutType: "flowLayout",
         avoidOverlaps: true,
         handleDisconnected: false,
         flowDirection: "y",
@@ -46,271 +29,261 @@ module.exports = function networkVizJS(documentId) {
         mouseOutNode: undefined,
         mouseUpNode: undefined,
         // These are "live options"
-        nodeToColor: undefined,
+        nodeToColor: "white",
         nodeStrokeWidth: 2,
         nodeStrokeColor: "black",
         // TODO: clickNode (node, element) => void
-        clickNode: function clickNode(node) {
-            return console.log("clicked", node);
-        },
-        clickAway: function clickAway() {
-            return console.log("clicked away from stuff");
-        },
-        edgeColor: function edgeColor() {
-            return "black";
-        },
-        edgeStroke: undefined,
-        edgeLength: function edgeLength(d) {
-            console.log('length', d);return 150;
-        },
-        clickEdge: function clickEdge(d, element) {
-            return undefined;
-        }
+        clickNode: (node) => console.log("clicked", node),
+        clickAway: () => console.log("clicked away from stuff"),
+        edgeColor: "black",
+        edgeStroke: 2,
+        edgeLength: d => { console.log(`length`, d); return 150; },
+        clickEdge: (d, element) => undefined
     };
-
-    var internalOptions = {
+    let internalOptions = {
         isDragging: false
     };
-
     /**
-     * This creates the default object, and then overwrites any parameters
-     * with the user parameters.
+     * Create the layoutOptions object with the users options
+     * overriding the default options.
      */
-    var layoutOptions = _extends({}, defaultLayoutOptions, userLayoutOptions);
-
+    let layoutOptions = Object.assign({}, defaultLayoutOptions, userLayoutOptions);
+    /**
+     * Check that the user has provided a valid documentId
+     * and check that the id exists.
+     */
     if (typeof documentId !== "string" || documentId === "") {
-        throw new Error("Document Id passed into graph isn't a string.");
+        throw new Error("Document Id passed into graph isn't a valid string.");
     }
-
+    if (document.getElementById(documentId) === undefined) {
+        throw new Error(`Can't find id '#${documentId}' on the page.`);
+    }
     /**
-     * nodeMap allows hash lookup of nodes.
+     * Declare variables that are needed.
      */
-    var nodeMap = new Map();
-    var predicateTypeToColorMap = new Map();
-    var tripletsDB = levelgraph(level('Userdb-' + Math.random() * 100));
-    var nodes = [];
-    var links = [];
-    var groups = [];
-    var groupByHashes = [];
-
-    var width = layoutOptions.width,
-        height = layoutOptions.height,
-        margin = layoutOptions.margin,
-        pad = layoutOptions.pad;
-
-    // Here we are creating a responsive svg element.
-    var svg = d3.select('#' + documentId).append("div").classed("svg-container", true).append("svg").attr("preserveAspectRatio", "xMinYMin meet").attr("viewBox", '0 0 ' + width + ' ' + height).classed("svg-content-responsive", true);
-
-    svg.on("click", function () {
-        layoutOptions.clickAway();
-    });
-
+    let nodeMap = new Map();
+    let predicateTypeToColorMap = new Map();
+    /**
+     * Todo:    This is currently a hack. Create a random database on the client
+     *          side to build the networks on top of.
+     */
+    let tripletsDB = levelgraph(level(`Userdb-${Math.random() * 100}`));
+    /**
+     * These represent the data that d3 will visualize.
+     */
+    let nodes = [];
+    let links = [];
+    let groups = [];
+    let groupByHashes = [];
+    const width = layoutOptions.width, height = layoutOptions.height, margin = layoutOptions.margin, pad = layoutOptions.pad;
+    /**
+     * Create svg canvas that is responsive to the page.
+     * This will try to fill the div that it's placed in.
+     */
+    let svg = d3.select(`#${documentId}`)
+        .append("div")
+        .classed("svg-container", true)
+        .append("svg")
+        .attr("preserveAspectRatio", "xMinYMin meet")
+        .attr("viewBox", `0 0 ${width} ${height}`)
+        .classed("svg-content-responsive", true);
+    svg.on("click", layoutOptions.clickAway);
     /**
      * Set up [webcola](http://marvl.infotech.monash.edu/webcola/).
-     * Later we'll be restarting the simulation whenever we mutate
-     * the node or link lists.
+     * The helper function updateColaLayout allows for restarting
+     * the simulation whenever the layout is changed.
      */
-    var simulation = updateColaLayout();
-
-    // Setting up the modified drag.
-    // Calling webcola drag without arguments returns the drag event.
-    var modifiedDrag = simulation.drag();
-    modifiedDrag.on("start", function () {
+    let simulation = updateColaLayout_1.updateColaLayout(layoutOptions)
+        .nodes(nodes)
+        .links(links)
+        .groups(groups)
+        .start();
+    /**
+     * Call nodeDragStart callback when drag event triggers.
+     */
+    let drag = simulation.drag();
+    drag.on("start", () => {
         layoutOptions.nodeDragStart && layoutOptions.nodeDragStart();
         internalOptions.isDragging = true;
-    }).on("end", function () {
+    }).on("end", () => {
         internalOptions.isDragging = false;
     });
-
     /**
-     * Here we define the arrow heads to be used later.
-     * Each unique arrow head needs to be created.
+     * Create the defs element that stores the arrow heads.
      */
-    var defs = svg.append("defs");
-
+    const defs = svg.append("defs");
     /**
-     * Appends a new marker to the dom, for the new
-     * marker color.
-     * @param {defs DOMElement} definitionElement 
-     * @param {string} color valid css color string
+     * Appends an arrow head marker to the defs element to be used later.
+     * @param defElement 'defs' element to append marker elements
+     * @param color string representation of a valid color.
      */
-    var createColorMarker = function createColorMarker(definitionElement, color) {
-        definitionElement.append("marker").attr("id", 'arrow-' + color).attr("viewBox", "0 -5 10 10").attr("refX", 8).attr("markerWidth", 6).attr("markerHeight", 6).attr("fill", color).attr("orient", "auto").append("path").attr("d", "M0,-5L10,0L0,5").attr("class", "arrowHead");
-    };
-
-    // Define svg groups
-    var g = svg.append("g"),
-        group = g.append("g").selectAll(".group"),
-        link = g.append("g").selectAll(".link"),
-        node = g.append("g").selectAll(".node");
-
+    function createColorArrow(defElement, color) {
+        defElement.append("marker")
+            .attr("id", `arrow-${color}`)
+            .attr("viewBox", "0 -5 10 10")
+            .attr("refX", 8)
+            .attr("markerWidth", 6)
+            .attr("markerHeight", 6)
+            .attr("fill", color)
+            .attr("orient", "auto")
+            .append("path")
+            .attr("d", "M0,-5L10,0L0,5")
+            .attr("class", "arrowHead");
+    }
+    // Define svg groups for storing the visuals.
+    let g = svg.append('g'), group = g.append('g')
+        .selectAll('.group'), link = g.append('g')
+        .selectAll('.link'), node = g.append('g')
+        .selectAll('.node');
     /**
-     * Add zoom/panning behaviour to svg.
+     * Zooming and panning behaviour.
      */
-    var zoom = d3.zoom().scaleExtent([0.1, 5]).on("zoom", zoomed);
+    let zoom = d3.zoom().scaleExtent([0.1, 5]).on("zoom", zoomed);
     svg.call(zoom);
     function zoomed() {
         layoutOptions.clickAway();
         g.attr("transform", d3.event.transform);
     }
-
     /**
      * Resets width or radius of nodes.
-     * Used to support dynamically changing the node size
-     * if the text is changing.
+     * Allows dynamically changing node sizes based on text.
      */
     function updatePathDimensions() {
-        /**
-         * Update the width and height here because otherwise the height and width
-         * calculations don't occur.
-         */
-        node.select('path').attr('transform', function (d) {
+        node.select('path')
+            .attr('transform', function (d) {
             // Scale appropriately using http://stackoverflow.com/a/9877871/6421793
-            var currentWidth = this.getBBox().width,
-                w = d.innerBounds && d.innerBounds.width() || d.width,
-                currentHeight = this.getBBox().height,
-                h = d.innerBounds && d.innerBounds.height() || d.height,
-                scaleW = w / currentWidth,
-                scaleH = h / currentHeight;
-            return 'translate(' + -w / 2 + ',' + -h / 2 + ') scale(' + scaleW + ',' + scaleH + ')';
+            let currentWidth = this.getBBox().width, w = d.innerBounds && d.innerBounds.width() || d.width, currentHeight = this.getBBox().height, h = d.innerBounds && d.innerBounds.height() || d.height, scaleW = w / currentWidth, scaleH = h / currentHeight;
+            return `translate(${-w / 2},${-h / 2}) scale(${scaleW},${scaleH})`;
         });
     }
-
     /**
-     * This updates the d3 visuals without restarting the layout.
+     * Update the d3 visuals without layout changes.
      */
     function updateStyles() {
         ///// GROUPS /////
         group = group.data(groups);
-
-        var groupEnter = group.enter().append('rect').attr('rx', 8).attr('ry', 8).attr('class', 'group').style('fill', 'green');
+        let groupEnter = group.enter()
+            .append('rect')
+            .attr('rx', 8)
+            .attr('ry', 8)
+            .attr('class', 'group')
+            .style('fill', 'green');
         // .call(simulation.drag);
         group = group.merge(groupEnter);
-
         /////// NODE ///////
-
-        node = node.data(nodes, function (d) {
-            return d.index;
-        });
+        node = node.data(nodes, d => d.index);
         node.exit().remove();
-        var nodeEnter = node.enter().append("g").classed("node", true);
-
+        let nodeEnter = node.enter()
+            .append("g")
+            .classed("node", true);
         // Only allow dragging nodes if turned on.
         if (layoutOptions.allowDrag) {
-            nodeEnter.attr("cursor", "move").call(modifiedDrag);
-        } else {
+            nodeEnter.attr("cursor", "move").call(drag);
+        }
+        else {
             nodeEnter.attr("cursor", "default");
         }
-
         // Here we add node beauty.
         // To fit nodes to the short-name calculate BBox
         // from https://bl.ocks.org/mbostock/1160929
-        nodeEnter.append("text").attr("dx", -10).attr("dy", -2).attr("text-anchor", "middle").style("font", "100 22px Helvetica Neue");
-
+        nodeEnter.append("text")
+            .attr("dx", -10)
+            .attr("dy", -2)
+            .attr("text-anchor", "middle")
+            .style("font", "100 22px Helvetica Neue");
         // Choose the node shape and style.
-        var nodeShape = void 0;
+        let nodeShape;
         nodeShape = nodeEnter.insert("path", "text");
-
         if (typeof layoutOptions.nodeShape == "string" && layoutOptions.nodeShape == "rect") {
             // nodeShape = nodeEnter.insert("rect", "text")     // The second arg is what the rect will sit behind.
             nodeShape.attr('d', 'M16 48 L48 48 L48 16 L16 16 Z');
-        } else if (typeof layoutOptions.nodeShape == "string" && layoutOptions.nodeShape == "circle") {
+        }
+        else if (typeof layoutOptions.nodeShape == "string" && layoutOptions.nodeShape == "circle") {
             // Circle path technique from:
             // http://stackoverflow.com/a/10477334/6421793
             nodeShape.attr('d', 'M20,40a20,20 0 1,0 40,0a20,20 0 1,0 -40,0');
-        } else if (typeof layoutOptions.nodeShape == "function") {
+        }
+        else if (typeof layoutOptions.nodeShape == "function") {
             nodeShape.attr('d', layoutOptions.nodeShape);
         }
-        nodeShape.classed("node", true).attr('vector-effect', 'non-scaling-stroke');
-
+        nodeShape.classed("node", true)
+            .attr('vector-effect', 'non-scaling-stroke');
         // Merge the entered nodes to the update nodes.        
         node = node.merge(nodeEnter);
-
         /**
          * Update the text property (allowing dynamically changing text)
          */
-        node.select("text").text(function (d) {
-            return d.shortname || d.hash;
-        }).each(function (d) {
-            var b = this.getBBox();
-            var extra = 2 * margin + 2 * pad;
+        node.select("text")
+            .text((d) => d.shortname || d.hash)
+            .each(function (d) {
+            const b = this.getBBox();
+            const extra = 2 * margin + 2 * pad;
             d.width = b.width + extra;
             d.height = b.height + extra;
-        }).attr("x", function (d) {
-            return d.width / 2;
-        }).attr("y", function (d) {
-            return d.height / 2;
-        }).attr("pointer-events", "none");
-
+        })
+            .attr("x", (d) => d.width / 2)
+            .attr("y", (d) => d.height / 2)
+            .attr("pointer-events", "none");
         /**
          * Here we can update node properties that have already been attached.
          * When restart() is called, these are the properties that will be affected
          * by mutation.
          */
-        var updateShapes = node.select('path');
+        let updateShapes = node.select('path');
         // These changes apply to both rect and circle
-        updateShapes.attr("fill", function (d) {
-            return layoutOptions.nodeToColor && layoutOptions.nodeToColor(d) || "aqua";
-        }).attr("stroke", layoutOptions.nodeStrokeColor).attr("stroke-width", layoutOptions.nodeStrokeWidth);
-
+        updateShapes
+            .attr("fill", layoutOptions.nodeToColor)
+            .attr("stroke", layoutOptions.nodeStrokeColor)
+            .attr("stroke-width", layoutOptions.nodeStrokeWidth);
         // update size
         updatePathDimensions();
-
-        // These CANNOT be arrow functions or this context is wrong.
+        // These CANNOT be arrow functions or 'this' context becomes wrong.
         updateShapes.on('mouseover', function (d) {
             if (internalOptions.isDragging) {
                 return;
             }
-
-            var element = d3.select(this);
+            let element = d3.select(this);
             layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
         }).on('mouseout', function (d) {
             if (internalOptions.isDragging) {
                 return;
             }
-
-            var element = d3.select(this);
+            let element = d3.select(this);
             layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
         }).on('click', function (d) {
-            var elem = d3.select(this);
-            setTimeout(function () {
+            let elem = d3.select(this);
+            setTimeout(() => {
                 layoutOptions.clickNode(d, elem);
             }, 50);
         }).on("mouseup", function (d) {
             layoutOptions.mouseUpNode && layoutOptions.mouseUpNode(d, d3.select(this));
         });
-
         /////// LINK ///////
-        link = link.data(links, function (d) {
-            return d.source.index + "-" + d.target.index;
-        });
+        link = link.data(links, d => d.source.index + "-" + d.target.index);
         link.exit().remove();
-
-        var linkEnter = link.enter().append("g").classed("line", true);
-
-        linkEnter.append("path").attr("stroke-width", function (d) {
-            return layoutOptions.edgeStroke && layoutOptions.edgeStroke(d) || 2;
-        }).attr("stroke", function (d) {
-            return layoutOptions.edgeColor(d.edgeData);
-        }).attr("fill", "none").attr("marker-end", function (d) {
-            return 'url(#arrow-' + layoutOptions.edgeColor(d.edgeData) + ')';
-        });
-
+        let linkEnter = link.enter()
+            .append("g")
+            .classed("line", true);
+        linkEnter.append("path")
+            .attr("stroke-width", layoutOptions.edgeStroke)
+            .attr("stroke", d => layoutOptions.edgeColor(d.edgeData))
+            .attr("fill", "none")
+            .attr("marker-end", d => `url(#arrow-${layoutOptions.edgeColor(d.edgeData)})`);
         linkEnter.on('click', function (d) {
-            var elem = d3.select(this);
-            setTimeout(function () {
+            let elem = d3.select(this);
+            setTimeout(() => {
                 layoutOptions.clickEdge(d, elem);
             }, 50);
         });
-
         /** Optional label text */
         if (layoutOptions.edgeLabelText !== "undefined") {
-            linkEnter.append("text").attr("text-anchor", "middle").style("font", "100 22px Helvetica Neue").text(layoutOptions.edgeLabelText);
+            linkEnter.append("text")
+                .attr("text-anchor", "middle")
+                .style("font", "100 22px Helvetica Neue")
+                .text(layoutOptions.edgeLabelText);
         }
-
         link = link.merge(linkEnter);
     }
-
     /**
      * restart function adds and removes nodes.
      * It also restarts the simulation.
@@ -321,127 +294,103 @@ module.exports = function networkVizJS(documentId) {
         /**
          * Helper function for drawing the lines.
          */
-        var lineFunction = d3.line().x(function (d) {
-            return d.x;
-        }).y(function (d) {
-            return d.y;
-        });
-
+        const lineFunction = d3.line()
+            .x(d => d.x)
+            .y(d => d.y);
         /**
          * Causes the links to bend around the rectangles.
          * Source: https://github.com/tgdwyer/WebCola/blob/master/WebCola/examples/unix.html#L140
          */
-        var routeEdges = function routeEdges() {
+        const routeEdges = function () {
             if (links.length == 0 || !layoutOptions.enableEdgeRouting) {
                 return;
             }
-
             simulation.prepareEdgeRouting();
-            link.select('path').attr("d", function (d) {
-                return lineFunction(simulation.routeEdge(d));
-            });
-            if (isIE()) link.select('path').each(function (d) {
-                this.parentNode.insertBefore(this, this);
-            });
-
-            link.select('text').attr("x", function (d) {
-                var arrayX = simulation.routeEdge(d);
-                var middleIndex = Math.floor(arrayX.length / 2) - 1;
+            link.select('path').attr("d", d => lineFunction(simulation.routeEdge(d, null)));
+            if (isIE())
+                link.select('path').each(function (d) { this.parentNode.insertBefore(this, this); });
+            link.select('text').attr("x", d => {
+                let arrayX = simulation.routeEdge(d, null);
+                let middleIndex = Math.floor(arrayX.length / 2) - 1;
                 return (arrayX[middleIndex].x + arrayX[middleIndex + 1].x) / 2;
-            }).attr("y", function (d) {
-                var arrayY = simulation.routeEdge(d);
-                var middleIndex = Math.floor(arrayY.length / 2) - 1;
+            }).attr("y", d => {
+                let arrayY = simulation.routeEdge(d, null);
+                let middleIndex = Math.floor(arrayY.length / 2) - 1;
                 return (arrayY[middleIndex].y + arrayY[middleIndex + 1].y) / 2;
             });
         };
         // Restart the simulation.
         simulation.links(links) // Required because we create new link lists
-        .groups(groups).start(10, 15, 20).on("tick", function () {
-            node.each(function (d) {
+            .groups(groups)
+            .start(10, 15, 20).on("tick", function () {
+            node.each(d => {
                 if (d.bounds) {
                     d.innerBounds = d.bounds.inflate(-margin);
                 }
             });
-            node.attr("transform", function (d) {
-                return d.innerBounds ? 'translate(' + d.innerBounds.x + ',' + d.innerBounds.y + ')' : 'translate(' + d.x + ',' + d.y + ')';
-            });
-
+            node.attr("transform", d => d.innerBounds ?
+                `translate(${d.innerBounds.x},${d.innerBounds.y})`
+                : `translate(${d.x},${d.y})`);
             updatePathDimensions();
-
-            link.select('path').attr("d", function (d) {
-                var route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+            link.select('path').attr("d", d => {
+                let route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
                 return lineFunction([route.sourceIntersection, route.arrowStart]);
             });
-            if (isIE()) link.each(function (d) {
-                this.parentNode.insertBefore(this, this);
-            });
-
-            link.select('text').attr('x', function (d) {
-                var route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+            if (isIE())
+                link.each(function (d) { this.parentNode.insertBefore(this, this); });
+            link.select('text')
+                .attr('x', d => {
+                let route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
                 return (route.sourceIntersection.x + route.targetIntersection.x) / 2;
-            }).attr('y', function (d) {
-                var route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+            })
+                .attr('y', d => {
+                let route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
                 return (route.sourceIntersection.y + route.targetIntersection.y) / 2;
             });
-
-            group.attr('x', function (d) {
-                return d.bounds.x;
-            }).attr('y', function (d) {
-                return d.bounds.y;
-            }).attr('width', function (d) {
-                return d.bounds.width();
-            }).attr('height', function (d) {
-                return d.bounds.height();
-            });
+            group.attr('x', function (d) { return d.bounds.x; })
+                .attr('y', function (d) { return d.bounds.y; })
+                .attr('width', function (d) { return d.bounds.width(); })
+                .attr('height', function (d) { return d.bounds.height(); });
         }).on("end", routeEdges);
-        function isIE() {
-            return navigator.appName == 'Microsoft Internet Explorer' || navigator.appName == 'Netscape' && new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != null;
-        }
+        function isIE() { return ((navigator.appName == 'Microsoft Internet Explorer') || ((navigator.appName == 'Netscape') && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != null))); }
     }
-
     // Helper function for updating links after node mutations.
     // Calls a function after links added.
     function createNewLinks() {
-        tripletsDB.get({}, function (err, l) {
+        tripletsDB.get({}, (err, l) => {
             if (err) {
-                console.error(new Error(err));
+                console.error(err);
             }
             // Create edges based on LevelGraph triplets
-            links = l.map(function (_ref) {
-                var subject = _ref.subject,
-                    object = _ref.object,
-                    edgeData = _ref.edgeData;
-
-                var source = nodeMap.get(subject);
-                var target = nodeMap.get(object);
-                return { source: source, target: target, edgeData: edgeData };
+            links = l.map(({ subject, object, edgeData }) => {
+                let source = nodeMap.get(subject);
+                let target = nodeMap.get(object);
+                return { source, target, edgeData };
             });
             restart();
         });
     }
-
     /**
      * Take a node object or list of nodes and add them.
-     * @param {object | object[]} nodeObject 
+     * @param {object | object[]} nodeObject
      */
     function addNode(nodeObjectOrArray) {
         /** Define helper functions at the top */
         /**
          * Checks if object is an array:
          * http://stackoverflow.com/a/34116242/6421793
-         * @param {object|array} obj 
+         * @param {object|array} obj
          */
         function isArray(obj) {
             return !!obj && obj.constructor === Array;
         }
         function addNodeObjectHelper(nodeObject) {
             // Check that hash exists
-            if (!nodeObject.hash) {
+            if (!(nodeObject.hash)) {
                 var e = new Error("Node requires a hash field.");
                 console.error(e);
                 return;
             }
-
             // Add node to graph
             if (!nodeMap.has(nodeObject.hash)) {
                 simulation.stop();
@@ -450,11 +399,10 @@ module.exports = function networkVizJS(documentId) {
                 nodeMap.set(nodeObject.hash, nodeObject);
             }
         }
-
         /**
          * Check that the input is valid
          */
-        if ((typeof nodeObjectOrArray === 'undefined' ? 'undefined' : _typeof(nodeObjectOrArray)) !== "object") {
+        if (typeof nodeObjectOrArray !== "object") {
             var e = new Error("Parameter must be either an object or an array");
             console.error(e);
             return;
@@ -462,17 +410,16 @@ module.exports = function networkVizJS(documentId) {
         if (isArray(nodeObjectOrArray)) {
             // Run through the array adding the nodes
             nodeObjectOrArray.forEach(addNodeObjectHelper);
-        } else {
+        }
+        else {
             addNodeObjectHelper(nodeObjectOrArray);
         }
-
         // Draw the changes.
         restart();
     }
-
     /**
      * Validates triplets.
-     * @param {object} tripletObject 
+     * @param {object} tripletObject
      */
     function tripletValidation(tripletObject) {
         /**
@@ -483,30 +430,23 @@ module.exports = function networkVizJS(documentId) {
             console.error(e);
             return false;
         }
-
         // Node needs a unique hash associated with it.
-        var subject = tripletObject.subject,
-            predicate = tripletObject.predicate,
-            object = tripletObject.object;
-
+        let subject = tripletObject.subject, predicate = tripletObject.predicate, object = tripletObject.object;
         if (!(subject && predicate && object && true)) {
             console.error(new Error("Triplets added need to include all three fields."));
         }
-
         // Check that hash exists
         if (!(subject.hash && object.hash)) {
             var e = new Error("Subject and Object require a hash field.");
             console.error(e);
             return false;
         }
-
         // Check that type field exists on predicate
         if (!predicate.type) {
             var e = new Error("Predicate requires type field.");
             console.error(e);
             return false;
         }
-
         // Check that type field is a string on predicate
         if (typeof predicate.type !== "string") {
             var e = new Error("Predicate type field must be a string");
@@ -515,32 +455,27 @@ module.exports = function networkVizJS(documentId) {
         }
         return true;
     }
-
     /**
      * Adds a triplet object. Adds the node if it's not already added.
      * Otherwise it just adds the edge
-     * @param {object} tripletObject 
+     * @param {object} tripletObject
      */
     function addTriplet(tripletObject) {
         if (!tripletValidation(tripletObject)) {
             return;
         }
         // Node needs a unique hash associated with it.
-        var subject = tripletObject.subject,
-            predicate = tripletObject.predicate,
-            object = tripletObject.object;
-
+        let subject = tripletObject.subject, predicate = tripletObject.predicate, object = tripletObject.object;
         // Check that predicate doesn't already exist
-        new Promise(function (resolve, reject) {
-            return tripletsDB.get({ subject: subject.hash,
-                predicate: predicate.type,
-                object: object.hash }, function (err, list) {
-                if (err) reject(err);
-                resolve(list.length === 0);
-            });
-        }).then(function (doesntExist) {
+        new Promise((resolve, reject) => tripletsDB.get({ subject: subject.hash,
+            predicate: predicate.type,
+            object: object.hash }, function (err, list) {
+            if (err)
+                reject(err);
+            resolve(list.length === 0);
+        })).then(doesntExist => {
             if (!doesntExist) {
-                return new Error("That edge already exists. Hashs' and predicate type needs to be unique!");
+                return new Error("That edge already exists. Hash's and predicate type needs to be unique!");
             }
             /**
             * If a predicate type already has a color,
@@ -548,11 +483,9 @@ module.exports = function networkVizJS(documentId) {
             */
             if (!predicateTypeToColorMap.has(layoutOptions.edgeColor(predicate))) {
                 predicateTypeToColorMap.set(layoutOptions.edgeColor(predicate), true);
-
                 // Create an arrow head for the new color
-                createColorMarker(defs, layoutOptions.edgeColor(predicate));
+                createColorArrow(defs, layoutOptions.edgeColor(predicate));
             }
-
             /**
              * Put the triplet into the LevelGraph database
              * and mutates the d3 nodes and links list to
@@ -563,11 +496,10 @@ module.exports = function networkVizJS(documentId) {
                 predicate: predicate.type,
                 object: object.hash,
                 edgeData: predicate
-            }, function (err) {
+            }, (err) => {
                 if (err) {
-                    console.error(new Error(err));
+                    console.error(err);
                 }
-
                 // Add nodes to graph
                 simulation.stop();
                 if (!nodeMap.has(subject.hash)) {
@@ -579,26 +511,20 @@ module.exports = function networkVizJS(documentId) {
                     nodes.push(object);
                     nodeMap.set(object.hash, object);
                 }
-
                 createNewLinks();
             });
         });
     }
-
     function addEdge(triplet) {
         if (!tripletValidation(triplet)) {
             return;
         }
         // Node needs a unique hash associated with it.
-        var subject = triplet.subject,
-            predicate = triplet.predicate,
-            object = triplet.object;
-
+        let subject = triplet.subject, predicate = triplet.predicate, object = triplet.object;
         if (!(nodeMap.has(subject.hash) && nodeMap.has(object.hash))) {
             // console.error("Cannot add edge between nodes that don't exist.")
             return;
         }
-
         /**
          * Put the triplet into the LevelGraph database
          * and mutates the d3 nodes and links list to
@@ -609,15 +535,13 @@ module.exports = function networkVizJS(documentId) {
             predicate: predicate.type,
             object: object.hash,
             edgeData: predicate
-        }, function (err) {
+        }, (err) => {
             if (err) {
-                console.error(new Error(err));
+                console.error(err);
             }
-
             createNewLinks();
         });
     }
-
     /**
      * Removes the node and all triplets associated with it.
      * @param {String} nodeHash hash of the node to remove.
@@ -634,8 +558,8 @@ module.exports = function networkVizJS(documentId) {
                 // Check if the node exists
                 if (l1.length + l2.length === 0) {
                     // Once the edges are deleted we can remove the node.
-                    var nodeIndex = -1;
-                    for (var i = 0; i < nodes.length; i++) {
+                    let nodeIndex = -1;
+                    for (let i = 0; i < nodes.length; i++) {
                         if (nodes[i].hash === nodeHash) {
                             nodeIndex = i;
                             break;
@@ -647,21 +571,19 @@ module.exports = function networkVizJS(documentId) {
                     simulation.stop();
                     nodes.splice(nodeIndex, 1);
                     nodeMap.delete(nodeHash);
-
                     createNewLinks();
                     return;
                 }
-
-                tripletsDB.del([].concat(_toConsumableArray(l1), _toConsumableArray(l2)), function (err) {
+                tripletsDB.del([...l1, ...l2], function (err) {
                     if (err) {
-                        return new Error(err);
-                    };
-
+                        return err;
+                    }
+                    ;
                     // Once the edges are deleted we can remove the node.
-                    var nodeIndex = -1;
-                    for (var _i = 0; _i < nodes.length; _i++) {
-                        if (nodes[_i].hash === nodeHash) {
-                            nodeIndex = _i;
+                    let nodeIndex = -1;
+                    for (let i = 0; i < nodes.length; i++) {
+                        if (nodes[i].hash === nodeHash) {
+                            nodeIndex = i;
                             break;
                         }
                     }
@@ -671,125 +593,40 @@ module.exports = function networkVizJS(documentId) {
                     simulation.stop();
                     nodes.splice(nodeIndex, 1);
                     nodeMap.delete(nodeHash);
-
                     createNewLinks();
                 });
             });
         });
     }
-
-    function setNodeToColor(nodeToColorFunc) {
-        layoutOptions.nodeToColor = nodeToColorFunc;
-    }
-    function nodeStrokeWidth(nodeStrokeWidthFunc) {
-        layoutOptions.nodeStrokeWidth = nodeStrokeWidthFunc;
-    }
-    function nodeStrokeColor(nodeStrokeColor) {
-        layoutOptions.nodeStrokeColor = nodeStrokeColor;
-    }
-
     /**
      * Function that fires when a node is clicked.
-     * @param {function} selectNodeFunc 
+     * @param {function} selectNodeFunc
      */
     function setSelectNode(selectNodeFunc) {
         layoutOptions.clickNode = selectNodeFunc;
     }
-
     /**
      * Invoking this function will recenter the graph.
      */
-    function recenterGraph() {
-        svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity.translate(0, 0).scale(1));
-    }
-
-    /**
-     * Replaces function to call when clicking away from a node.
-     * TODO: prevent triggering when zooming.
-     * @param {function} clickAwayCallback 
-     */
-    function setClickAway(clickAwayCallback) {
-        layoutOptions.clickAway = clickAwayCallback;
-    }
-
-    /**
-     * Function called when choosing edge color based on predicate.
-     * @param {function} edgeColorCallback takes string 'predicate.type' to a color.
-     */
-    function setEdgeColor(edgeColorCallback) {
-        layoutOptions.edgeColor = edgeColorCallback;
-    }
-
-    /**
-     * Function called when choosing a stroke width.
-     * Takes the edge object {source, edgeData, target} and returns a number
-     * @param {function} edgeStrokeCallback 
-     */
-    function setEdgeStroke(edgeStrokeCallback) {
-        layoutOptions.edgeStroke = edgeStrokeCallback;
-    }
-
-    /**
-     * Function for setting the ideal edge lengths.
-     * This takes an edge object and should return a number.
-     * Edge object has the following shape: {source, edgeData, target}.
-     * This will become the min length.
-     */
-    function setEdgeLength(edgeLengthCallback) {
-        layoutOptions.edgeLength = edgeLengthCallback;
-        restart();
-    }
-
+    // function recenterGraph(){
+    //     svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity.translate(0, 0).scale(1))
+    // }
     /**
      * Function to call when mouse over registers on a node.
      * It takes a d3 mouse over event.
-     * @param {function} mouseOverCallback 
+     * @param {function} mouseOverCallback
      */
     function setMouseOver(mouseOverCallback) {
         layoutOptions.mouseOverNode = mouseOverCallback;
     }
-
     /**
      * Function to call when mouse out registers on a node.
      * It takes a d3 mouse over event.
-     * @param {function} mouseOutCallback 
+     * @param {function} mouseOutCallback
      */
     function setMouseOut(mouseOutCallback) {
         layoutOptions.mouseOutNode = mouseOutCallback;
     }
-
-    /**
-     * Function for updating webcola options.
-     * Returns a new simulation and uses the defined layout variable.
-     */
-    function updateColaLayout() {
-        var tempSimulation = cola.d3adaptor(d3).size([width, height]).avoidOverlaps(layoutOptions.avoidOverlaps).handleDisconnected(layoutOptions.handleDisconnected);
-
-        // TODO: Work out what's up with the edge length.
-        switch (layoutOptions.layoutType) {
-            case "jaccardLinkLengths":
-                // layoutOptions.edgeLength needs to be a number for jaccard to work.
-                if (layoutOptions.edgeLength === "undefined" || typeof layoutOptions.edgeLength !== "number") {
-                    console.error("'edgeLength' needs to be set to a number for jaccardLinkLengths to work properly");
-                }
-                tempSimulation = tempSimulation.jaccardLinkLengths(layoutOptions.edgeLength);
-                break;
-            case "flowLayout":
-                if (layoutOptions.edgeLength === "undefined" || !(typeof layoutOptions.edgeLength === "number" || typeof layoutOptions.edgeLength === "function")) {
-                    console.error("'edgeLength' needs to be set to a number or function for flowLayout to work properly");
-                }
-                tempSimulation = tempSimulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
-                break;
-            case "linkDistance":
-            default:
-                tempSimulation = tempSimulation.linkDistance(layoutOptions.edgeLength);
-                break;
-        }
-        // Bind the nodes and links to the simulation
-
-        return tempSimulation.nodes(nodes).links(links).groups(groups).start(10, 15, 20);
-    }
-
     /**
      * Merges a node into another group.
      * If this node was in another group previously it removes it from the prior group.
@@ -798,9 +635,9 @@ module.exports = function networkVizJS(documentId) {
         /**
          * Groups need to be defined using indexes.
          */
-        var indexOfGroupNode = -1;
-        var indexOfNodeToMerge = -1;
-        for (var i = 0; i < nodes.length; i++) {
+        let indexOfGroupNode = -1;
+        let indexOfNodeToMerge = -1;
+        for (let i = 0; i < nodes.length; i++) {
             if (nodes[i].hash == nodeInGroupHash) {
                 indexOfGroupNode = i;
             }
@@ -818,11 +655,10 @@ module.exports = function networkVizJS(documentId) {
         if (indexOfNodeToMerge == -1) {
             return console.error("The node you are trying to merge doesn't exist. Check the node hash is correct or add the node to the graph.");
         }
-
         // Find the set that the merge node is part of.
         // Also remove the node we're merging from any sets it might be in.
-        var indexInSets = -1;
-        groupByHashes.forEach(function (set, index) {
+        let indexInSets = -1;
+        groupByHashes.forEach((set, index) => {
             if (set.has(nodeInGroupHash)) {
                 indexInSets = index;
                 set.add(nodeToMergeHash);
@@ -831,61 +667,27 @@ module.exports = function networkVizJS(documentId) {
                 set.delete(nodeToMergeHash);
             }
         });
-
         if (indexInSets === -1) {
             // Create a new grouping.
             groupByHashes.push(new Set([nodeToMergeHash, nodeInGroupHash]));
         }
-
         simulation.stop();
         // Here we create a new group object with the updated group unions.
-        var newGroupObject = [];
-        groupByHashes.forEach(function (set) {
-            var indexOfSet = [];
-            var setArray = [].concat(_toConsumableArray(set));
-            var nodeIndex = void 0;
-            for (var _i2 = 0; _i2 < setArray.length; _i2++) {
-                nodeIndex = nodeMap.get(setArray[_i2]).index;
+        let newGroupObject = [];
+        groupByHashes.forEach(set => {
+            let indexOfSet = [];
+            let setArray = [...set];
+            let nodeIndex;
+            for (let i = 0; i < setArray.length; i++) {
+                nodeIndex = nodeMap.get(setArray[i]).index;
                 indexOfSet.push(nodeIndex);
             }
             // Create and push an object with the indexes of the nodes.
             newGroupObject.push({ leaves: indexOfSet });
         });
         groups = newGroupObject;
-
-        // // Traverse the group data to find the group with the indexOfGroupNode
-        // let groupIndex = -1;
-        // groups.forEach((grpObj, index) => {
-        //     // Check that leaves exists.
-        //     if (!(grpObj && grpObj.leaves)){
-        //         return
-        //     }
-        //     for (let i = 0; i < grpObj.leaves.length; i ++){
-        //         if (grpObj.leaves[i] == indexOfGroupNode){
-        //             // Set which group the prior node belongs too.
-        //             if (groupIndex != -1){
-        //                 console.error("This suggests that the node is in more than 1 group - illegal.")
-        //             }
-        //             // At the moment just update to the most recent group.
-        //             groupIndex = index;
-        //         }
-        //     }
-        // });
-
-        // // Now we have the groupIndex.
-        // // If the group index exists, push the new node on.
-        // simulation.stop();
-        // if (groupIndex !== -1){
-        //     console.log("merging nodes")
-        //     groups[groupIndex].leaves.push(indexOfNodeToMerge);
-        // } else {
-        //     // Create a new grouping and add both nodes.
-        //     groups.push({leaves: [indexOfNodeToMerge, indexOfGroupNode]});
-        //     console.log(groups);
-        // }
         restart();
     }
-
     // Public api
     /**
      * TODO:
@@ -895,61 +697,51 @@ module.exports = function networkVizJS(documentId) {
      *  - Maybe have a "this" reference passed into the callbacks.
      */
     return {
-        getSVGElement: function getSVGElement() {
-            return svg;
-        },
-        addTriplet: addTriplet,
-        addEdge: addEdge,
-        mergeNodeToGroup: mergeNodeToGroup,
-        removeNode: removeNode,
-        addNode: addNode,
-        setClickAway: setClickAway,
-        recenterGraph: recenterGraph,
+        getSVGElement: () => svg,
+        addTriplet,
+        addEdge,
+        mergeNodeToGroup,
+        removeNode,
+        addNode,
         restart: {
             styles: updateStyles,
-            layout: restart
+            layout: restart,
         },
         nodeOptions: {
-            setNodeColor: setNodeToColor,
-            nodeStrokeWidth: nodeStrokeWidth,
-            nodeStrokeColor: nodeStrokeColor,
             setClickNode: setSelectNode,
-            setMouseOver: setMouseOver,
-            setMouseOut: setMouseOut
+            setMouseOver,
+            setMouseOut
         },
         edgeOptions: {
-            setStrokeWidth: setEdgeStroke,
-            setLength: setEdgeLength,
-            setColor: setEdgeColor,
-            setClickEdge: function setClickEdge(callback) {
-                layoutOptions.clickEdge = callback;
-            }
+            setClickEdge: (callback) => { layoutOptions.clickEdge = callback; }
         },
         colaOptions: {
             flowLayout: {
-                down: function down() {
+                down: () => {
                     layoutOptions.flowDirection = 'y';
                     if (layoutOptions.layoutType == "flowLayout") {
                         simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
-                    } else {
-                        layoutOptions.layoutType = "flowLayout";
-                        simulation = updateColaLayout();
                     }
-
+                    else {
+                        layoutOptions.layoutType = "flowLayout";
+                        simulation = updateColaLayout_1.updateColaLayout(layoutOptions);
+                    }
                     restart();
                 },
-                right: function right() {
+                right: () => {
                     layoutOptions.flowDirection = 'x';
                     if (layoutOptions.layoutType == "flowLayout") {
                         simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
-                    } else {
-                        layoutOptions.layoutType = "flowLayout";
-                        simulation = updateColaLayout();
                     }
-
+                    else {
+                        layoutOptions.layoutType = "flowLayout";
+                        simulation = updateColaLayout_1.updateColaLayout(layoutOptions);
+                    }
                     restart();
                 }
             }
         }
     };
-};
+}
+exports.default = networkVizJS;
+//# sourceMappingURL=networkViz.js.map

@@ -1,14 +1,15 @@
-import * as cola from 'webcola';
 import * as d3 from 'd3';
+import * as cola from 'webcola';
 let levelgraph = require('levelgraph');
 let level = require('level-browserify');
 
-module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
-
+import {updateColaLayout} from './updateColaLayout';
+import * as I from './interfaces';
+export default function networkVizJS(documentId: string, userLayoutOptions: I.layoutOptions){
     /**
      * Default options for webcola and graph
      */
-    let defaultLayoutOptions = {
+    let defaultLayoutOptions: I.layoutOptions = {
         layoutType: "flowLayout", // Define webcola length layout algorithm
         avoidOverlaps: true,
         handleDisconnected: false,
@@ -28,14 +29,14 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         mouseOutNode: undefined,
         mouseUpNode: undefined,
         // These are "live options"
-        nodeToColor: undefined,
+        nodeToColor: "white",
         nodeStrokeWidth: 2,
         nodeStrokeColor: "black",
         // TODO: clickNode (node, element) => void
         clickNode: (node) => console.log("clicked", node),
         clickAway: () => console.log("clicked away from stuff"),
-        edgeColor: () => "black",
-        edgeStroke: undefined,
+        edgeColor: "black",
+        edgeStroke: 2,
         edgeLength: d => {console.log(`length`, d); return 150},
         clickEdge: (d, element) => undefined
     }
@@ -45,36 +46,54 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
     }
 
     /**
-     * This creates the default object, and then overwrites any parameters
-     * with the user parameters.
+     * Create the layoutOptions object with the users options
+     * overriding the default options.
      */
-    let layoutOptions = {
+    let layoutOptions: I.layoutOptions = {
         ...defaultLayoutOptions,
         ...userLayoutOptions
-    };
-
-
-    if (typeof documentId !== "string" || documentId === "") {
-        throw new Error("Document Id passed into graph isn't a string.");
     }
 
     /**
-     * nodeMap allows hash lookup of nodes.
+     * Check that the user has provided a valid documentId
+     * and check that the id exists.
      */
-    let nodeMap = new Map();
-    let predicateTypeToColorMap = new Map();
+    if (typeof documentId !== "string" || documentId === "") {
+        throw new Error("Document Id passed into graph isn't a valid string.");
+    }
+    if (document.getElementById(documentId) === undefined){
+        throw new Error(`Can't find id '#${documentId}' on the page.`);
+    }
+
+    /**
+     * Declare variables that are needed.
+     */
+    let nodeMap: Map<string, any> = new Map();
+    let predicateTypeToColorMap: Map<string, any> = new Map();
+    
+    /**
+     * Todo:    This is currently a hack. Create a random database on the client
+     *          side to build the networks on top of.
+     */
     let tripletsDB = levelgraph(level(`Userdb-${Math.random()*100}`));
-    let nodes = [];
-    let links = [];
-    let groups = [];
-    let groupByHashes = [];
+
+    /**
+     * These represent the data that d3 will visualize.
+     */
+    let nodes: any[] = [];
+    let links: any[] = [];
+    let groups: any[] = [];
+    let groupByHashes: any[] = [];
 
     const width = layoutOptions.width,
-          height = layoutOptions.height,
-          margin = layoutOptions.margin,
-          pad = layoutOptions.pad;
+        height = layoutOptions.height,
+        margin = layoutOptions.margin,
+        pad = layoutOptions.pad;
     
-    // Here we are creating a responsive svg element.
+    /**
+     * Create svg canvas that is responsive to the page.
+     * This will try to fill the div that it's placed in.
+     */
     let svg = d3.select(`#${documentId}`)
                 .append("div")
                 .classed("svg-container", true)
@@ -83,41 +102,42 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                 .attr("viewBox", `0 0 ${width} ${height}`)
                 .classed("svg-content-responsive", true);
     
-    svg.on("click", () => {
-        layoutOptions.clickAway();
-    })
+    svg.on("click", layoutOptions.clickAway);
 
     /**
      * Set up [webcola](http://marvl.infotech.monash.edu/webcola/).
-     * Later we'll be restarting the simulation whenever we mutate
-     * the node or link lists.
+     * The helper function updateColaLayout allows for restarting
+     * the simulation whenever the layout is changed.
      */
-    let simulation = updateColaLayout();
+    let simulation = updateColaLayout(layoutOptions)
+                            .nodes(nodes)
+                            .links(links)
+                            .groups(groups)
+                            .start();
     
-    // Setting up the modified drag.
-    // Calling webcola drag without arguments returns the drag event.
-    let modifiedDrag = simulation.drag();
-    modifiedDrag.on("start", () => {
-        layoutOptions.nodeDragStart && layoutOptions.nodeDragStart()
+    /**
+     * Call nodeDragStart callback when drag event triggers.
+     */
+    let drag = simulation.drag();
+    drag.on("start", () => {
+        layoutOptions.nodeDragStart && layoutOptions.nodeDragStart();
         internalOptions.isDragging = true;
-    }).on("end", ()=>{
+    }).on("end", () => {
         internalOptions.isDragging = false;
     });
 
     /**
-     * Here we define the arrow heads to be used later.
-     * Each unique arrow head needs to be created.
+     * Create the defs element that stores the arrow heads.
      */
     const defs = svg.append("defs");
 
     /**
-     * Appends a new marker to the dom, for the new
-     * marker color.
-     * @param {defs DOMElement} definitionElement 
-     * @param {string} color valid css color string
+     * Appends an arrow head marker to the defs element to be used later.
+     * @param defElement 'defs' element to append marker elements
+     * @param color string representation of a valid color.
      */
-    const createColorMarker = (definitionElement, color) => {
-        definitionElement.append("marker")
+    function createColorArrow(defElement: any, color: string){
+        defElement.append("marker")
             .attr("id",`arrow-${color}`)
             .attr("viewBox", "0 -5 10 10")
             .attr("refX", 8)
@@ -130,18 +150,17 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                 .attr("class","arrowHead");
     }
 
-    // Define svg groups
-    let g = svg.append("g"),
-        group = g.append("g")
-                .selectAll(".group"),
-        link = g.append("g")
-                .selectAll(".link"),
-        node = g.append("g")
-                .selectAll(".node");
-        
-    
+    // Define svg groups for storing the visuals.
+    let g = svg.append('g'),
+        group = g.append('g')
+                .selectAll('.group'),
+        link = g.append('g')
+                .selectAll('.link'),
+        node = g.append('g')
+                .selectAll('.node');
+
     /**
-     * Add zoom/panning behaviour to svg.
+     * Zooming and panning behaviour.
      */
     let zoom = d3.zoom().scaleExtent([0.1, 5]).on("zoom", zoomed);
     svg.call(zoom);
@@ -152,32 +171,27 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
 
     /**
      * Resets width or radius of nodes.
-     * Used to support dynamically changing the node size
-     * if the text is changing.
+     * Allows dynamically changing node sizes based on text.
      */
     function updatePathDimensions(){
-        /**
-         * Update the width and height here because otherwise the height and width
-         * calculations don't occur.
-         */
         node.select('path')
-            .attr('transform', function(d) {
+            .attr('transform', function(d: any) {
                 // Scale appropriately using http://stackoverflow.com/a/9877871/6421793
-                let currentWidth = this.getBBox().width,
+                let currentWidth = (this as any).getBBox().width,
                     w = d.innerBounds && d.innerBounds.width() || d.width,
-                    currentHeight = this.getBBox().height,
+                    currentHeight = (this as any).getBBox().height,
                     h = d.innerBounds && d.innerBounds.height() || d.height,
                     scaleW = w / currentWidth,
                     scaleH = h / currentHeight;
                 return `translate(${-w/2},${-h/2}) scale(${scaleW},${scaleH})`;
             });
     }
-    
+
     /**
-     * This updates the d3 visuals without restarting the layout.
+     * Update the d3 visuals without layout changes.
      */
-    function updateStyles(){
-        ///// GROUPS /////
+     function updateStyles(){
+         ///// GROUPS /////
         group = group.data(groups);
 
         let groupEnter = group.enter()
@@ -199,7 +213,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                    
         // Only allow dragging nodes if turned on.
         if (layoutOptions.allowDrag){
-            nodeEnter.attr("cursor", "move").call(modifiedDrag);  
+            nodeEnter.attr("cursor", "move").call(drag);  
         } else {
             nodeEnter.attr("cursor", "default");
         }
@@ -239,15 +253,15 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
          * Update the text property (allowing dynamically changing text)
          */
         node.select("text")
-                    .text(d => d.shortname || d.hash)
-                    .each(function(d){
-                        const b = this.getBBox();
+                    .text((d: any) => d.shortname || d.hash)
+                    .each(function(d: any){
+                        const b = (this as any).getBBox();
                         const extra = 2 * margin + 2 * pad;
                         d.width = b.width + extra;
                         d.height = b.height + extra;
                     })
-                    .attr("x", d => d.width / 2)
-                    .attr("y", d => d.height / 2)
+                    .attr("x", (d: any) => d.width / 2)
+                    .attr("y", (d: any) => d.height / 2)
                     .attr("pointer-events", "none");
 
         /**
@@ -258,33 +272,33 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         let updateShapes = node.select('path');
         // These changes apply to both rect and circle
         updateShapes
-                .attr("fill", d => layoutOptions.nodeToColor && layoutOptions.nodeToColor(d) || "aqua")
-                .attr("stroke", layoutOptions.nodeStrokeColor)
-                .attr("stroke-width", layoutOptions.nodeStrokeWidth);
+                .attr("fill", layoutOptions.nodeToColor as any)
+                .attr("stroke", layoutOptions.nodeStrokeColor as any)
+                .attr("stroke-width", layoutOptions.nodeStrokeWidth as any);
 
         // update size
         updatePathDimensions();
 
 
-        // These CANNOT be arrow functions or this context is wrong.
+        // These CANNOT be arrow functions or 'this' context becomes wrong.
         updateShapes.on('mouseover', function(d){
             if (internalOptions.isDragging){ return }
 
             let element = d3.select(this);
-            layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
+            layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element as any);
         }).on('mouseout', function(d) {
             if (internalOptions.isDragging){ return }
 
             let element = d3.select(this);
-            layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
+            layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element as any);
         }).on('click', function(d) {
             let elem = d3.select(this);
             setTimeout(() => {
-                layoutOptions.clickNode(d, elem)
+                layoutOptions.clickNode(d, elem as any)
             }, 50)
             
         }).on("mouseup", function (d){
-            layoutOptions.mouseUpNode && layoutOptions.mouseUpNode(d, d3.select(this));
+            layoutOptions.mouseUpNode && layoutOptions.mouseUpNode(d, d3.select(this) as any);
         })
 
         /////// LINK ///////
@@ -297,15 +311,16 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
 
         
         linkEnter.append("path")
-                   .attr("stroke-width", d => layoutOptions.edgeStroke && layoutOptions.edgeStroke(d) || 2)
-                   .attr("stroke", d => layoutOptions.edgeColor(d.edgeData))
+                   .attr("stroke-width", layoutOptions.edgeStroke as any)
+                   // Todo: Have edge data changable from outside the library.
+                   .attr("stroke", d => (layoutOptions.edgeColor as any)((d as any).edgeData) as any)
                    .attr("fill", "none")
-                   .attr("marker-end",d => `url(#arrow-${layoutOptions.edgeColor(d.edgeData)})`);
+                   .attr("marker-end",d => `url(#arrow-${(layoutOptions.edgeColor as any)((d as any).edgeData)})`);
         
         linkEnter.on('click', function(d) {
             let elem = d3.select(this);
             setTimeout(() => {
-                layoutOptions.clickEdge(d, elem)
+                layoutOptions.clickEdge(d, elem as any)
             }, 50)
             
         })
@@ -315,7 +330,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
             linkEnter.append("text")
                 .attr("text-anchor", "middle")
                 .style("font", "100 22px Helvetica Neue")
-                .text(layoutOptions.edgeLabelText);
+                .text(layoutOptions.edgeLabelText as any);
         }
         
 
@@ -334,8 +349,8 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
          * Helper function for drawing the lines.
          */
         const lineFunction = d3.line()
-            .x(d => d.x)
-            .y(d => d.y);
+            .x(d => (d as any).x)
+            .y(d => (d as any).y);
 
         /**
          * Causes the links to bend around the rectangles.
@@ -347,15 +362,15 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
             }
 
             simulation.prepareEdgeRouting();
-            link.select('path').attr("d", d => lineFunction(simulation.routeEdge(d)));
-            if (isIE()) link.select('path').each(function (d) { this.parentNode.insertBefore(this, this) });
+            link.select('path').attr("d", d => lineFunction(simulation.routeEdge(d, null)));
+            if (isIE()) link.select('path').each(function (d) { (this as any).parentNode.insertBefore(this, this) });
 
             link.select('text').attr("x", d => {
-                let arrayX = simulation.routeEdge(d);
+                let arrayX = simulation.routeEdge(d, null);
                 let middleIndex = Math.floor(arrayX.length /2) - 1;
                 return (arrayX[middleIndex].x + arrayX[middleIndex + 1].x)/2
             }).attr("y", d => {
-                let arrayY = simulation.routeEdge(d);
+                let arrayY = simulation.routeEdge(d, null);
                 let middleIndex = Math.floor(arrayY.length /2) - 1 ;
                 return (arrayY[middleIndex].y + arrayY[middleIndex + 1].y)/2
             });
@@ -365,48 +380,49 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                 .groups(groups)
                 .start(10, 15, 20).on("tick", function() {
             node.each(d => {
-                    if (d.bounds) {
-                        d.innerBounds = d.bounds.inflate(-margin);
+                    if ((d as any).bounds) {
+                        (d as any).innerBounds = (d as any).bounds.inflate(-margin);
                     }
                 });
-            node.attr("transform", d => d.innerBounds ?
-                    `translate(${d.innerBounds.x},${d.innerBounds.y})`
-                    :`translate(${d.x},${d.y})`);
+            node.attr("transform", d => (d as any).innerBounds ?
+                    `translate(${(d as any).innerBounds.x},${(d as any).innerBounds.y})`
+                    :`translate(${(d as any).x},${(d as any).y})`);
             
             updatePathDimensions();
                 
 
             link.select('path').attr("d", d => {
-                let route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
-                return lineFunction([route.sourceIntersection, route.arrowStart]);
+                let route = cola.makeEdgeBetween((d as any).source.innerBounds, (d as any).target.innerBounds, 5);
+                return lineFunction([route.sourceIntersection, route.arrowStart] as any);
             });
-            if (isIE()) link.each(function (d) { this.parentNode.insertBefore(this, this) });
+            if (isIE()) link.each(function (d) { (this as any).parentNode.insertBefore(this, this) });
 
             link.select('text')
                 .attr('x', d => {
-                    let route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                    let route = cola.makeEdgeBetween((d as any).source.innerBounds, (d as any).target.innerBounds, 5);
                     return (route.sourceIntersection.x + route.targetIntersection.x)/2
                 })
                 .attr('y', d => {
-                    let route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                    let route = cola.makeEdgeBetween((d as any).source.innerBounds, (d as any).target.innerBounds, 5);
                     return (route.sourceIntersection.y + route.targetIntersection.y)/2;
                 });
 
-            group.attr('x', function(d){ return d.bounds.x; })
-                .attr('y', function(d){ return d.bounds.y; })
-                .attr('width', function(d){ return d.bounds.width(); })
-                .attr('height', function(d){ return d.bounds.height(); });
+            group.attr('x', function(d){ return (d as any).bounds.x; })
+                .attr('y', function(d){ return (d as any).bounds.y; })
+                .attr('width', function(d){ return (d as any).bounds.width(); })
+                .attr('height', function(d){ return (d as any).bounds.height(); });
 
         }).on("end", routeEdges);
         function isIE() { return ((navigator.appName == 'Microsoft Internet Explorer') || ((navigator.appName == 'Netscape') && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != null))); }
     }
+    
 
     // Helper function for updating links after node mutations.
     // Calls a function after links added.
     function createNewLinks(){
-        tripletsDB.get({}, (err, l) => {
+        tripletsDB.get({}, (err: Error, l: any[]) => {
             if (err){
-                console.error(new Error(err));
+                console.error(err);
             }
             // Create edges based on LevelGraph triplets
             links = l.map(({subject, object, edgeData}) => {
@@ -422,17 +438,17 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
      * Take a node object or list of nodes and add them.
      * @param {object | object[]} nodeObject 
      */
-    function addNode(nodeObjectOrArray){
+    function addNode(nodeObjectOrArray: any | any[]){
         /** Define helper functions at the top */
         /**
          * Checks if object is an array:
          * http://stackoverflow.com/a/34116242/6421793
          * @param {object|array} obj 
          */
-        function isArray(obj){
+        function isArray(obj: any){
             return !!obj && obj.constructor === Array;
         }
-        function addNodeObjectHelper(nodeObject){
+        function addNodeObjectHelper(nodeObject: any){
             // Check that hash exists
             if (!(nodeObject.hash)) {
                 var e = new Error("Node requires a hash field.");
@@ -473,7 +489,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
      * Validates triplets.
      * @param {object} tripletObject 
      */
-    function tripletValidation(tripletObject){
+    function tripletValidation(tripletObject: I.triplet){
         /**
          * Check that minimum requirements are met.
          */
@@ -520,7 +536,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
      * Otherwise it just adds the edge
      * @param {object} tripletObject 
      */
-    function addTriplet(tripletObject){
+    function addTriplet(tripletObject: I.triplet){
         if (!tripletValidation(tripletObject)){
             return
         }
@@ -532,22 +548,22 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         // Check that predicate doesn't already exist
         new Promise((resolve, reject) => tripletsDB.get({subject: subject.hash,
             predicate: predicate.type,
-            object: object.hash}, function(err, list){
+            object: object.hash}, function(err: Error, list: any[]){
                 if (err) reject(err);
                 resolve(list.length === 0);
             })).then(doesntExist => {
                 if (!doesntExist){
-                    return new Error("That edge already exists. Hashs' and predicate type needs to be unique!")
+                    return new Error("That edge already exists. Hash's and predicate type needs to be unique!")
                 }
                  /**
                  * If a predicate type already has a color,
                  * it is not redefined.
                  */
-                if (!predicateTypeToColorMap.has(layoutOptions.edgeColor(predicate))){
-                    predicateTypeToColorMap.set(layoutOptions.edgeColor(predicate), true);
+                if (!predicateTypeToColorMap.has((layoutOptions.edgeColor as any)(predicate))){
+                    predicateTypeToColorMap.set((layoutOptions.edgeColor as any)(predicate), true);
 
                     // Create an arrow head for the new color
-                    createColorMarker(defs, layoutOptions.edgeColor(predicate));
+                    createColorArrow(defs, (layoutOptions.edgeColor as any)(predicate));
                 }
 
                 /**
@@ -560,9 +576,9 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                     predicate: predicate.type,
                     object: object.hash,
                     edgeData: predicate
-                }, err => {
+                }, (err: Error) => {
                     if (err){
-                        console.error(new Error(err));
+                        console.error(err);
                     }
                     
                     // Add nodes to graph
@@ -582,7 +598,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
             });
     }
 
-    function addEdge(triplet){
+    function addEdge(triplet: I.triplet){
         if (!tripletValidation(triplet)){
             return
         }
@@ -606,9 +622,9 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
             predicate: predicate.type,
             object: object.hash,
             edgeData: predicate
-        }, err => {
+        }, (err: Error) => {
             if (err){
-                console.error(new Error(err));
+                console.error(err);
             }
 
             createNewLinks();
@@ -620,12 +636,12 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
      * Removes the node and all triplets associated with it.
      * @param {String} nodeHash hash of the node to remove.
      */
-    function removeNode(nodeHash){
-        tripletsDB.get({subject: nodeHash}, function(err, l1){
+    function removeNode(nodeHash: string){
+        tripletsDB.get({subject: nodeHash}, function(err: Error, l1: any[]){
             if (err){
                 return console.error(err)
             }
-            tripletsDB.get({object: nodeHash}, function(err, l2){
+            tripletsDB.get({object: nodeHash}, function(err: Error, l2: any[]){
                 if (err){
                     return console.error(err)
                 }
@@ -650,8 +666,8 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                     return
                 }
 
-                tripletsDB.del([...l1, ...l2], function(err){
-                    if (err) { return new Error(err)};
+                tripletsDB.del([...l1, ...l2], function(err: Error){
+                    if (err) { return err};
 
                     // Once the edges are deleted we can remove the node.
                     let nodeIndex = -1;
@@ -673,76 +689,30 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
             });
         });
     }
-
-    function setNodeToColor(nodeToColorFunc){
-        layoutOptions.nodeToColor = nodeToColorFunc;
-    }
-    function nodeStrokeWidth(nodeStrokeWidthFunc){
-        layoutOptions.nodeStrokeWidth = nodeStrokeWidthFunc;
-    }
-    function nodeStrokeColor(nodeStrokeColor){
-        layoutOptions.nodeStrokeColor = nodeStrokeColor;
-    }
     
 
     /**
      * Function that fires when a node is clicked.
      * @param {function} selectNodeFunc 
      */
-    function setSelectNode(selectNodeFunc){
+    function setSelectNode(selectNodeFunc: (nodeObject?: any, d3Selection?: any) => void){
         layoutOptions.clickNode = selectNodeFunc;
     }
 
     /**
      * Invoking this function will recenter the graph.
      */
-    function recenterGraph(){
-        svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity.translate(0, 0).scale(1))
-    }
+    // function recenterGraph(){
+    //     svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity.translate(0, 0).scale(1))
+    // }
 
-    /**
-     * Replaces function to call when clicking away from a node.
-     * TODO: prevent triggering when zooming.
-     * @param {function} clickAwayCallback 
-     */
-    function setClickAway(clickAwayCallback){
-        layoutOptions.clickAway = clickAwayCallback;
-    }
-
-    /**
-     * Function called when choosing edge color based on predicate.
-     * @param {function} edgeColorCallback takes string 'predicate.type' to a color.
-     */
-    function setEdgeColor(edgeColorCallback){
-        layoutOptions.edgeColor = edgeColorCallback;
-    }
-
-    /**
-     * Function called when choosing a stroke width.
-     * Takes the edge object {source, edgeData, target} and returns a number
-     * @param {function} edgeStrokeCallback 
-     */
-    function setEdgeStroke(edgeStrokeCallback){
-        layoutOptions.edgeStroke = edgeStrokeCallback;
-    }
-
-    /**
-     * Function for setting the ideal edge lengths.
-     * This takes an edge object and should return a number.
-     * Edge object has the following shape: {source, edgeData, target}.
-     * This will become the min length.
-     */
-    function setEdgeLength(edgeLengthCallback){
-        layoutOptions.edgeLength = edgeLengthCallback;
-        restart();
-    }
 
     /**
      * Function to call when mouse over registers on a node.
      * It takes a d3 mouse over event.
      * @param {function} mouseOverCallback 
      */
-    function setMouseOver(mouseOverCallback){
+    function setMouseOver(mouseOverCallback: any){
         layoutOptions.mouseOverNode = mouseOverCallback;
     }
 
@@ -751,52 +721,15 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
      * It takes a d3 mouse over event.
      * @param {function} mouseOutCallback 
      */
-    function setMouseOut(mouseOutCallback){
+    function setMouseOut(mouseOutCallback: any){
         layoutOptions.mouseOutNode = mouseOutCallback;
-    }
-
-    /**
-     * Function for updating webcola options.
-     * Returns a new simulation and uses the defined layout variable.
-     */
-    function updateColaLayout(){
-        let tempSimulation = cola.d3adaptor(d3)
-                         .size([width, height])
-                         .avoidOverlaps(layoutOptions.avoidOverlaps)
-                         .handleDisconnected(layoutOptions.handleDisconnected);
-        
-        // TODO: Work out what's up with the edge length.
-        switch (layoutOptions.layoutType){
-            case "jaccardLinkLengths":
-                // layoutOptions.edgeLength needs to be a number for jaccard to work.
-                if (layoutOptions.edgeLength === "undefined" || typeof layoutOptions.edgeLength !== "number"){
-                    console.error("'edgeLength' needs to be set to a number for jaccardLinkLengths to work properly")
-                }
-                tempSimulation = tempSimulation.jaccardLinkLengths(layoutOptions.edgeLength)
-                break;
-            case "flowLayout":
-                if (layoutOptions.edgeLength === "undefined" || !(typeof layoutOptions.edgeLength === "number" || typeof layoutOptions.edgeLength === "function")){
-                    console.error("'edgeLength' needs to be set to a number or function for flowLayout to work properly")
-                }
-                tempSimulation = tempSimulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
-                break;
-            case "linkDistance":
-            default:
-                tempSimulation = tempSimulation.linkDistance(layoutOptions.edgeLength);
-                break;
-        }
-        // Bind the nodes and links to the simulation
-
-        return tempSimulation.nodes(nodes)
-                                .links(links)
-                                .groups(groups).start(10, 15, 20);
     }
 
     /**
      * Merges a node into another group.
      * If this node was in another group previously it removes it from the prior group.
      */
-    function mergeNodeToGroup(nodeInGroupHash, nodeToMergeHash){
+    function mergeNodeToGroup(nodeInGroupHash: string, nodeToMergeHash: string){
         /**
          * Groups need to be defined using indexes.
          */
@@ -841,7 +774,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
 
         simulation.stop()
         // Here we create a new group object with the updated group unions.
-        let newGroupObject = [];
+        let newGroupObject: any[] = [];
         groupByHashes.forEach(set => {
             let indexOfSet = []
             let setArray = [...set];
@@ -855,36 +788,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         });
         groups = newGroupObject;
 
-        // // Traverse the group data to find the group with the indexOfGroupNode
-        // let groupIndex = -1;
-        // groups.forEach((grpObj, index) => {
-        //     // Check that leaves exists.
-        //     if (!(grpObj && grpObj.leaves)){
-        //         return
-        //     }
-        //     for (let i = 0; i < grpObj.leaves.length; i ++){
-        //         if (grpObj.leaves[i] == indexOfGroupNode){
-        //             // Set which group the prior node belongs too.
-        //             if (groupIndex != -1){
-        //                 console.error("This suggests that the node is in more than 1 group - illegal.")
-        //             }
-        //             // At the moment just update to the most recent group.
-        //             groupIndex = index;
-        //         }
-        //     }
-        // });
-
-        // // Now we have the groupIndex.
-        // // If the group index exists, push the new node on.
-        // simulation.stop();
-        // if (groupIndex !== -1){
-        //     console.log("merging nodes")
-        //     groups[groupIndex].leaves.push(indexOfNodeToMerge);
-        // } else {
-        //     // Create a new grouping and add both nodes.
-        //     groups.push({leaves: [indexOfNodeToMerge, indexOfGroupNode]});
-        //     console.log(groups);
-        // }
+        
         restart();
     }
 
@@ -903,25 +807,17 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
         mergeNodeToGroup,
         removeNode,
         addNode,
-        setClickAway,
-        recenterGraph,
         restart: {
             styles: updateStyles,
             layout: restart,
         },
         nodeOptions: {
-            setNodeColor: setNodeToColor,
-            nodeStrokeWidth,
-            nodeStrokeColor,
             setClickNode: setSelectNode,
             setMouseOver,
             setMouseOut
         },
         edgeOptions: {
-            setStrokeWidth: setEdgeStroke,
-            setLength: setEdgeLength,
-            setColor: setEdgeColor,
-            setClickEdge: (callback) => {layoutOptions.clickEdge = callback}
+            setClickEdge: (callback: (link?: any, d3selection?: any) => void) => {layoutOptions.clickEdge = callback}
         },
         colaOptions: {
             flowLayout: {
@@ -931,7 +827,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                         simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
                     } else {
                         layoutOptions.layoutType = "flowLayout";
-                        simulation = updateColaLayout();
+                        simulation = updateColaLayout(layoutOptions);
                     }
 
                     restart();
@@ -942,7 +838,7 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
                         simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
                     } else {
                         layoutOptions.layoutType = "flowLayout";
-                        simulation = updateColaLayout();
+                        simulation = updateColaLayout(layoutOptions);
                     }
                     
                     restart();
@@ -950,4 +846,5 @@ module.exports = function networkVizJS(documentId, userLayoutOptions = {}){
             }
         }
     }
+
 }

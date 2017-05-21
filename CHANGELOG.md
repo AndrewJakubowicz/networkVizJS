@@ -4,10 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased]
+## [UNCHANGED]
 
 ### Changed
 
+ - deleted a lot of useless API that can be specified in the options once.
+
+## [0.0.4]
+
+### Changed
+
+ - Tested Jest support
+ - Changed codebase to TypeScript
  - All nodes are now paths. (This allows for path to be defined in the node's data)
  - removeNode now removes disconnected nodes.
  - d3 and webcola is now external
