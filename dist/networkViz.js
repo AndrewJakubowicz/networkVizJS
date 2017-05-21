@@ -266,9 +266,9 @@ function networkVizJS(documentId, userLayoutOptions) {
             .classed("line", true);
         linkEnter.append("path")
             .attr("stroke-width", layoutOptions.edgeStroke)
-            .attr("stroke", d => layoutOptions.edgeColor(d.edgeData))
+            .attr("stroke", layoutOptions.edgeColor)
             .attr("fill", "none")
-            .attr("marker-end", d => `url(#arrow-${layoutOptions.edgeColor(d.edgeData)})`);
+            .attr("marker-end", d => `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.edgeData)})`);
         linkEnter.on('click', function (d) {
             let elem = d3.select(this);
             setTimeout(() => {
@@ -306,15 +306,15 @@ function networkVizJS(documentId, userLayoutOptions) {
                 return;
             }
             simulation.prepareEdgeRouting();
-            link.select('path').attr("d", d => lineFunction(simulation.routeEdge(d, null)));
+            link.select('path').attr("d", d => lineFunction(simulation.routeEdge(d, undefined)));
             if (isIE())
                 link.select('path').each(function (d) { this.parentNode.insertBefore(this, this); });
             link.select('text').attr("x", d => {
-                let arrayX = simulation.routeEdge(d, null);
+                let arrayX = simulation.routeEdge(d, undefined);
                 let middleIndex = Math.floor(arrayX.length / 2) - 1;
                 return (arrayX[middleIndex].x + arrayX[middleIndex + 1].x) / 2;
             }).attr("y", d => {
-                let arrayY = simulation.routeEdge(d, null);
+                let arrayY = simulation.routeEdge(d, undefined);
                 let middleIndex = Math.floor(arrayY.length / 2) - 1;
                 return (arrayY[middleIndex].y + arrayY[middleIndex + 1].y) / 2;
             });
@@ -352,7 +352,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr('width', function (d) { return d.bounds.width(); })
                 .attr('height', function (d) { return d.bounds.height(); });
         }).on("end", routeEdges);
-        function isIE() { return ((navigator.appName == 'Microsoft Internet Explorer') || ((navigator.appName == 'Netscape') && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != null))); }
+        function isIE() { return ((navigator.appName == 'Microsoft Internet Explorer') || ((navigator.appName == 'Netscape') && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined))); }
     }
     // Helper function for updating links after node mutations.
     // Calls a function after links added.
@@ -437,19 +437,19 @@ function networkVizJS(documentId, userLayoutOptions) {
         }
         // Check that hash exists
         if (!(subject.hash && object.hash)) {
-            var e = new Error("Subject and Object require a hash field.");
+            let e = new Error("Subject and Object require a hash field.");
             console.error(e);
             return false;
         }
         // Check that type field exists on predicate
         if (!predicate.type) {
-            var e = new Error("Predicate requires type field.");
+            let e = new Error("Predicate requires type field.");
             console.error(e);
             return false;
         }
         // Check that type field is a string on predicate
         if (typeof predicate.type !== "string") {
-            var e = new Error("Predicate type field must be a string");
+            let e = new Error("Predicate type field must be a string");
             console.error(e);
             return false;
         }
@@ -478,13 +478,14 @@ function networkVizJS(documentId, userLayoutOptions) {
                 return new Error("That edge already exists. Hash's and predicate type needs to be unique!");
             }
             /**
-            * If a predicate type already has a color,
-            * it is not redefined.
-            */
-            if (!predicateTypeToColorMap.has(layoutOptions.edgeColor(predicate))) {
-                predicateTypeToColorMap.set(layoutOptions.edgeColor(predicate), true);
+             * If a predicate type already has a color,
+             * it is not redefined.
+             */
+            let edgeColor = typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(predicate);
+            if (!predicateTypeToColorMap.has(edgeColor)) {
+                predicateTypeToColorMap.set(edgeColor, true);
                 // Create an arrow head for the new color
-                createColorArrow(defs, layoutOptions.edgeColor(predicate));
+                createColorArrow(defs, edgeColor);
             }
             /**
              * Put the triplet into the LevelGraph database

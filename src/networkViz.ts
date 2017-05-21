@@ -89,7 +89,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
         height = layoutOptions.height,
         margin = layoutOptions.margin,
         pad = layoutOptions.pad;
-    
+
     /**
      * Create svg canvas that is responsive to the page.
      * This will try to fill the div that it's placed in.
@@ -101,7 +101,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
                 .attr("preserveAspectRatio", "xMinYMin meet")
                 .attr("viewBox", `0 0 ${width} ${height}`)
                 .classed("svg-content-responsive", true);
-    
+
     svg.on("click", layoutOptions.clickAway);
 
     /**
@@ -114,7 +114,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
                             .links(links)
                             .groups(groups)
                             .start();
-    
+
     /**
      * Call nodeDragStart callback when drag event triggers.
      */
@@ -210,15 +210,15 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
         let nodeEnter = node.enter()
                    .append("g")
                    .classed("node", true);
-                   
+
         // Only allow dragging nodes if turned on.
         if (layoutOptions.allowDrag){
             nodeEnter.attr("cursor", "move").call(drag);  
         } else {
             nodeEnter.attr("cursor", "default");
         }
-                   
-        
+
+
         // Here we add node beauty.
         // To fit nodes to the short-name calculate BBox
         // from https://bl.ocks.org/mbostock/1160929
@@ -228,7 +228,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
                     .attr("text-anchor", "middle")
                     .style("font", "100 22px Helvetica Neue");
 
-                    
+
         // Choose the node shape and style.
         let nodeShape;
         nodeShape = nodeEnter.insert("path", "text")
@@ -245,7 +245,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
         }
         nodeShape.classed("node", true)
             .attr('vector-effect', 'non-scaling-stroke');
-        
+
         // Merge the entered nodes to the update nodes.        
         node = node.merge(nodeEnter);
 
@@ -268,7 +268,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
          * Here we can update node properties that have already been attached.
          * When restart() is called, these are the properties that will be affected
          * by mutation.
-         */  
+         */
         let updateShapes = node.select('path');
         // These changes apply to both rect and circle
         updateShapes
@@ -295,11 +295,11 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
             let elem = d3.select(this);
             setTimeout(() => {
                 layoutOptions.clickNode(d, elem as any)
-            }, 50)
-            
+            }, 50);
+
         }).on("mouseup", function (d){
             layoutOptions.mouseUpNode && layoutOptions.mouseUpNode(d, d3.select(this) as any);
-        })
+        });
 
         /////// LINK ///////
         link = link.data(links, d => d.source.index + "-" + d.target.index);
@@ -309,20 +309,20 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
                 .append("g")
                 .classed("line", true);
 
-        
+
         linkEnter.append("path")
                    .attr("stroke-width", layoutOptions.edgeStroke as any)
                    // Todo: Have edge data changable from outside the library.
-                   .attr("stroke", d => (layoutOptions.edgeColor as any)((d as any).edgeData) as any)
+                   .attr("stroke", layoutOptions.edgeColor as any)
                    .attr("fill", "none")
-                   .attr("marker-end",d => `url(#arrow-${(layoutOptions.edgeColor as any)((d as any).edgeData)})`);
-        
+                   .attr("marker-end", d => `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : (layoutOptions.edgeColor as any)((d as any).edgeData)})`);
+
         linkEnter.on('click', function(d) {
             let elem = d3.select(this);
             setTimeout(() => {
                 layoutOptions.clickEdge(d, elem as any)
-            }, 50)
-            
+            }, 50);
+
         })
 
         /** Optional label text */
@@ -332,7 +332,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
                 .style("font", "100 22px Helvetica Neue")
                 .text(layoutOptions.edgeLabelText as any);
         }
-        
+
 
 
         link = link.merge(linkEnter);
@@ -362,15 +362,15 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
             }
 
             simulation.prepareEdgeRouting();
-            link.select('path').attr("d", d => lineFunction(simulation.routeEdge(d, null)));
+            link.select('path').attr("d", d => lineFunction(simulation.routeEdge(d, undefined)));
             if (isIE()) link.select('path').each(function (d) { (this as any).parentNode.insertBefore(this, this) });
 
             link.select('text').attr("x", d => {
-                let arrayX = simulation.routeEdge(d, null);
+                let arrayX = simulation.routeEdge(d, undefined);
                 let middleIndex = Math.floor(arrayX.length /2) - 1;
                 return (arrayX[middleIndex].x + arrayX[middleIndex + 1].x)/2
             }).attr("y", d => {
-                let arrayY = simulation.routeEdge(d, null);
+                let arrayY = simulation.routeEdge(d, undefined);
                 let middleIndex = Math.floor(arrayY.length /2) - 1 ;
                 return (arrayY[middleIndex].y + arrayY[middleIndex + 1].y)/2
             });
@@ -413,7 +413,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
                 .attr('height', function(d){ return (d as any).bounds.height(); });
 
         }).on("end", routeEdges);
-        function isIE() { return ((navigator.appName == 'Microsoft Internet Explorer') || ((navigator.appName == 'Netscape') && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != null))); }
+        function isIE() { return ((navigator.appName == 'Microsoft Internet Explorer') || ((navigator.appName == 'Netscape') && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined))); }
     }
     
 
@@ -429,9 +429,9 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
                 let source = nodeMap.get(subject);
                 let target = nodeMap.get(object);
                 return { source, target, edgeData }
-            });   
-            restart()
-        })
+            });
+            restart();
+        });
     }
 
     /**
@@ -455,7 +455,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
                 console.error(e);
                 return
             }
-            
+
 
             // Add node to graph
             if (!nodeMap.has(nodeObject.hash)){
@@ -480,7 +480,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
         } else {
             addNodeObjectHelper(nodeObjectOrArray);
         }
-        
+
         // Draw the changes.
         restart();
     }
@@ -510,25 +510,25 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
 
         // Check that hash exists
         if (!(subject.hash && object.hash)) {
-            var e = new Error("Subject and Object require a hash field.");
+            let e = new Error("Subject and Object require a hash field.");
             console.error(e);
             return false
         }
 
         // Check that type field exists on predicate
         if (!predicate.type) {
-            var e = new Error("Predicate requires type field.");
+            let e = new Error("Predicate requires type field.");
             console.error(e);
-            return false
+            return false;
         }
 
         // Check that type field is a string on predicate
         if (typeof predicate.type !== "string") {
-            var e = new Error("Predicate type field must be a string");
+            let e = new Error("Predicate type field must be a string");
             console.error(e);
-            return false
+            return false;
         }
-        return true
+        return true;
     }
 
     /**
@@ -544,7 +544,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
         let subject = tripletObject.subject,
             predicate = tripletObject.predicate,
             object = tripletObject.object;
-        
+
         // Check that predicate doesn't already exist
         new Promise((resolve, reject) => tripletsDB.get({subject: subject.hash,
             predicate: predicate.type,
@@ -555,15 +555,16 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
                 if (!doesntExist){
                     return new Error("That edge already exists. Hash's and predicate type needs to be unique!")
                 }
-                 /**
+                /**
                  * If a predicate type already has a color,
                  * it is not redefined.
                  */
-                if (!predicateTypeToColorMap.has((layoutOptions.edgeColor as any)(predicate))){
-                    predicateTypeToColorMap.set((layoutOptions.edgeColor as any)(predicate), true);
+                let edgeColor = typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : (layoutOptions.edgeColor as any)(predicate);
+                if (!predicateTypeToColorMap.has(edgeColor)) {
+                    predicateTypeToColorMap.set(edgeColor, true);
 
                     // Create an arrow head for the new color
-                    createColorArrow(defs, (layoutOptions.edgeColor as any)(predicate));
+                    createColorArrow(defs, edgeColor);
                 }
 
                 /**
@@ -580,7 +581,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
                     if (err){
                         console.error(err);
                     }
-                    
+
                     // Add nodes to graph
                     simulation.stop();
                     if (!nodeMap.has(subject.hash)){
@@ -606,7 +607,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
         let subject = triplet.subject,
             predicate = triplet.predicate,
             object = triplet.object;
-        
+
         if (!(nodeMap.has(subject.hash) && nodeMap.has(object.hash))){
             // console.error("Cannot add edge between nodes that don't exist.")
             return
@@ -788,7 +789,6 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
         });
         groups = newGroupObject;
 
-        
         restart();
     }
 
@@ -840,7 +840,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
                         layoutOptions.layoutType = "flowLayout";
                         simulation = updateColaLayout(layoutOptions);
                     }
-                    
+
                     restart();
                 }
             }
