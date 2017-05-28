@@ -5,7 +5,60 @@ let level = require('level-browserify');
 
 import {updateColaLayout} from './updateColaLayout';
 import * as I from './interfaces';
-export default function networkVizJS(documentId: string, userLayoutOptions: I.layoutOptions){
+
+
+
+// This function takes the text element.
+// We can call .each on it and build up
+// the tspan elements from the array of text
+// in the data.
+// Derived from https://bl.ocks.org/mbostock/7555321
+function wrapFactory(layoutOptions: I.layoutOptions) {
+    let margin = layoutOptions.margin,
+        pad    = layoutOptions.pad;
+    const extra = 2 * margin + 2 * pad;
+
+    return function (text: any){
+        let maxLength = 0;
+        text.each(function(d: any) {
+            /**
+             * If no shortname, then use hash.
+             */
+            let tempText = d.shortname || d.hash;
+            if (!Array.isArray(tempText)){
+                tempText = [tempText];
+            }
+
+            let textCopy = tempText.slice(),
+                // text = d3.select(this),
+                words = textCopy.reverse(),
+                lineheight = 1.1, // em
+                lineNumber = 0,
+                dy = parseFloat(text.attr("dy")) || 0,
+                word,
+                // TODO: I don't know why there needs to be a null tspan at the start?
+                tspan = text.text(null).append("tspan").attr("dy", dy + "em");
+            while (word = words.pop()) {
+                tspan = text.append("tspan").attr("dy", lineheight + "em").text(word);
+            }
+            // Loop over the tspans and recalculate the width based on the longest text.
+            text.selectAll('tspan').each(function(d: any){
+                if (!(d.width)){
+                    d.width = 0;
+                }
+                let lineLength = this.getComputedTextLength();
+                if (d.width < lineLength + extra){
+                    d.width = lineLength + extra
+                }
+            })
+            
+        })
+    }
+}
+
+
+export default function networkVizJS(documentId: string, userLayoutOptions?: I.layoutOptions){
+
     /**
      * Default options for webcola and graph
      */
@@ -53,6 +106,11 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
         ...defaultLayoutOptions,
         ...userLayoutOptions
     }
+
+    // Create factory functions from options
+    const wrap = wrapFactory(layoutOptions);
+
+
 
     /**
      * Check that the user has provided a valid documentId
@@ -178,9 +236,9 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
             .attr('transform', function(d: any) {
                 // Scale appropriately using http://stackoverflow.com/a/9877871/6421793
                 let currentWidth = (this as any).getBBox().width,
-                    w = d.innerBounds && d.innerBounds.width() || d.width,
+                    w = d.width,
                     currentHeight = (this as any).getBBox().height,
-                    h = d.innerBounds && d.innerBounds.height() || d.height,
+                    h = d.height,
                     scaleW = w / currentWidth,
                     scaleH = h / currentHeight;
                 return `translate(${-w/2},${-h/2}) scale(${scaleW},${scaleH})`;
@@ -223,8 +281,8 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
         // To fit nodes to the short-name calculate BBox
         // from https://bl.ocks.org/mbostock/1160929
         nodeEnter.append("text")
-                    .attr("dx", -10)
-                    .attr("dy", -2)
+                    .attr("dx", 0)
+                    .attr("dy", 0)
                     .attr("text-anchor", "middle")
                     .style("font", "100 22px Helvetica Neue");
 
@@ -251,17 +309,34 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
 
         /**
          * Update the text property (allowing dynamically changing text)
+         * Check if the d.shortname is a list.
          */
-        node.select("text")
-                    .text((d: any) => d.shortname || d.hash)
+        let textSelect = node.select("text")
+                    .text(undefined)
+                    .call(wrap)
                     .each(function(d: any){
+                        // Only update the height, the width is calculated
+                        // by iterating over the tspans in the `wrap` function.
                         const b = (this as any).getBBox();
                         const extra = 2 * margin + 2 * pad;
-                        d.width = b.width + extra;
                         d.height = b.height + extra;
                     })
-                    .attr("x", (d: any) => d.width / 2)
-                    .attr("y", (d: any) => d.height / 2)
+                    .attr("y",  function(d){
+                        const b = d3.select(this).node().getBBox();
+                        // Todo: Minus 2 is a hack to get the text feeling 'right'.
+                        return d.height / 2 - b.height / 2 - 2;
+                    })
+                    .attr("x", function(d){
+                        // Apply the correct x value to the tspan.
+                        const b = this.getBBox();
+                        const x = d.width / 2 - b.width / 2;
+                        // We don't set the tspans with an x attribute.
+                        d3.select(this).selectAll('tspan')
+                            .attr('x', d.width/2);
+                        return x
+                    })
+                    // .attr("x", (d: any) => d.width / 2)
+                    // .attr("y", (d: any) => d.height / 2)
                     .attr("pointer-events", "none");
 
         /**
@@ -322,7 +397,6 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
             setTimeout(() => {
                 layoutOptions.clickEdge(d, elem as any)
             }, 50);
-
         })
 
         /** Optional label text */
@@ -454,6 +528,14 @@ export default function networkVizJS(documentId: string, userLayoutOptions: I.la
                 var e = new Error("Node requires a hash field.");
                 console.error(e);
                 return
+            }
+
+            // TODO: remove this hack
+            if (!(nodeObject.x)){
+                nodeObject.x = layoutOptions.width / 2;
+            }
+            if (!(nodeObject.y)){
+                nodeObject.y = layoutOptions.height / 2;
             }
 
 

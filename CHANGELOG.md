@@ -8,7 +8,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+ - Text display code now supports multiline. shortname can be an array of lines.
+    - BREAKING: line routing has broken. - The arrows don't end in the right position.
  - deleted a lot of useless API that can be specified in the options once.
+
+### Removed
+
+ - The old way the text was laid out.
 
 ## [0.0.4]
 
