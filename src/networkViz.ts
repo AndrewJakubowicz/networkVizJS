@@ -455,7 +455,11 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
                 .start(10, 15, 20).on("tick", function() {
             node.each(d => {
                     if ((d as any).bounds) {
-                        (d as any).innerBounds = (d as any).bounds.inflate(-margin);
+                        // Initiate the innerBounds, and create it based on the width and height
+                        // of the node.
+                        (d as any).innerBounds = d.bounds.inflate(0);
+                        d.innerBounds.X = d.innerBounds.x + d.width;
+                        d.innerBounds.Y = d.innerBounds.y + d.height;
                     }
                 });
             node.attr("transform", d => (d as any).innerBounds ?
