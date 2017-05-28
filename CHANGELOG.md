@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
  - Restored line routing.
  - Text display code now supports multiline. shortname can be an array of lines.
     - FIXED: line routing has broken. - The arrows don't end in the right position.
+    - FIXED: text mirroring the last added node.
  - deleted a lot of useless API that can be specified in the options once.
 
 ### Removed

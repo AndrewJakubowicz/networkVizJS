@@ -5,46 +5,6 @@ const cola = require("webcola");
 let levelgraph = require('levelgraph');
 let level = require('level-browserify');
 const updateColaLayout_1 = require("./updateColaLayout");
-// This function takes the text element.
-// We can call .each on it and build up
-// the tspan elements from the array of text
-// in the data.
-// Derived from https://bl.ocks.org/mbostock/7555321
-function wrapFactory(layoutOptions) {
-    let margin = layoutOptions.margin, pad = layoutOptions.pad;
-    const extra = 2 * margin + 2 * pad;
-    return function (text) {
-        let maxLength = 0;
-        text.each(function (d) {
-            /**
-             * If no shortname, then use hash.
-             */
-            let tempText = d.shortname || d.hash;
-            if (!Array.isArray(tempText)) {
-                tempText = [tempText];
-            }
-            let textCopy = tempText.slice(), 
-            // text = d3.select(this),
-            words = textCopy.reverse(), lineheight = 1.1, // em
-            lineNumber = 0, dy = parseFloat(text.attr("dy")) || 0, word, 
-            // TODO: I don't know why there needs to be a null tspan at the start?
-            tspan = text.text(null).append("tspan").attr("dy", dy + "em");
-            while (word = words.pop()) {
-                tspan = text.append("tspan").attr("dy", lineheight + "em").text(word);
-            }
-            // Loop over the tspans and recalculate the width based on the longest text.
-            text.selectAll('tspan').each(function (d) {
-                if (!(d.width)) {
-                    d.width = 0;
-                }
-                let lineLength = this.getComputedTextLength();
-                if (d.width < lineLength + extra) {
-                    d.width = lineLength + extra;
-                }
-            });
-        });
-    };
-}
 function networkVizJS(documentId, userLayoutOptions) {
     /**
      * Default options for webcola and graph
@@ -258,7 +218,42 @@ function networkVizJS(documentId, userLayoutOptions) {
          */
         let textSelect = node.select("text")
             .text(undefined)
-            .call(wrap)
+            .each(function (d) {
+            // This function takes the text element.
+            // We can call .each on it and build up
+            // the tspan elements from the array of text
+            // in the data.
+            // Derived from https://bl.ocks.org/mbostock/7555321
+            let margin = layoutOptions.margin, pad = layoutOptions.pad;
+            const extra = 2 * margin + 2 * pad;
+            let text = d3.select(this);
+            /**
+             * If no shortname, then use hash.
+             */
+            let tempText = d.shortname || d.hash;
+            if (!Array.isArray(tempText)) {
+                tempText = [tempText];
+            }
+            let textCopy = tempText.slice(), 
+            // text = d3.select(this),
+            words = textCopy.reverse(), lineheight = 1.1, // em
+            lineNumber = 0, dy = parseFloat(text.attr("dy")) || 0, word, 
+            // TODO: I don't know why there needs to be a null tspan at the start?
+            tspan = text.text(null).append("tspan").attr("dy", dy + "em");
+            while (word = words.pop()) {
+                tspan = text.append("tspan").attr("dy", lineheight + "em").text(word);
+            }
+            // Loop over the tspans and recalculate the width based on the longest text.
+            text.selectAll('tspan').each(function (d) {
+                if (!(d.width)) {
+                    d.width = 0;
+                }
+                let lineLength = this.getComputedTextLength();
+                if (d.width < lineLength + extra) {
+                    d.width = lineLength + extra;
+                }
+            });
+        })
             .each(function (d) {
             // Only update the height, the width is calculated
             // by iterating over the tspans in the `wrap` function.
