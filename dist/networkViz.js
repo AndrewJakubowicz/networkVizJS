@@ -5,12 +5,14 @@ const cola = require("webcola");
 let levelgraph = require('levelgraph');
 let level = require('level-browserify');
 const updateColaLayout_1 = require("./updateColaLayout");
+const createColorArrow_1 = require("./util/createColorArrow");
 function networkVizJS(documentId, userLayoutOptions) {
     /**
      * Default options for webcola and graph
      */
     let defaultLayoutOptions = {
         layoutType: "flowLayout",
+        jaccardModifier: 0.7,
         avoidOverlaps: true,
         handleDisconnected: false,
         flowDirection: "y",
@@ -112,24 +114,6 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Create the defs element that stores the arrow heads.
      */
     const defs = svg.append("defs");
-    /**
-     * Appends an arrow head marker to the defs element to be used later.
-     * @param defElement 'defs' element to append marker elements
-     * @param color string representation of a valid color.
-     */
-    function createColorArrow(defElement, color) {
-        defElement.append("marker")
-            .attr("id", `arrow-${color}`)
-            .attr("viewBox", "0 -5 10 10")
-            .attr("refX", 8)
-            .attr("markerWidth", 6)
-            .attr("markerHeight", 6)
-            .attr("fill", color)
-            .attr("orient", "auto")
-            .append("path")
-            .attr("d", "M0,-5L10,0L0,5")
-            .attr("class", "arrowHead");
-    }
     // Define svg groups for storing the visuals.
     let g = svg.append('g'), group = g.append('g')
         .selectAll('.group'), link = g.append('g')
@@ -546,7 +530,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             if (!predicateTypeToColorMap.has(edgeColor)) {
                 predicateTypeToColorMap.set(edgeColor, true);
                 // Create an arrow head for the new color
-                createColorArrow(defs, edgeColor);
+                createColorArrow_1.default(defs, edgeColor);
             }
             /**
              * Put the triplet into the LevelGraph database

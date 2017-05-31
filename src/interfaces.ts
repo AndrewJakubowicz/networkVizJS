@@ -2,6 +2,7 @@
 
 export interface layoutOptions {
     layoutType: string
+    jaccardModifier: number
     avoidOverlaps: boolean
     handleDisconnected: boolean
     flowDirection: string

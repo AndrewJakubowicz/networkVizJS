@@ -4,6 +4,7 @@ let levelgraph = require('levelgraph');
 let level = require('level-browserify');
 
 import {updateColaLayout} from './updateColaLayout';
+import createColorArrow from './util/createColorArrow';
 import * as I from './interfaces';
 
 
@@ -15,6 +16,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
      */
     let defaultLayoutOptions: I.layoutOptions = {
         layoutType: "flowLayout", // Define webcola length layout algorithm
+        jaccardModifier: 0.7,
         avoidOverlaps: true,
         handleDisconnected: false,
         flowDirection: "y",
@@ -134,25 +136,6 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
      * Create the defs element that stores the arrow heads.
      */
     const defs = svg.append("defs");
-
-    /**
-     * Appends an arrow head marker to the defs element to be used later.
-     * @param defElement 'defs' element to append marker elements
-     * @param color string representation of a valid color.
-     */
-    function createColorArrow(defElement: any, color: string){
-        defElement.append("marker")
-            .attr("id",`arrow-${color}`)
-            .attr("viewBox", "0 -5 10 10")
-            .attr("refX", 8)
-            .attr("markerWidth", 6)
-            .attr("markerHeight", 6)
-            .attr("fill", color)
-            .attr("orient", "auto")
-            .append("path")
-                .attr("d", "M0,-5L10,0L0,5")
-                .attr("class","arrowHead");
-    }
 
     // Define svg groups for storing the visuals.
     let g = svg.append('g'),

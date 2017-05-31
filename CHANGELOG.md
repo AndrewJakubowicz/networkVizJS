@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [UNCHANGED]
 
+### Added
+
+ - Jaccard modifier to control clustering. (`layoutOptions.jaccardModifier`)
+
 ### Changed
 
  - Restored line routing.

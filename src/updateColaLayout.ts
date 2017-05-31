@@ -18,7 +18,7 @@ export function updateColaLayout(layoutOptions: I.layoutOptions){
             if (layoutOptions.edgeLength === undefined || typeof layoutOptions.edgeLength !== "number"){
                 console.error("'edgeLength' needs to be set to a number for jaccardLinkLengths to work properly")
             }
-            tempSimulation = tempSimulation.jaccardLinkLengths(layoutOptions.edgeLength as any)
+            tempSimulation = tempSimulation.jaccardLinkLengths(layoutOptions.edgeLength as any, layoutOptions.jaccardModifier)
             break;
         case "flowLayout":
             if (layoutOptions.edgeLength === undefined || !(typeof layoutOptions.edgeLength === "number" || typeof layoutOptions.edgeLength === "function")){
