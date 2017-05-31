@@ -58,11 +58,6 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
         ...userLayoutOptions
     }
 
-    // Create factory functions from options
-    const wrap = wrapFactory(layoutOptions);
-
-
-
     /**
      * Check that the user has provided a valid documentId
      * and check that the id exists.

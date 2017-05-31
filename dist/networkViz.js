@@ -48,8 +48,6 @@ function networkVizJS(documentId, userLayoutOptions) {
      * overriding the default options.
      */
     let layoutOptions = Object.assign({}, defaultLayoutOptions, userLayoutOptions);
-    // Create factory functions from options
-    const wrap = wrapFactory(layoutOptions);
     /**
      * Check that the user has provided a valid documentId
      * and check that the id exists.
