@@ -33,6 +33,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
         nodeDragStart: undefined,
         edgeLabelText: undefined,
         // Both mouseout and mouseover take data AND the selection (arg1, arg2)
+        mouseDownNode: undefined,
         mouseOverNode: undefined,
         mouseOutNode: undefined,
         mouseUpNode: undefined,
@@ -158,6 +159,10 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
      * Zooming and panning behaviour.
      */
     let zoom = d3.zoom().scaleExtent([0.1, 5]).on("zoom", zoomed);
+    zoom.filter(function(){
+        // Prevent zoom when mouse over node.
+        return d3.event.target.tagName.toLowerCase() === "svg";
+    })
     svg.call(zoom);
     function zoomed() {
         layoutOptions.clickAway();
@@ -351,6 +356,9 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
 
         }).on("mouseup", function (d){
             layoutOptions.mouseUpNode && layoutOptions.mouseUpNode(d, d3.select(this) as any);
+        }).on("mousedown", function(d){
+            if ((layoutOptions.canDrag === undefined) || (layoutOptions.canDrag && layoutOptions.canDrag())){ return };
+            layoutOptions.mouseDownNode && layoutOptions.mouseDownNode(d, d3.select(this) as any);
         });
 
         /////// LINK ///////

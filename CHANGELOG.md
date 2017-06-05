@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+ - zoom prevented if not initiated on svg
+ - mouseDown added
  - drag conditional event propagation. (allows conditional control of drag event)
  - hasNode method that allows us to check if node exists on diagram.
  - String representation of the predicates and nodes (for saving).

@@ -19,6 +19,7 @@ export interface layoutOptions {
     nodeDragStart(): void
     edgeLabelText: string | {(d?: any, i?: number): string};
     // Both mouseout and mouseover take data AND the selection (arg1, arg2)
+    mouseDownNode(nodeObject?: any, d3Selection?: Selection): void
     mouseOverNode(nodeObject?: any, d3Selection?: Selection): void
     mouseOutNode(nodeObject?: any, d3Selection?: Selection): void
     mouseUpNode(nodeObject?: any, d3Selection?: Selection): void

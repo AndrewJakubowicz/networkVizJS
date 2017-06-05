@@ -29,6 +29,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         nodeDragStart: undefined,
         edgeLabelText: undefined,
         // Both mouseout and mouseover take data AND the selection (arg1, arg2)
+        mouseDownNode: undefined,
         mouseOverNode: undefined,
         mouseOutNode: undefined,
         mouseUpNode: undefined,
@@ -111,10 +112,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Call nodeDragStart callback when drag event triggers.
      */
     let drag = simulation.drag();
-    drag.filter(() => {
-        console.log("DRAGGING FILTER:", (layoutOptions.canDrag === undefined) || (layoutOptions.canDrag && layoutOptions.canDrag()));
-        return (layoutOptions.canDrag === undefined) || (layoutOptions.canDrag && layoutOptions.canDrag());
-    });
+    drag.filter(() => (layoutOptions.canDrag === undefined) || (layoutOptions.canDrag && layoutOptions.canDrag()));
     drag.on("start", () => {
         layoutOptions.nodeDragStart && layoutOptions.nodeDragStart();
         internalOptions.isDragging = true;
@@ -134,6 +132,12 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Zooming and panning behaviour.
      */
     let zoom = d3.zoom().scaleExtent([0.1, 5]).on("zoom", zoomed);
+    zoom.filter(function () {
+        // Prevent zoom when mouse over node.
+        console.log(d3.event.target.tagName.toLowerCase());
+        console.log("FILTER?", d3.event.target.tagName.toLowerCase() === "svg");
+        return d3.event.target.tagName.toLowerCase() === "svg";
+    });
     svg.call(zoom);
     function zoomed() {
         layoutOptions.clickAway();
@@ -302,6 +306,12 @@ function networkVizJS(documentId, userLayoutOptions) {
             }, 50);
         }).on("mouseup", function (d) {
             layoutOptions.mouseUpNode && layoutOptions.mouseUpNode(d, d3.select(this));
+        }).on("mousedown", function (d) {
+            if ((layoutOptions.canDrag === undefined) || (layoutOptions.canDrag && layoutOptions.canDrag())) {
+                return;
+            }
+            ;
+            layoutOptions.mouseDownNode && layoutOptions.mouseDownNode(d, d3.select(this));
         });
         /////// LINK ///////
         link = link.data(links, d => d.source.index + "-" + d.target.index);
