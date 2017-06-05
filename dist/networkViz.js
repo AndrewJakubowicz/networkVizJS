@@ -25,6 +25,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         margin: 10,
         allowDrag: true,
         // This callback is called when a drag event starts on a node.
+        canDrag: undefined,
         nodeDragStart: undefined,
         edgeLabelText: undefined,
         // Both mouseout and mouseover take data AND the selection (arg1, arg2)
@@ -110,6 +111,10 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Call nodeDragStart callback when drag event triggers.
      */
     let drag = simulation.drag();
+    drag.filter(() => {
+        console.log("DRAGGING FILTER:", (layoutOptions.canDrag === undefined) || (layoutOptions.canDrag && layoutOptions.canDrag()));
+        return (layoutOptions.canDrag === undefined) || (layoutOptions.canDrag && layoutOptions.canDrag());
+    });
     drag.on("start", () => {
         layoutOptions.nodeDragStart && layoutOptions.nodeDragStart();
         internalOptions.isDragging = true;
@@ -603,7 +608,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Removes the node and all triplets associated with it.
      * @param {String} nodeHash hash of the node to remove.
      */
-    function removeNode(nodeHash) {
+    function removeNode(nodeHash, callback) {
         tripletsDB.get({ subject: nodeHash }, function (err, l1) {
             if (err) {
                 return console.error(err);
@@ -629,6 +634,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                     nodes.splice(nodeIndex, 1);
                     nodeMap.delete(nodeHash);
                     createNewLinks();
+                    // Do something after the removal of the node.
+                    typeof callback === "function" && callback();
                     return;
                 }
                 tripletsDB.del([...l1, ...l2], function (err) {
@@ -651,6 +658,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                     nodes.splice(nodeIndex, 1);
                     nodeMap.delete(nodeHash);
                     createNewLinks();
+                    // do something after removing the node.
+                    typeof callback === "function" && callback();
                 });
             });
         });

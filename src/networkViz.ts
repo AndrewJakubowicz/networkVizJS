@@ -29,6 +29,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
         margin: 10,
         allowDrag: true,
         // This callback is called when a drag event starts on a node.
+        canDrag: undefined,
         nodeDragStart: undefined,
         edgeLabelText: undefined,
         // Both mouseout and mouseover take data AND the selection (arg1, arg2)
@@ -131,6 +132,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
      * Call nodeDragStart callback when drag event triggers.
      */
     let drag = simulation.drag();
+    drag.filter(() => (layoutOptions.canDrag === undefined) || (layoutOptions.canDrag && layoutOptions.canDrag()));
     drag.on("start", () => {
         layoutOptions.nodeDragStart && layoutOptions.nodeDragStart();
         internalOptions.isDragging = true;
@@ -704,7 +706,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
      * Removes the node and all triplets associated with it.
      * @param {String} nodeHash hash of the node to remove.
      */
-    function removeNode(nodeHash: string){
+    function removeNode(nodeHash: string, callback?: () => {}){
         tripletsDB.get({subject: nodeHash}, function(err: Error, l1: any[]){
             if (err){
                 return console.error(err)
@@ -731,6 +733,9 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
                     nodeMap.delete(nodeHash);
 
                     createNewLinks();
+                    
+                    // Do something after the removal of the node.
+                    typeof callback === "function" && callback();
                     return
                 }
 
@@ -753,6 +758,9 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
                     nodeMap.delete(nodeHash);
 
                     createNewLinks();
+
+                    // do something after removing the node.
+                    typeof callback === "function" && callback();
                 });
             });
         });

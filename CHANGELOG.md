@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+ - drag conditional event propagation. (allows conditional control of drag event)
  - hasNode method that allows us to check if node exists on diagram.
  - String representation of the predicates and nodes (for saving).
  - Default database name if not specified.
@@ -15,6 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+ - removeNode now accepts an optional callback to fire after node is removed.
  - Restored line routing.
  - Text display code now supports multiline. shortname can be an array of lines.
     - FIXED: line routing has broken. - The arrows don't end in the right position.

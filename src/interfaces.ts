@@ -1,6 +1,7 @@
 
 
 export interface layoutOptions {
+    canDrag: () => boolean
     databaseName: string
     layoutType: string
     jaccardModifier: number
