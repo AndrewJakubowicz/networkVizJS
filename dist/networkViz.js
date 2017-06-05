@@ -134,8 +134,6 @@ function networkVizJS(documentId, userLayoutOptions) {
     let zoom = d3.zoom().scaleExtent([0.1, 5]).on("zoom", zoomed);
     zoom.filter(function () {
         // Prevent zoom when mouse over node.
-        console.log(d3.event.target.tagName.toLowerCase());
-        console.log("FILTER?", d3.event.target.tagName.toLowerCase() === "svg");
         return d3.event.target.tagName.toLowerCase() === "svg";
     });
     svg.call(zoom);
