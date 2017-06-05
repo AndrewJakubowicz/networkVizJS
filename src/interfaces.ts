@@ -1,6 +1,7 @@
 
 
 export interface layoutOptions {
+    databaseName: string
     layoutType: string
     jaccardModifier: number
     avoidOverlaps: boolean

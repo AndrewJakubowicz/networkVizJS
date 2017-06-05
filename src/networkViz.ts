@@ -15,6 +15,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
      * Default options for webcola and graph
      */
     let defaultLayoutOptions: I.layoutOptions = {
+        databaseName: `Userdb-${Math.random()*100}`,
         layoutType: "flowLayout", // Define webcola length layout algorithm
         jaccardModifier: 0.7,
         avoidOverlaps: true,
@@ -40,7 +41,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
         nodeStrokeColor: "black",
         // TODO: clickNode (node, element) => void
         clickNode: (node) => console.log("clicked", node),
-        clickAway: () => console.log("clicked away from stuff"),
+        clickAway: () => undefined,
         edgeColor: "black",
         edgeStroke: 2,
         edgeLength: d => {console.log(`length`, d); return 150},
@@ -81,7 +82,12 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
      * Todo:    This is currently a hack. Create a random database on the client
      *          side to build the networks on top of.
      */
-    let tripletsDB = levelgraph(level(`Userdb-${Math.random()*100}`));
+    if (!layoutOptions.databaseName || typeof layoutOptions.databaseName !== "string"){
+        console.error("Make sure databaseName property exists and is a string.");
+        console.error("Choosing a default name for the database.");
+        layoutOptions.databaseName = defaultLayoutOptions.databaseName;
+    }
+    let tripletsDB = levelgraph(level(layoutOptions.databaseName));
 
     /**
      * These represent the data that d3 will visualize.
@@ -461,6 +467,12 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
 
         }).on("end", routeEdges);
         function isIE() { return ((navigator.appName == 'Microsoft Internet Explorer') || ((navigator.appName == 'Netscape') && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined))); }
+    
+        // After a tick make sure to add translation to the nodes.
+        // Sometimes it wasn't added in a single tick.
+        node.attr("transform", d => (d as any).innerBounds ?
+                    `translate(${(d as any).innerBounds.x},${(d as any).innerBounds.y})`
+                    :`translate(${(d as any).x},${(d as any).y})`);
     }
     
 
@@ -847,6 +859,22 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
         restart();
     }
 
+
+    /**
+     * Serialize the graph.
+     * scheme: triplets: subj:hash-predicateType-obj:hash[]
+     *         nodes: hash[]
+     */
+    const saveGraph = (callback: (_:string) => {}) => {
+        tripletsDB.get({}, function(err: Error, list: any[]){
+            const saved = JSON.stringify({
+                triplets: list.map(v => ({ subject: v.subject.hash, predicate: v.predicate.type, object: v.object.hash })),
+                nodes: nodes.map(v => ({ hash: v.hash, x: v.x, y: v.y }))
+            });
+            callback(saved);
+        });
+    }
+
     // Public api
     /**
      * TODO:
@@ -856,6 +884,8 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
      *  - Maybe have a "this" reference passed into the callbacks.
      */
     return {
+        hasNode: (nodeHash: string) => nodes.filter(v => v.hash == nodeHash).length === 1,
+        saveGraph,
         getSVGElement: () => svg,
         addTriplet,
         addEdge,

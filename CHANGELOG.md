@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+ - hasNode method that allows us to check if node exists on diagram.
+ - String representation of the predicates and nodes (for saving).
+ - Default database name if not specified.
  - Jaccard modifier to control clustering. (`layoutOptions.jaccardModifier`)
 
 ### Changed

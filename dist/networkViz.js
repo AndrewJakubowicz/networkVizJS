@@ -11,6 +11,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Default options for webcola and graph
      */
     let defaultLayoutOptions = {
+        databaseName: `Userdb-${Math.random() * 100}`,
         layoutType: "flowLayout",
         jaccardModifier: 0.7,
         avoidOverlaps: true,
@@ -36,7 +37,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         nodeStrokeColor: "black",
         // TODO: clickNode (node, element) => void
         clickNode: (node) => console.log("clicked", node),
-        clickAway: () => console.log("clicked away from stuff"),
+        clickAway: () => undefined,
         edgeColor: "black",
         edgeStroke: 2,
         edgeLength: d => { console.log(`length`, d); return 150; },
@@ -69,7 +70,12 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Todo:    This is currently a hack. Create a random database on the client
      *          side to build the networks on top of.
      */
-    let tripletsDB = levelgraph(level(`Userdb-${Math.random() * 100}`));
+    if (!layoutOptions.databaseName || typeof layoutOptions.databaseName !== "string") {
+        console.error("Make sure databaseName property exists and is a string.");
+        console.error("Choosing a default name for the database.");
+        layoutOptions.databaseName = defaultLayoutOptions.databaseName;
+    }
+    let tripletsDB = levelgraph(level(layoutOptions.databaseName));
     /**
      * These represent the data that d3 will visualize.
      */
@@ -391,6 +397,11 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr('height', function (d) { return d.bounds.height(); });
         }).on("end", routeEdges);
         function isIE() { return ((navigator.appName == 'Microsoft Internet Explorer') || ((navigator.appName == 'Netscape') && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined))); }
+        // After a tick make sure to add translation to the nodes.
+        // Sometimes it wasn't added in a single tick.
+        node.attr("transform", d => d.innerBounds ?
+            `translate(${d.innerBounds.x},${d.innerBounds.y})`
+            : `translate(${d.x},${d.y})`);
     }
     // Helper function for updating links after node mutations.
     // Calls a function after links added.
@@ -734,6 +745,20 @@ function networkVizJS(documentId, userLayoutOptions) {
         groups = newGroupObject;
         restart();
     }
+    /**
+     * Serialize the graph.
+     * scheme: triplets: subj:hash-predicateType-obj:hash[]
+     *         nodes: hash[]
+     */
+    const saveGraph = (callback) => {
+        tripletsDB.get({}, function (err, list) {
+            const saved = JSON.stringify({
+                triplets: list.map(v => ({ subject: v.subject.hash, predicate: v.predicate.type, object: v.object.hash })),
+                nodes: nodes.map(v => ({ hash: v.hash, x: v.x, y: v.y }))
+            });
+            callback(saved);
+        });
+    };
     // Public api
     /**
      * TODO:
@@ -743,6 +768,8 @@ function networkVizJS(documentId, userLayoutOptions) {
      *  - Maybe have a "this" reference passed into the callbacks.
      */
     return {
+        hasNode: (nodeHash) => nodes.filter(v => v.hash == nodeHash).length === 1,
+        saveGraph,
         getSVGElement: () => svg,
         addTriplet,
         addEdge,

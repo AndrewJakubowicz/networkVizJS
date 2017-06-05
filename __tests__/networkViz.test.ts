@@ -30,6 +30,13 @@ describe("Embedding", function(){
     });
 });
 
+describe("Node adding", function(){
+    /**
+     * The problem is that this.getComputedTextLength is not
+     * available. I've also not allowed myself to mock the functions easily :/
+     */
+})
+
 
 
 
