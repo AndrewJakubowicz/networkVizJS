@@ -701,6 +701,10 @@ function networkVizJS(documentId, userLayoutOptions) {
     function setMouseOut(mouseOutCallback) {
         layoutOptions.mouseOutNode = mouseOutCallback;
     }
+    // Function called when mousedown on node.
+    function setMouseDown(mouseDownCallback) {
+        layoutOptions.mouseDownNode = mouseDownCallback;
+    }
     /**
      * Merges a node into another group.
      * If this node was in another group previously it removes it from the prior group.

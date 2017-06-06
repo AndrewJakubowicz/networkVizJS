@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+ - Function for setting mouseDown on node.
  - zoom prevented if not initiated on svg
  - mouseDown added
  - drag conditional event propagation. (allows conditional control of drag event)
