@@ -804,7 +804,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         nodeOptions: {
             setClickNode: setSelectNode,
             setMouseOver,
-            setMouseOut
+            setMouseOut,
+            setMouseDown,
         },
         edgeOptions: {
             setClickEdge: (callback) => { layoutOptions.clickEdge = callback; }

@@ -920,7 +920,8 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
         nodeOptions: {
             setClickNode: setSelectNode,
             setMouseOver,
-            setMouseOut
+            setMouseOut,
+            setMouseDown,
         },
         edgeOptions: {
             setClickEdge: (callback: (link?: any, d3selection?: any) => void) => {layoutOptions.clickEdge = callback}
