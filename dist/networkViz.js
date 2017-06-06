@@ -11,7 +11,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Default options for webcola and graph
      */
     let defaultLayoutOptions = {
-        databaseName: `Userdb-${Math.random() * 100}`,
+        databaseName: `Userdb-${Math.random() * 100}-${Math.random() * 100}-${Math.random() * 100}-${Math.random() * 100}`,
         layoutType: "flowLayout",
         jaccardModifier: 0.7,
         avoidOverlaps: true,
@@ -772,9 +772,9 @@ function networkVizJS(documentId, userLayoutOptions) {
      *         nodes: hash[]
      */
     const saveGraph = (callback) => {
-        tripletsDB.get({}, function (err, list) {
+        tripletsDB.get({}, (err, l) => {
             const saved = JSON.stringify({
-                triplets: list.map(v => ({ subject: v.subject.hash, predicate: v.predicate.type, object: v.object.hash })),
+                triplets: l.map(v => ({ subject: v.subject, predicate: v.predicate, object: v.object })),
                 nodes: nodes.map(v => ({ hash: v.hash, x: v.x, y: v.y }))
             });
             callback(saved);
@@ -790,6 +790,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      */
     return {
         hasNode: (nodeHash) => nodes.filter(v => v.hash == nodeHash).length === 1,
+        getDB: () => tripletsDB,
         saveGraph,
         getSVGElement: () => svg,
         addTriplet,

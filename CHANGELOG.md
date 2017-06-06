@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+ - Made database more random - to try and avoid ANY conflicts at all.
  - removeNode now accepts an optional callback to fire after node is removed.
  - Restored line routing.
  - Text display code now supports multiline. shortname can be an array of lines.
