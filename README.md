@@ -1,15 +1,46 @@
-# Triplet visualizer
+# NetworkVizJS
 
-TODO: documentation and examples
+![Gif example](https://media.giphy.com/media/l4FGEalfFNoRiyvaE/giphy.gif)
 
-> In early development.
+## Examples
 
-A responsive and dynamic graph visualizer that can be used by anyone.
+- [Easy Dynamically changing graph](https://bl.ocks.org/SpyR1014/d82570c509028e6b0a519ef885ab58f0)
+- [Very simple graph editor](http://mind-map-prototype.surge.sh/)
 
-Being developed to rapidly prototype and visualise graphs.
+_... more to come or contribute your own_
 
-Working on examples...
+## Why this project exists
 
+Force directed graphs can be a mighty headache especially when trying to dynamically update nodes.
+
+This project aims to abstract away d3 and force directed layouts allowing you to focus on the interaction
+and design.
+
+### Features
+
+ - Dragging.
+ - Panning and zooming.
+ - Avoid overlapping nodes.
+ - Easy interface for adding / removing nodes.
+ - Routing the edge lines around nodes.
+ - Very stable using [Webcola](http://marvl.infotech.monash.edu/webcola/) as the layout.
+ - Easy handlers that allow you to finely tune the experience for the user.
+ - Various layouts supported out of the box:
+    - Flow layout for force directed graph (horizontally and vertically)
+    - Jaccard layout (where denser node regions spread out)
+    - Regular layout allowing a fixed or dynamic edge length.
+ - An intuitive API which lets you do what you want.
+
+
+>> Adding a node is as easy as `graph.addNode(<your node object>)`!
+
+
+## Development status
+
+> In early development but very usable.
+> Contributions as pull requests and issues welcome.
+
+Lets make prototyping graphs faster and more interactive!
 
 ## Installation
 
@@ -19,18 +50,6 @@ Working on examples...
 npm install --save networkvizjs
 ```
 
-### Browser CDN
 
-Add the following script tag to your html page.
 
-```html
-<script src="https://unpkg.com/networkvizjs@0.0.4/dist/index.umd.min.js"></script>
-```
 
-After this you can access the library `networkVizJS` globally.
-
-## Examples
-
-- [Easy Dynamically changing graph](https://bl.ocks.org/SpyR1014/d82570c509028e6b0a519ef885ab58f0)
-
-... more to come
