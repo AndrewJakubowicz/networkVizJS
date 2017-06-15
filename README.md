@@ -1,4 +1,4 @@
-# Super easy and interactive graphs
+# Easy, interactive graphs with networkVizJS
 
 > This project is powered by Github 🌟's. Each star matters, thank you!
 
