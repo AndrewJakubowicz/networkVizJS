@@ -1,7 +1,7 @@
 # NetworkVizJS
 
 <p align="center">
-<img src="https://media.giphy.com/media/l4FGEalfFNoRiyvaE/giphy.gif" alt="Interacting with diagram">
+<img src="https://media.giphy.com/media/xUA7b6EQrHg94qkynC/giphy.gif" alt="Interacting with diagram">
 </p>
 
 ## Examples
@@ -25,6 +25,11 @@ things that matter.
  - Avoid overlapping nodes.
  - Easy interface for adding / removing nodes.
  - Routing the edge lines around nodes.
+
+<p align="center">
+<img src="https://media.giphy.com/media/xUPGciVhMEBSWGN94c/giphy.gif" alt="Interacting with diagram">
+</p>
+
  - Very stable using [Webcola](http://marvl.infotech.monash.edu/webcola/) as the layout.
  - Easy handlers that allow you to finely tune the experience for the user.
  - Various layouts supported out of the box:
@@ -46,12 +51,17 @@ Lets make prototyping graphs faster and more interactive!
 
 ## Installation
 
-### Using npm for browser package managers
+### Use npm with a bundler like Webpack
 
 ```shell
 npm install --save networkvizjs
 ```
 
 
+## Todo
+
+- [ ] Batch node and edge updates without layout refreshing
+- [ ] Stabilise API (need help / guidance)
+- [ ] Add svg tests (need help / guidance)
 
 
