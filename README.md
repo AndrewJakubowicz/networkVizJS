@@ -1,6 +1,6 @@
 # NetworkVizJS
 
-![Gif example](https://media.giphy.com/media/l4FGEalfFNoRiyvaE/giphy.gif)
+<img align="middle" src="https://media.giphy.com/media/l4FGEalfFNoRiyvaE/giphy.gif" alt="Interacting with diagram">
 
 ## Examples
 
