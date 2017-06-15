@@ -13,8 +13,8 @@ _... more to come or contribute your own_
 
 Force directed graphs can be a mighty headache especially when trying to dynamically update nodes.
 
-This project aims to abstract away d3 and force directed layouts allowing you to focus on the interaction
-and design.
+This project aims to abstract away much of the process of drawing a graph leaving you to focus on the
+things that matter.
 
 ### Features
 
