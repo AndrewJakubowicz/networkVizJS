@@ -1,4 +1,6 @@
-# NetworkVizJS
+# Super easy and interactive graphs
+
+> This project is powered by Github 🌟's. Each star matters, thank you!
 
 <p align="center">
 <img src="https://media.giphy.com/media/xUA7b6EQrHg94qkynC/giphy.gif" alt="Interacting with diagram">
@@ -45,7 +47,7 @@ things that matter.
 ## Development status
 
 > In early development but very usable.
-> Contributions as pull requests and issues welcome.
+> Contributions in the form of pull requests and issues extremely welcome.
 
 Lets make prototyping graphs faster and more interactive!
 
