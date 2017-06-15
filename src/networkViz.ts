@@ -9,12 +9,12 @@ import * as I from "./interfaces";
 
 
 
-export default function networkVizJS(documentId: string, userLayoutOptions?: I.layoutOptions){
+export default function networkVizJS(documentId: string, userLayoutOptions?: I.LayoutOptions) {
 
     /**
      * Default options for webcola and graph
      */
-    const defaultLayoutOptions: I.layoutOptions = {
+    const defaultLayoutOptions: I.LayoutOptions = {
         databaseName: `Userdb-${Math.random() * 100}-${Math.random() * 100}-${Math.random() * 100}-${Math.random() * 100}`,
         layoutType: "flowLayout", // Define webcola length layout algorithm
         jaccardModifier: 0.7,
@@ -58,7 +58,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
      * Create the layoutOptions object with the users options
      * overriding the default options.
      */
-    const layoutOptions: I.layoutOptions = {
+    const layoutOptions: I.LayoutOptions = {
         ...defaultLayoutOptions,
         ...userLayoutOptions
     };
@@ -564,7 +564,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
      * Validates triplets.
      * @param {object} tripletObject
      */
-    function tripletValidation(tripletObject: I.triplet) {
+    function tripletValidation(tripletObject: I.Triplet) {
         /**
          * Check that minimum requirements are met.
          */
@@ -611,7 +611,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
      * Otherwise it just adds the edge
      * @param {object} tripletObject
      */
-    function addTriplet(tripletObject: I.triplet) {
+    function addTriplet(tripletObject: I.Triplet) {
         if (!tripletValidation(tripletObject)) {
             return;
         }
@@ -674,7 +674,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
             });
     }
 
-    function addEdge(triplet: I.triplet) {
+    function addEdge(triplet: I.Triplet) {
         if (!tripletValidation(triplet)) {
             return;
         }
@@ -923,7 +923,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
             setMouseDown,
         },
         edgeOptions: {
-            setClickEdge: (callback: (link?: any, d3selection?: any) => void) => {layoutOptions.clickEdge = callback}
+            setClickEdge: (callback: (link?: any, d3selection?: any) => void) => {layoutOptions.clickEdge = callback; }
         },
         colaOptions: {
             flowLayout: {
@@ -951,6 +951,6 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.l
                 }
             }
         }
-    }
+    };
 
 }

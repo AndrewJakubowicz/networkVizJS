@@ -4,8 +4,8 @@
 /// <reference types="jest" />
 
 import networkViz from "../src/networkViz";
-import * as jsdom from 'jsdom';
-var n = require('../src/networkViz');
+import * as jsdom from "jsdom";
+const n = require("../src/networkViz");
 
 describe("Importing", function(){
     it("Should import as a function", () => {
@@ -35,7 +35,7 @@ describe("Node adding", function(){
      * The problem is that this.getComputedTextLength is not
      * available. I've also not allowed myself to mock the functions easily :/
      */
-})
+});
 
 
 
@@ -52,11 +52,11 @@ describe("Click a button", () => {
     <span id="username" />
     <button id="button" />
 </div>
-        `
+`;
         document.getElementById("button").addEventListener("click", function(){
             mockFn();
         });
-        document.getElementById('button').click();
+        document.getElementById("button").click();
         expect(mockFn.mock.calls.length).toBe(1);
-    })
-})
+    });
+});
