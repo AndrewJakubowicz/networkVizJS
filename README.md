@@ -174,7 +174,7 @@ interface OptionsObject {
 }
 ```
 
-## API on graph object
+## Methods on graph object
 
 ```javascript
 // Check if node is drawn.
