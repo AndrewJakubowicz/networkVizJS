@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
  - Jaccard modifier to control clustering. (`layoutOptions.jaccardModifier`)
 
 ### Changed
-
+ - canDrag is just a boolean
  - Made database more random - to try and avoid ANY conflicts at all.
  - removeNode now accepts an optional callback to fire after node is removed.
  - Restored line routing.
@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
  - The old way the text was laid out.
+ - addEdge method (It was a worse addTriplet)
 
 ## [0.0.4]
 

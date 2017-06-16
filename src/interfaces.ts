@@ -1,7 +1,7 @@
 
 
 export interface LayoutOptions {
-    canDrag: () => boolean;
+    canDrag: boolean;
     databaseName: string;
     layoutType: string;
     jaccardModifier: number;
@@ -14,7 +14,6 @@ export interface LayoutOptions {
     height: number;
     pad: number;
     margin: number;
-    allowDrag: boolean;
     // This callback is called when a drag event starts on a node.
     nodeDragStart(): void;
     edgeLabelText: string | {(d?: any, i?: number): string};
