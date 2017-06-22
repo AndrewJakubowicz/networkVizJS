@@ -23,9 +23,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         height: 600,
         pad: 5,
         margin: 10,
-        allowDrag: true,
-        // This callback is called when a drag event starts on a node.
-        canDrag: undefined,
+        canDrag: true,
         nodeDragStart: undefined,
         edgeLabelText: undefined,
         // Both mouseout and mouseover take data AND the selection (arg1, arg2)
@@ -113,7 +111,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Call nodeDragStart callback when drag event triggers.
      */
     const drag = simulation.drag();
-    drag.filter(() => (layoutOptions.canDrag === undefined) || (layoutOptions.canDrag && layoutOptions.canDrag()));
+    drag.filter(() => (layoutOptions.canDrag === undefined) || (layoutOptions.canDrag));
     drag.on("start", () => {
         layoutOptions.nodeDragStart && layoutOptions.nodeDragStart();
         internalOptions.isDragging = true;
@@ -176,7 +174,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             .append("g")
             .classed("node", true);
         // Only allow dragging nodes if turned on.
-        if (layoutOptions.allowDrag) {
+        if (layoutOptions.canDrag) {
             nodeEnter.attr("cursor", "move").call(drag);
         }
         else {
@@ -241,8 +239,10 @@ function networkVizJS(documentId, userLayoutOptions) {
             }
             // Loop over the tspans and recalculate the width based on the longest text.
             text.selectAll("tspan").each(function (d) {
+                // The width must reset to allow the box to get smaller.
+                d.width = d.minWidth || 0;
                 if (!(d.width)) {
-                    d.width = 0;
+                    d.width = d.minWidth || 0;
                 }
                 const lineLength = this.getComputedTextLength();
                 if (d.width < lineLength + extra) {
@@ -306,7 +306,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         }).on("mouseup", function (d) {
             layoutOptions.mouseUpNode && layoutOptions.mouseUpNode(d, d3.select(this));
         }).on("mousedown", function (d) {
-            if ((layoutOptions.canDrag === undefined) || (layoutOptions.canDrag && layoutOptions.canDrag())) {
+            if ((layoutOptions.canDrag === undefined) || (layoutOptions.canDrag)) {
                 return;
             }
             layoutOptions.mouseDownNode && layoutOptions.mouseDownNode(d, d3.select(this));
@@ -436,7 +436,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Take a node object or list of nodes and add them.
      * @param {object | object[]} nodeObject
      */
-    function addNode(nodeObjectOrArray) {
+    function addNode(nodeObjectOrArray, preventLayout = false) {
         /** Define helper functions at the top */
         /**
          * Checks if object is an array:
@@ -484,7 +484,9 @@ function networkVizJS(documentId, userLayoutOptions) {
             addNodeObjectHelper(nodeObjectOrArray);
         }
         // Draw the changes.
-        restart();
+        if (!preventLayout) {
+            restart();
+        }
     }
     /**
      * Validates triplets.
@@ -529,7 +531,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Otherwise it just adds the edge
      * @param {object} tripletObject
      */
-    function addTriplet(tripletObject) {
+    function addTriplet(tripletObject, preventLayout = false) {
         if (!tripletValidation(tripletObject)) {
             return;
         }
@@ -581,34 +583,32 @@ function networkVizJS(documentId, userLayoutOptions) {
                     nodes.push(object);
                     nodeMap.set(object.hash, object);
                 }
-                createNewLinks();
+                if (!preventLayout) {
+                    createNewLinks();
+                }
             });
         });
     }
-    function addEdge(triplet) {
-        if (!tripletValidation(triplet)) {
+    /**
+     * Removes a triplet object. Silently fails if edge doesn't exist.
+     * @param {object} tripletObject
+     */
+    function removeTriplet(tripletObject) {
+        if (!tripletValidation(tripletObject)) {
             return;
         }
         // Node needs a unique hash associated with it.
-        const subject = triplet.subject, predicate = triplet.predicate, object = triplet.object;
-        if (!(nodeMap.has(subject.hash) && nodeMap.has(object.hash))) {
-            // console.error("Cannot add edge between nodes that don't exist.")
-            return;
-        }
-        /**
-         * Put the triplet into the LevelGraph database
-         * and mutates the d3 nodes and links list to
-         * visually pop on the node/s.
-         */
-        tripletsDB.put({
-            subject: subject.hash,
+        const subject = tripletObject.subject, predicate = tripletObject.predicate, object = tripletObject.object;
+        // Check that predicate doesn't already exist
+        new Promise((resolve, reject) => tripletsDB.del({ subject: subject.hash,
             predicate: predicate.type,
-            object: object.hash,
-            edgeData: predicate
-        }, (err) => {
-            if (err) {
-                console.error(err);
-            }
+            object: object.hash }, function (err) {
+            if (err)
+                reject(err);
+            resolve();
+        })).then(() => {
+            // Add nodes to graph
+            simulation.stop();
             createNewLinks();
         });
     }
@@ -709,6 +709,8 @@ function networkVizJS(documentId, userLayoutOptions) {
      * If this node was in another group previously it removes it from the prior group.
      */
     function mergeNodeToGroup(nodeInGroupHash, nodeToMergeHash) {
+        console.error("THIS FEATURE IS NOT READY");
+        console.error("USE AT YOUR OWN RISK!");
         /**
          * Groups need to be defined using indexes.
          */
@@ -788,28 +790,43 @@ function networkVizJS(documentId, userLayoutOptions) {
      *  - Maybe have a "this" reference passed into the callbacks.
      */
     return {
+        // Check if node is drawn.
         hasNode: (nodeHash) => nodes.filter(v => v.hash == nodeHash).length === 1,
+        // Public access to the levelgraph db.
         getDB: () => tripletsDB,
+        // Get Stringified representation of the graph.
         saveGraph,
+        // Get SVG element. If you want the node use `graph.getSVGElement().node();`
         getSVGElement: () => svg,
+        // add a directed edge
         addTriplet,
-        addEdge,
+        // remove an edge
+        removeTriplet,
+        // EXPERIMENTAL - DON'T USE YET.
         mergeNodeToGroup,
+        // remove a node and all edges connected to it.
         removeNode,
+        // add a node or array of nodes.
         addNode,
+        // Restart styles or layout.
         restart: {
             styles: updateStyles,
+            redrawEdges: createNewLinks,
             layout: restart,
         },
+        // Set event handlers for node.
         nodeOptions: {
             setClickNode: setSelectNode,
             setMouseOver,
             setMouseOut,
             setMouseDown,
         },
+        // Handler for clicking on the edge.
         edgeOptions: {
             setClickEdge: (callback) => { layoutOptions.clickEdge = callback; }
         },
+        // Change layouts on the fly.
+        // May be a webcola memory leak if you change the layout too many times.
         colaOptions: {
             flowLayout: {
                 down: () => {
