@@ -285,8 +285,10 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                         }
                         // Loop over the tspans and recalculate the width based on the longest text.
                         text.selectAll("tspan").each(function(d: any){
+                            // The width must reset to allow the box to get smaller.
+                            d.width = d.minWidth || 0;
                             if (!(d.width)) {
-                                d.width = 0;
+                                d.width = d.minWidth || 0;
                             }
                             const lineLength = (this as any).getComputedTextLength();
                             if (d.width < lineLength + extra) {
@@ -920,6 +922,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
         // Restart styles or layout.
         restart: {
             styles: updateStyles,
+            redrawEdges: createNewLinks,
             layout: restart,
         },
         // Set event handlers for node.
