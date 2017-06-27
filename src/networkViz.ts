@@ -242,8 +242,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
         } else if (typeof layoutOptions.nodeShape == "function") {
             nodeShape.attr("d", layoutOptions.nodeShape);
         }
-        nodeShape.classed("node", true)
-            .attr("vector-effect", "non-scaling-stroke");
+        nodeShape.attr("vector-effect", "non-scaling-stroke");
 
         // Merge the entered nodes to the update nodes.
         node = node.merge(nodeEnter);
@@ -400,7 +399,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      * It also restarts the simulation.
      * This is where aesthetics can be changed.
      */
-    function restart() {
+    function restart(callback: () => void) {
         updateStyles();
         /**
          * Helper function for drawing the lines.
@@ -481,12 +480,14 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
         node.attr("transform", d => (d as any).innerBounds ?
                     `translate(${(d as any).innerBounds.x},${(d as any).innerBounds.y})`
                     : `translate(${(d as any).x},${(d as any).y})`);
+
+        typeof callback === "function" && callback();
     }
 
 
     // Helper function for updating links after node mutations.
     // Calls a function after links added.
-    function createNewLinks() {
+    function createNewLinks(callback: () => void) {
         tripletsDB.get({}, (err: Error, l: any[]) => {
             if (err) {
                 console.error(err);
@@ -497,7 +498,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                 const target = nodeMap.get(object);
                 return { source, target, edgeData };
             });
-            restart();
+            restart(callback);
         });
     }
 
@@ -505,7 +506,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      * Take a node object or list of nodes and add them.
      * @param {object | object[]} nodeObject
      */
-    function addNode(nodeObjectOrArray: any | any[], preventLayout: Boolean = false) {
+    function addNode(nodeObjectOrArray: any | any[], callback: () => void, preventLayout: Boolean = false) {
         /** Define helper functions at the top */
         /**
          * Checks if object is an array:
@@ -556,9 +557,11 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
             addNodeObjectHelper(nodeObjectOrArray);
         }
 
-        // Draw the changes.
+        // Draw the changes, and either fire callback or pass it on to restart.
         if (!preventLayout) {
-            restart();
+            restart(callback);
+        } else {
+            typeof callback === "function" && callback();
         }
     }
 
@@ -613,7 +616,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      * Otherwise it just adds the edge
      * @param {object} tripletObject
      */
-    function addTriplet(tripletObject: I.Triplet, preventLayout: Boolean = false) {
+    function addTriplet(tripletObject: I.Triplet, callback: () => void, preventLayout: Boolean = false) {
         if (!tripletValidation(tripletObject)) {
             return;
         }
@@ -671,7 +674,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                         nodeMap.set(object.hash, object);
                     }
                     if (!preventLayout) {
-                        createNewLinks();
+                        createNewLinks(callback);
                     }
                 });
             });
@@ -681,7 +684,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      * Removes a triplet object. Silently fails if edge doesn't exist.
      * @param {object} tripletObject
      */
-    function removeTriplet(tripletObject: I.Triplet) {
+    function removeTriplet(tripletObject: I.Triplet, callback: () => void) {
         if (!tripletValidation(tripletObject)) {
             return;
         }
@@ -700,7 +703,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                 // Add nodes to graph
                 simulation.stop();
 
-                createNewLinks();
+                createNewLinks(callback);
             });
     }
 
@@ -734,10 +737,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                     nodes.splice(nodeIndex, 1);
                     nodeMap.delete(nodeHash);
 
-                    createNewLinks();
-
-                    // Do something after the removal of the node.
-                    typeof callback === "function" && callback();
+                    createNewLinks(callback);
                     return;
                 }
 
@@ -759,10 +759,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                     nodes.splice(nodeIndex, 1);
                     nodeMap.delete(nodeHash);
 
-                    createNewLinks();
-
-                    // do something after removing the node.
-                    typeof callback === "function" && callback();
+                    createNewLinks(callback);
                 });
             });
         });
@@ -812,7 +809,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      * Merges a node into another group.
      * If this node was in another group previously it removes it from the prior group.
      */
-    function mergeNodeToGroup(nodeInGroupHash: string, nodeToMergeHash: string) {
+    function mergeNodeToGroup(nodeInGroupHash: string, nodeToMergeHash: string, callback: () => void) {
         console.error("THIS FEATURE IS NOT READY");
         console.error("USE AT YOUR OWN RISK!");
         /**
@@ -873,7 +870,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
         });
         groups = newGroupObject;
 
-        restart();
+        restart(callback);
     }
 
 
@@ -882,7 +879,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      * scheme: triplets: subj:hash-predicateType-obj:hash[]
      *         nodes: hash[]
      */
-    const saveGraph = (callback: (_: string) => {}) => {
+    const saveGraph = (callback: (_: string) => any) => {
         tripletsDB.get({}, (err: Error, l: any[]) => {
             const saved = JSON.stringify({
                 triplets: l.map(v => ({ subject: v.subject, predicate: v.predicate, object: v.object })),
@@ -895,7 +892,6 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
     // Public api
     /**
      * TODO:
-     * Actually check which of these are absolutely garbage.
      * Allow reference to the graph in the options object.
      * Solutions?:
      *  - Maybe have a "this" reference passed into the callbacks.
@@ -941,7 +937,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
         // May be a webcola memory leak if you change the layout too many times.
         colaOptions: {
             flowLayout: {
-                down: () => {
+                down: (callback: () => void) => {
                     layoutOptions.flowDirection = "y";
                     if (layoutOptions.layoutType == "flowLayout") {
                         simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
@@ -950,9 +946,9 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                         simulation = updateColaLayout(layoutOptions);
                     }
 
-                    restart();
+                    restart(callback);
                 },
-                right: () => {
+                right: (callback: () => void) => {
                     layoutOptions.flowDirection = "x";
                     if (layoutOptions.layoutType == "flowLayout") {
                         simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
@@ -961,16 +957,10 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                         simulation = updateColaLayout(layoutOptions);
                     }
 
-                    restart();
+                    restart(callback);
                 }
             }
         }
     };
 
 }
-
-
-/**
- * Need this for testing currently.
- */
-window.networkVizJS = networkVizJS;

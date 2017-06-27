@@ -9,7 +9,7 @@
     "build:umd.min": "echo \"No umd.min.js yet\"",
     "build-ts": "tsc",
     "watch-ts": "tsc -w",
-    "test": "jest",
+    "test": "karma start karma.config.js",
     "tslint": "tslint -c tslint.json -p tsconfig.json"
   },
   "repository": {

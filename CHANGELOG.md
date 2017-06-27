@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+ - Karma and Jasmine tests
  - Function for setting mouseDown on node.
  - zoom prevented if not initiated on svg
  - mouseDown added
@@ -31,6 +32,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Removed
 
+ - 'node' class from node paths. Class 'node' refers to the group element.
+ - Jest tests
  - The old way the text was laid out.
  - addEdge method (It was a worse addTriplet)
 
