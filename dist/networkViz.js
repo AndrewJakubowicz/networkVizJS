@@ -41,7 +41,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         edgeColor: "black",
         edgeStroke: 2,
         edgeLength: d => { console.log(`length`, d); return 150; },
-        clickEdge: (d, element) => undefined
+        clickEdge: (d, element) => undefined,
     };
     const internalOptions = {
         isDragging: false
@@ -203,8 +203,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         else if (typeof layoutOptions.nodeShape == "function") {
             nodeShape.attr("d", layoutOptions.nodeShape);
         }
-        nodeShape.classed("node", true)
-            .attr("vector-effect", "non-scaling-stroke");
+        nodeShape.attr("vector-effect", "non-scaling-stroke");
         // Merge the entered nodes to the update nodes.
         node = node.merge(nodeEnter);
         /**
@@ -342,7 +341,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * It also restarts the simulation.
      * This is where aesthetics can be changed.
      */
-    function restart() {
+    function restart(callback) {
         updateStyles();
         /**
          * Helper function for drawing the lines.
@@ -415,10 +414,11 @@ function networkVizJS(documentId, userLayoutOptions) {
         node.attr("transform", d => d.innerBounds ?
             `translate(${d.innerBounds.x},${d.innerBounds.y})`
             : `translate(${d.x},${d.y})`);
+        typeof callback === "function" && callback();
     }
     // Helper function for updating links after node mutations.
     // Calls a function after links added.
-    function createNewLinks() {
+    function createNewLinks(callback) {
         tripletsDB.get({}, (err, l) => {
             if (err) {
                 console.error(err);
@@ -429,14 +429,14 @@ function networkVizJS(documentId, userLayoutOptions) {
                 const target = nodeMap.get(object);
                 return { source, target, edgeData };
             });
-            restart();
+            restart(callback);
         });
     }
     /**
      * Take a node object or list of nodes and add them.
      * @param {object | object[]} nodeObject
      */
-    function addNode(nodeObjectOrArray, preventLayout = false) {
+    function addNode(nodeObjectOrArray, callback, preventLayout) {
         /** Define helper functions at the top */
         /**
          * Checks if object is an array:
@@ -449,9 +449,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         function addNodeObjectHelper(nodeObject) {
             // Check that hash exists
             if (!(nodeObject.hash)) {
-                const e = new Error("Node requires a hash field.");
-                console.error(e);
-                return;
+                throw new Error("Node requires a hash field.");
             }
             // TODO: remove this hack
             if (!(nodeObject.x)) {
@@ -472,9 +470,7 @@ function networkVizJS(documentId, userLayoutOptions) {
          * Check that the input is valid
          */
         if (typeof nodeObjectOrArray !== "object") {
-            const e = new Error("Parameter must be either an object or an array");
-            console.error(e);
-            return;
+            throw new Error("Parameter must be either an object or an array");
         }
         if (isArray(nodeObjectOrArray)) {
             // Run through the array adding the nodes
@@ -483,9 +479,12 @@ function networkVizJS(documentId, userLayoutOptions) {
         else {
             addNodeObjectHelper(nodeObjectOrArray);
         }
-        // Draw the changes.
+        // Draw the changes, and either fire callback or pass it on to restart.
         if (!preventLayout) {
-            restart();
+            restart(callback);
+        }
+        else {
+            typeof callback === "function" && callback();
         }
     }
     /**
@@ -497,32 +496,24 @@ function networkVizJS(documentId, userLayoutOptions) {
          * Check that minimum requirements are met.
          */
         if (tripletObject === undefined) {
-            const e = new Error("TripletObject undefined");
-            console.error(e);
-            return false;
+            throw new Error("TripletObject undefined");
         }
         // Node needs a unique hash associated with it.
         const subject = tripletObject.subject, predicate = tripletObject.predicate, object = tripletObject.object;
         if (!(subject && predicate && object && true)) {
-            console.error(new Error("Triplets added need to include all three fields."));
+            throw new Error("Triplets added need to include all three fields.");
         }
         // Check that hash exists
         if (!(subject.hash && object.hash)) {
-            const e = new Error("Subject and Object require a hash field.");
-            console.error(e);
-            return false;
+            throw new Error("Subject and Object require a hash field.");
         }
         // Check that type field exists on predicate
         if (!predicate.type) {
-            const e = new Error("Predicate requires type field.");
-            console.error(e);
-            return false;
+            throw new Error("Predicate requires type field.");
         }
         // Check that type field is a string on predicate
         if (typeof predicate.type !== "string") {
-            const e = new Error("Predicate type field must be a string");
-            console.error(e);
-            return false;
+            throw new Error("Predicate type field must be a string");
         }
         return true;
     }
@@ -531,7 +522,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Otherwise it just adds the edge
      * @param {object} tripletObject
      */
-    function addTriplet(tripletObject, preventLayout = false) {
+    function addTriplet(tripletObject, callback, preventLayout) {
         if (!tripletValidation(tripletObject)) {
             return;
         }
@@ -546,7 +537,8 @@ function networkVizJS(documentId, userLayoutOptions) {
             resolve(list.length === 0);
         })).then(doesntExist => {
             if (!doesntExist) {
-                return new Error("That edge already exists. Hash's and predicate type needs to be unique!");
+                console.warn("That edge already exists. Hash's and predicate type needs to be unique!");
+                return;
             }
             /**
              * If a predicate type already has a color,
@@ -584,7 +576,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     nodeMap.set(object.hash, object);
                 }
                 if (!preventLayout) {
-                    createNewLinks();
+                    createNewLinks(callback);
                 }
             });
         });
@@ -593,7 +585,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Removes a triplet object. Silently fails if edge doesn't exist.
      * @param {object} tripletObject
      */
-    function removeTriplet(tripletObject) {
+    function removeTriplet(tripletObject, callback) {
         if (!tripletValidation(tripletObject)) {
             return;
         }
@@ -609,7 +601,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         })).then(() => {
             // Add nodes to graph
             simulation.stop();
-            createNewLinks();
+            createNewLinks(callback);
         });
     }
     /**
@@ -641,9 +633,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     simulation.stop();
                     nodes.splice(nodeIndex, 1);
                     nodeMap.delete(nodeHash);
-                    createNewLinks();
-                    // Do something after the removal of the node.
-                    typeof callback === "function" && callback();
+                    createNewLinks(callback);
                     return;
                 }
                 tripletsDB.del([...l1, ...l2], function (err) {
@@ -664,9 +654,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     simulation.stop();
                     nodes.splice(nodeIndex, 1);
                     nodeMap.delete(nodeHash);
-                    createNewLinks();
-                    // do something after removing the node.
-                    typeof callback === "function" && callback();
+                    createNewLinks(callback);
                 });
             });
         });
@@ -708,7 +696,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Merges a node into another group.
      * If this node was in another group previously it removes it from the prior group.
      */
-    function mergeNodeToGroup(nodeInGroupHash, nodeToMergeHash) {
+    function mergeNodeToGroup(nodeInGroupHash, nodeToMergeHash, callback) {
         console.error("THIS FEATURE IS NOT READY");
         console.error("USE AT YOUR OWN RISK!");
         /**
@@ -765,7 +753,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             newGroupObject.push({ leaves: indexOfSet });
         });
         groups = newGroupObject;
-        restart();
+        restart(callback);
     }
     /**
      * Serialize the graph.
@@ -784,7 +772,6 @@ function networkVizJS(documentId, userLayoutOptions) {
     // Public api
     /**
      * TODO:
-     * Actually check which of these are absolutely garbage.
      * Allow reference to the graph in the options object.
      * Solutions?:
      *  - Maybe have a "this" reference passed into the callbacks.
@@ -829,7 +816,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         // May be a webcola memory leak if you change the layout too many times.
         colaOptions: {
             flowLayout: {
-                down: () => {
+                down: (callback) => {
                     layoutOptions.flowDirection = "y";
                     if (layoutOptions.layoutType == "flowLayout") {
                         simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
@@ -838,9 +825,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                         layoutOptions.layoutType = "flowLayout";
                         simulation = updateColaLayout_1.updateColaLayout(layoutOptions);
                     }
-                    restart();
+                    restart(callback);
                 },
-                right: () => {
+                right: (callback) => {
                     layoutOptions.flowDirection = "x";
                     if (layoutOptions.layoutType == "flowLayout") {
                         simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
@@ -849,7 +836,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         layoutOptions.layoutType = "flowLayout";
                         simulation = updateColaLayout_1.updateColaLayout(layoutOptions);
                     }
-                    restart();
+                    restart(callback);
                 }
             }
         }
