@@ -44,6 +44,16 @@ describe("Api", function() {
         });
     });
 
+    it("Add many nodes", function(done) {
+        const graph = networkViz("graph");
+        const node1 = {hash: "1", shortname: "My Node!"};
+        const node2 = {hash: "2", shortname: "Another node!"};
+        graph.addNode([node1, node2], () => {
+            expect(document.getElementsByClassName("node").length).toEqual(2);
+            done();
+        });
+    });
+
     it("Add a triplet between two nodes", function(done) {
         const graph = networkViz("graph");
         const node1 = {hash: "1", shortname: "My Node!"};
