@@ -399,7 +399,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      * It also restarts the simulation.
      * This is where aesthetics can be changed.
      */
-    function restart(callback: () => void) {
+    function restart(callback?: () => void) {
         updateStyles();
         /**
          * Helper function for drawing the lines.
@@ -487,7 +487,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
 
     // Helper function for updating links after node mutations.
     // Calls a function after links added.
-    function createNewLinks(callback: () => void) {
+    function createNewLinks(callback?: () => void) {
         tripletsDB.get({}, (err: Error, l: any[]) => {
             if (err) {
                 console.error(err);
@@ -506,7 +506,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      * Take a node object or list of nodes and add them.
      * @param {object | object[]} nodeObject
      */
-    function addNode(nodeObjectOrArray: any | any[], callback: () => void, preventLayout: Boolean = false) {
+    function addNode(nodeObjectOrArray: any | any[], callback?: () => void, preventLayout?: Boolean) {
         /** Define helper functions at the top */
         /**
          * Checks if object is an array:
@@ -604,7 +604,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      * Otherwise it just adds the edge
      * @param {object} tripletObject
      */
-    function addTriplet(tripletObject: I.Triplet, callback: () => void, preventLayout: Boolean = false) {
+    function addTriplet(tripletObject: I.Triplet, callback?: () => void, preventLayout?: Boolean) {
         if (!tripletValidation(tripletObject)) {
             return;
         }
@@ -621,7 +621,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                 resolve(list.length === 0);
             })).then(doesntExist => {
                 if (!doesntExist) {
-                    console.warn("That edge already exists. Hash's and predicate type needs to be unique!")
+                    console.warn("That edge already exists. Hash's and predicate type needs to be unique!");
                     return;
                 }
                 /**
@@ -673,7 +673,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      * Removes a triplet object. Silently fails if edge doesn't exist.
      * @param {object} tripletObject
      */
-    function removeTriplet(tripletObject: I.Triplet, callback: () => void) {
+    function removeTriplet(tripletObject: I.Triplet, callback?: () => void) {
         if (!tripletValidation(tripletObject)) {
             return;
         }
@@ -926,7 +926,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
         // May be a webcola memory leak if you change the layout too many times.
         colaOptions: {
             flowLayout: {
-                down: (callback: () => void) => {
+                down: (callback?: () => void) => {
                     layoutOptions.flowDirection = "y";
                     if (layoutOptions.layoutType == "flowLayout") {
                         simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
@@ -937,7 +937,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
 
                     restart(callback);
                 },
-                right: (callback: () => void) => {
+                right: (callback?: () => void) => {
                     layoutOptions.flowDirection = "x";
                     if (layoutOptions.layoutType == "flowLayout") {
                         simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
