@@ -519,9 +519,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
         function addNodeObjectHelper(nodeObject: any) {
             // Check that hash exists
             if (!(nodeObject.hash)) {
-                const e = new Error("Node requires a hash field.");
-                console.error(e);
-                return;
+                throw new Error("Node requires a hash field.");
             }
 
             // TODO: remove this hack
@@ -546,9 +544,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
          * Check that the input is valid
          */
         if (typeof nodeObjectOrArray !== "object") {
-            const e = new Error("Parameter must be either an object or an array");
-            console.error(e);
-            return;
+            throw new Error("Parameter must be either an object or an array");
         }
         if (isArray(nodeObjectOrArray)) {
             // Run through the array adding the nodes
@@ -574,9 +570,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
          * Check that minimum requirements are met.
          */
         if (tripletObject === undefined) {
-            const e = new Error("TripletObject undefined");
-            console.error(e);
-            return false;
+            throw new Error("TripletObject undefined");
         }
 
         // Node needs a unique hash associated with it.
@@ -585,28 +579,22 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
               object = tripletObject.object;
 
         if (!(subject && predicate && object && true)) {
-            console.error(new Error("Triplets added need to include all three fields."));
+            throw new Error("Triplets added need to include all three fields.");
         }
 
         // Check that hash exists
         if (!(subject.hash && object.hash)) {
-            const e = new Error("Subject and Object require a hash field.");
-            console.error(e);
-            return false;
+            throw new Error("Subject and Object require a hash field.");
         }
 
         // Check that type field exists on predicate
         if (!predicate.type) {
-            const e = new Error("Predicate requires type field.");
-            console.error(e);
-            return false;
+            throw new Error("Predicate requires type field.");
         }
 
         // Check that type field is a string on predicate
         if (typeof predicate.type !== "string") {
-            const e = new Error("Predicate type field must be a string");
-            console.error(e);
-            return false;
+            throw new Error("Predicate type field must be a string");
         }
         return true;
     }
@@ -633,7 +621,8 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                 resolve(list.length === 0);
             })).then(doesntExist => {
                 if (!doesntExist) {
-                    return new Error("That edge already exists. Hash's and predicate type needs to be unique!");
+                    console.warn("That edge already exists. Hash's and predicate type needs to be unique!")
+                    return;
                 }
                 /**
                  * If a predicate type already has a color,

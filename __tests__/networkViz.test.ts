@@ -44,6 +44,11 @@ describe("Api", function() {
         });
     });
 
+    it("Add a node without a hash", function(){
+        const graph = networkViz("graph");
+        expect(() => graph.addNode("badNode", undefined)).toThrowError("Parameter must be either an object or an array");
+    });
+
     it("Add many nodes", function(done) {
         const graph = networkViz("graph");
         const node1 = {hash: "1", shortname: "My Node!"};
