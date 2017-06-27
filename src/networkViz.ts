@@ -711,7 +711,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      * Removes the node and all triplets associated with it.
      * @param {String} nodeHash hash of the node to remove.
      */
-    function removeNode(nodeHash: string, callback?: () => {}) {
+    function removeNode(nodeHash: string, callback?: () => void) {
         tripletsDB.get({subject: nodeHash}, function(err: Error, l1: any[]){
             if (err) {
                 return console.error(err);
