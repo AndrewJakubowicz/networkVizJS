@@ -1,62 +1,42 @@
-/**
- * @jest-environment jsdom
- */
-/// <reference types="jest" />
+/// <reference types="jasmine" />
 
 import networkViz from "../src/networkViz";
-import * as jsdom from "jsdom";
 const n = require("../src/networkViz");
 
 describe("Importing", function(){
     it("Should import as a function", () => {
         // Demonstrates require import path.
-        expect(n).toHaveProperty("default");
-        expect(n.default).toEqual(expect.any(Function));
-        expect(networkViz).toEqual(expect.any(Function));
+        expect(typeof n.default).toEqual("function");
+        expect(typeof networkViz).toEqual("function");
     });
 });
 
-describe("Embedding", function(){
-    it("SVG embed on div - id", function(){
-        document.body.innerHTML = `<div id="testId">
-        </div>`;
+describe("Api", function() {
+    // inject the HTML for the tests
+    beforeEach(function() {
+        const domHTML = '<div id="graph"></div>';
+
+        document.body.insertAdjacentHTML(
+            "afterbegin",
+            domHTML,
+        );
+    });
+
+    // remove the html after each test
+    afterEach(function() {
+        document.body.removeChild(document.getElementById("graph"));
+    });
+
+    it("Test creation of graph", function() {
         expect(document.getElementsByTagName("svg").length).toEqual(0);
         expect(document.getElementsByClassName("svg-container").length).toBeFalsy();
-        networkViz("testId");
+        networkViz("graph");
         expect(document.getElementsByTagName("svg").length).toEqual(1);
-        console.log(document.body.innerHTML);
         expect(document.getElementsByClassName("svg-container").length).toBeTruthy();
         expect((<SVGElement>document.getElementsByTagName("svg")[0]).getAttribute("viewBox").split(/\s+|,/)).toEqual(["0", "0", "900", "600"]);
     });
 });
 
-describe("Node adding", function(){
-    /**
-     * The problem is that this.getComputedTextLength is not
-     * available. I've also not allowed myself to mock the functions easily :/
-     */
-});
 
 
 
-
-
-
-/**
- * This is frankly incredible.
- */
-describe("Click a button", () => {
-    test("Go to google home page",  () => {
-        const mockFn = jest.fn();
-        document.body.innerHTML = `<div>
-    <span id="username" />
-    <button id="button" />
-</div>
-`;
-        document.getElementById("button").addEventListener("click", function(){
-            mockFn();
-        });
-        document.getElementById("button").click();
-        expect(mockFn.mock.calls.length).toBe(1);
-    });
-});

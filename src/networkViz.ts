@@ -45,7 +45,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
         edgeColor: "black",
         edgeStroke: 2,
         edgeLength: d => {console.log(`length`, d); return 150; },
-        clickEdge: (d, element) => undefined
+        clickEdge: (d, element) => undefined,
     };
 
     const internalOptions = {
@@ -900,6 +900,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      * Solutions?:
      *  - Maybe have a "this" reference passed into the callbacks.
      */
+
     return {
         // Check if node is drawn.
         hasNode: (nodeHash: string) => nodes.filter(v => v.hash == nodeHash).length === 1,
@@ -967,3 +968,9 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
     };
 
 }
+
+
+/**
+ * Need this for testing currently.
+ */
+window.networkVizJS = networkVizJS;
