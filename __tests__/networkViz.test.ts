@@ -59,6 +59,33 @@ describe("Api", function() {
                 done();
             });
     });
+
+    it("Remove an edge between two nodes", function(done) {
+        const graph = networkViz("graph");
+        const node1 = {hash: "1", shortname: "My Node!"};
+        const node2 = {hash: "2", shortname: "Another node!"};
+
+        // Add triplet then remove the edge (keeping the two nodes).
+        graph.addTriplet({
+              subject: node1
+            , predicate: {type: "edge"}
+            , object: node2
+            },
+            () => {
+                // Check that we have 1 line group and 2 node groups.
+                expect(document.getElementsByClassName("line").length).toEqual(1);
+                expect(document.getElementsByClassName("node").length).toEqual(2);
+                graph.removeTriplet({
+                    subject: node1
+                    , predicate: {type: "edge"}
+                    , object: node2
+                    }, () => {
+                        expect(document.getElementsByClassName("line").length).toEqual(0);
+                        expect(document.getElementsByClassName("node").length).toEqual(2);
+                        done();
+                    });
+            });
+    });
 });
 
 
