@@ -7,6 +7,7 @@ const level = require("level-browserify");
 const updateColaLayout_1 = require("./updateColaLayout");
 const createColorArrow_1 = require("./util/createColorArrow");
 function networkVizJS(documentId, userLayoutOptions) {
+    console.warn("TODO: This is a dev build");
     /**
      * Default options for webcola and graph
      */
@@ -23,7 +24,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         height: 600,
         pad: 5,
         margin: 10,
-        canDrag: true,
+        canDrag: () => true,
         nodeDragStart: undefined,
         edgeLabelText: undefined,
         // Both mouseout and mouseover take data AND the selection (arg1, arg2)
@@ -111,7 +112,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Call nodeDragStart callback when drag event triggers.
      */
     const drag = simulation.drag();
-    drag.filter(() => (layoutOptions.canDrag === undefined) || (layoutOptions.canDrag));
+    drag.filter(() => (layoutOptions.canDrag === undefined) || (layoutOptions.canDrag()));
     drag.on("start", () => {
         layoutOptions.nodeDragStart && layoutOptions.nodeDragStart();
         internalOptions.isDragging = true;
@@ -174,7 +175,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             .append("g")
             .classed("node", true);
         // Only allow dragging nodes if turned on.
-        if (layoutOptions.canDrag) {
+        if (layoutOptions.canDrag()) {
             nodeEnter.attr("cursor", "move").call(drag);
         }
         else {
@@ -305,7 +306,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         }).on("mouseup", function (d) {
             layoutOptions.mouseUpNode && layoutOptions.mouseUpNode(d, d3.select(this));
         }).on("mousedown", function (d) {
-            if ((layoutOptions.canDrag === undefined) || (layoutOptions.canDrag)) {
+            if ((layoutOptions.canDrag === undefined) || (layoutOptions.canDrag())) {
                 return;
             }
             layoutOptions.mouseDownNode && layoutOptions.mouseDownNode(d, d3.select(this));

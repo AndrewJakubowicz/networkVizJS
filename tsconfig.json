@@ -3,7 +3,7 @@
         "module": "commonjs",
         "target": "es6",
         "lib": ["es5", "es6", "dom"],
-        "noImplicitAny": true,
+        "noImplicitAny": false,
         "moduleResolution": "node",
         "sourceMap": true,
         "outDir": "dist",

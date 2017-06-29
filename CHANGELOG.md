@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+ - canDrag not executed in the drag filter fixed
  - Fixed errors so they throw properly
  - Widths can get smaller (They could only increase previously)
  - canDrag is just a boolean
