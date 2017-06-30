@@ -10,7 +10,6 @@ import * as I from "./interfaces";
 
 
 export default function networkVizJS(documentId: string, userLayoutOptions?: I.LayoutOptions) {
-    console.warn("TODO: This is a dev build");
     /**
      * Default options for webcola and graph
      */
