@@ -263,6 +263,14 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                               pad    = layoutOptions.pad;
                         const extra = 2 * margin + 2 * pad;
                         const text = d3.select(this);
+
+                        // The width must reset to allow the box to get smaller.
+                        // Later we will set width based on the widest tspan/line.
+                        d.width = d.minWidth || 0;
+                        if (!(d.width)) {
+                            d.width = d.minWidth || 0;
+                        }
+
                         /**
                          * If no shortname, then use hash.
                          */
@@ -283,12 +291,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                             tspan = text.append("tspan").attr("dy", lineheight + "em").text(word);
                         }
                         // Loop over the tspans and recalculate the width based on the longest text.
-                        text.selectAll("tspan").each(function(d: any){
-                            // The width must reset to allow the box to get smaller.
-                            d.width = d.minWidth || 0;
-                            if (!(d.width)) {
-                                d.width = d.minWidth || 0;
-                            }
+                        text.selectAll("tspan").each(function(d: any) {
                             const lineLength = (this as any).getComputedTextLength();
                             if (d.width < lineLength + extra) {
                                 d.width = lineLength + extra;
