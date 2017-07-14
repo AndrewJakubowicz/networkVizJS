@@ -182,7 +182,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                     scaleW = w / currentWidth,
                     scaleH = h / currentHeight;
                 if (isNaN(scaleW) || isNaN(scaleH) || isNaN(w) || isNaN(h)) {
-                    return '';
+                    return "";
                 }
                 return `translate(${-w / 2},${-h / 2}) scale(${scaleW},${scaleH})`;
             });
@@ -232,10 +232,11 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                 // Apply the correct x value to the tspan.
                 const b = (this as any).getBBox();
                 const x = (d as any).width / 2 - b.width / 2;
+                (d as any).textPosition = x;
                 // We don't set the tspans with an x attribute.
                 d3.select(this).selectAll("tspan")
-                    .attr("x", (d as any).width / 2);
-                return x;
+                    .attr("x", (d as any).textPosition);
+                return (d as any).textPosition;
             });
         });
     }
@@ -280,7 +281,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
             nodeEnter.append("text")
                         .attr("dx", 0)
                         .attr("dy", 0)
-                        .attr("text-anchor", "middle")
+                        .attr("text-anchor", "left")
                         .style("font", "100 22px Helvetica Neue");
 
 
@@ -337,7 +338,10 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                                     // TODO: I don't know why there needs to be a undefined tspan at the start?
                                     tspan = text.text(undefined).append("tspan").attr("dy", dy + "em");
                             while (word = words.pop()) {
-                                tspan = text.append("tspan").attr("dy", lineheight + "em").text(word);
+                                tspan = text.append("tspan")
+                                    .attr("dy", lineheight + "em")
+                                    .attr("x", (d as any).textPosition || ((d as any).width / 2))
+                                    .text(word);
                             }
                         })
                         // .attr("x", (d: any) => d.width / 2)

@@ -151,7 +151,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             // Scale appropriately using http://stackoverflow.com/a/9877871/6421793
             const currentWidth = this.getBBox().width, w = d.width, currentHeight = this.getBBox().height, h = d.height, scaleW = w / currentWidth, scaleH = h / currentHeight;
             if (isNaN(scaleW) || isNaN(scaleH) || isNaN(w) || isNaN(h)) {
-                return '';
+                return "";
             }
             return `translate(${-w / 2},${-h / 2}) scale(${scaleW},${scaleH})`;
         });
@@ -199,10 +199,11 @@ function networkVizJS(documentId, userLayoutOptions) {
                 // Apply the correct x value to the tspan.
                 const b = this.getBBox();
                 const x = d.width / 2 - b.width / 2;
+                d.textPosition = x;
                 // We don't set the tspans with an x attribute.
                 d3.select(this).selectAll("tspan")
-                    .attr("x", d.width / 2);
-                return x;
+                    .attr("x", d.textPosition);
+                return d.textPosition;
             });
         });
     }
@@ -241,7 +242,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             nodeEnter.append("text")
                 .attr("dx", 0)
                 .attr("dy", 0)
-                .attr("text-anchor", "middle")
+                .attr("text-anchor", "left")
                 .style("font", "100 22px Helvetica Neue");
             // Choose the node shape and style.
             let nodeShape;
@@ -289,7 +290,10 @@ function networkVizJS(documentId, userLayoutOptions) {
                 // TODO: I don't know why there needs to be a undefined tspan at the start?
                 tspan = text.text(undefined).append("tspan").attr("dy", dy + "em");
                 while (word = words.pop()) {
-                    tspan = text.append("tspan").attr("dy", lineheight + "em").text(word);
+                    tspan = text.append("tspan")
+                        .attr("dy", lineheight + "em")
+                        .attr("x", d.textPosition || (d.width / 2))
+                        .text(word);
                 }
             })
                 .attr("pointer-events", "none");
