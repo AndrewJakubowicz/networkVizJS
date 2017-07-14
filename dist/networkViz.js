@@ -7,7 +7,6 @@ const level = require("level-browserify");
 const updateColaLayout_1 = require("./updateColaLayout");
 const createColorArrow_1 = require("./util/createColorArrow");
 function networkVizJS(documentId, userLayoutOptions) {
-    console.warn("TODO: This is a dev build");
     /**
      * Default options for webcola and graph
      */
@@ -155,6 +154,53 @@ function networkVizJS(documentId, userLayoutOptions) {
         });
     }
     /**
+     * This function re-centers the text.
+     * This allows you to not change the text without restarting
+     * jittering the text.
+     * Must be run after updateStyles() to reposition on updated text.
+     * @param textNodes - d3 selection of the text
+     */
+    function repositionText() {
+        node.select("text").each(function (d) {
+            const text = d3.select(this);
+            const margin = layoutOptions.margin, pad = layoutOptions.pad;
+            const extra = 2 * margin + 2 * pad;
+            // The width must reset to allow the box to get smaller.
+            // Later we will set width based on the widest tspan/line.
+            d.width = d.minWidth || 0;
+            if (!(d.width)) {
+                d.width = d.minWidth || 0;
+            }
+            // Loop over the tspans and recalculate the width based on the longest text.
+            text.selectAll("tspan").each(function (d) {
+                const lineLength = this.getComputedTextLength();
+                if (d.width < lineLength + extra) {
+                    d.width = lineLength + extra;
+                }
+            });
+        }).each(function (d) {
+            // Only update the height, the width is calculated
+            // by iterating over the tspans in the `wrap` function.
+            const b = this.getBBox();
+            const extra = 2 * margin + 2 * pad;
+            d.height = b.height + extra;
+        })
+            .attr("y", function (d) {
+            const b = d3.select(this).node().getBBox();
+            // Todo: Minus 2 is a hack to get the text feeling 'right'.
+            return d.height / 2 - b.height / 2 - 2;
+        })
+            .attr("x", function (d) {
+            // Apply the correct x value to the tspan.
+            const b = this.getBBox();
+            const x = d.width / 2 - b.width / 2;
+            // We don't set the tspans with an x attribute.
+            d3.select(this).selectAll("tspan")
+                .attr("x", d.width / 2);
+            return x;
+        });
+    }
+    /**
      * Update the d3 visuals without layout changes.
      */
     function updateStyles() {
@@ -222,12 +268,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             const margin = layoutOptions.margin, pad = layoutOptions.pad;
             const extra = 2 * margin + 2 * pad;
             const text = d3.select(this);
-            // The width must reset to allow the box to get smaller.
-            // Later we will set width based on the widest tspan/line.
-            d.width = d.minWidth || 0;
-            if (!(d.width)) {
-                d.width = d.minWidth || 0;
-            }
             /**
              * If no shortname, then use hash.
              */
@@ -243,34 +283,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             while (word = words.pop()) {
                 tspan = text.append("tspan").attr("dy", lineheight + "em").text(word);
             }
-            // Loop over the tspans and recalculate the width based on the longest text.
-            text.selectAll("tspan").each(function (d) {
-                const lineLength = this.getComputedTextLength();
-                if (d.width < lineLength + extra) {
-                    d.width = lineLength + extra;
-                }
-            });
-        })
-            .each(function (d) {
-            // Only update the height, the width is calculated
-            // by iterating over the tspans in the `wrap` function.
-            const b = this.getBBox();
-            const extra = 2 * margin + 2 * pad;
-            d.height = b.height + extra;
-        })
-            .attr("y", function (d) {
-            const b = d3.select(this).node().getBBox();
-            // Todo: Minus 2 is a hack to get the text feeling 'right'.
-            return d.height / 2 - b.height / 2 - 2;
-        })
-            .attr("x", function (d) {
-            // Apply the correct x value to the tspan.
-            const b = this.getBBox();
-            const x = d.width / 2 - b.width / 2;
-            // We don't set the tspans with an x attribute.
-            d3.select(this).selectAll("tspan")
-                .attr("x", d.width / 2);
-            return x;
         })
             .attr("pointer-events", "none");
         /**
@@ -800,6 +812,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         // Restart styles or layout.
         restart: {
             styles: updateStyles,
+            textAlign: repositionText,
             redrawEdges: createNewLinks,
             layout: restart,
         },
