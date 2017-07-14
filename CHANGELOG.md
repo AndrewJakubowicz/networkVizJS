@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+ - Restart functions are now Promise based.
  - tSpan works correctly
  - canDrag not executed in the drag filter fixed
  - Fixed errors so they throw properly

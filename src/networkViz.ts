@@ -181,6 +181,9 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                     h = d.height,
                     scaleW = w / currentWidth,
                     scaleH = h / currentHeight;
+                if (isNaN(scaleW) || isNaN(scaleH) || isNaN(w) || isNaN(h)) {
+                    return '';
+                }
                 return `translate(${-w / 2},${-h / 2}) scale(${scaleW},${scaleH})`;
             });
     }
@@ -193,44 +196,47 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      * @param textNodes - d3 selection of the text
      */
     function repositionText() {
-        node.select("text").each(function(d) {
-            const text = d3.select(this);
-            const margin = layoutOptions.margin,
-                    pad    = layoutOptions.pad;
-            const extra = 2 * margin + 2 * pad;
-            // The width must reset to allow the box to get smaller.
-            // Later we will set width based on the widest tspan/line.
-            d.width = d.minWidth || 0;
-            if (!(d.width)) {
+        return Promise.resolve()
+        .then(_ => {
+            node.select("text").each(function(d) {
+                const text = d3.select(this);
+                const margin = layoutOptions.margin,
+                        pad    = layoutOptions.pad;
+                const extra = 2 * margin + 2 * pad;
+                // The width must reset to allow the box to get smaller.
+                // Later we will set width based on the widest tspan/line.
                 d.width = d.minWidth || 0;
-            }
-            // Loop over the tspans and recalculate the width based on the longest text.
-            text.selectAll("tspan").each(function(d: any) {
-                const lineLength = (this as any).getComputedTextLength();
-                if (d.width < lineLength + extra) {
-                    d.width = lineLength + extra;
+                if (!(d.width)) {
+                    d.width = d.minWidth || 0;
                 }
+                // Loop over the tspans and recalculate the width based on the longest text.
+                text.selectAll("tspan").each(function(d: any) {
+                    const lineLength = (this as any).getComputedTextLength();
+                    if (d.width < lineLength + extra) {
+                        d.width = lineLength + extra;
+                    }
+                });
+            }).each(function(d: any){
+                // Only update the height, the width is calculated
+                // by iterating over the tspans in the `wrap` function.
+                const b = (this as any).getBBox();
+                const extra = 2 * margin + 2 * pad;
+                d.height = b.height + extra;
+            })
+            .attr("y",  function(d){
+                const b = (d3.select(this).node() as any).getBBox();
+                // Todo: Minus 2 is a hack to get the text feeling 'right'.
+                return (d as any).height / 2 - b.height / 2 - 2;
+            })
+            .attr("x", function(d){
+                // Apply the correct x value to the tspan.
+                const b = (this as any).getBBox();
+                const x = (d as any).width / 2 - b.width / 2;
+                // We don't set the tspans with an x attribute.
+                d3.select(this).selectAll("tspan")
+                    .attr("x", (d as any).width / 2);
+                return x;
             });
-        }).each(function(d: any){
-            // Only update the height, the width is calculated
-            // by iterating over the tspans in the `wrap` function.
-            const b = (this as any).getBBox();
-            const extra = 2 * margin + 2 * pad;
-            d.height = b.height + extra;
-        })
-        .attr("y",  function(d){
-            const b = (d3.select(this).node() as any).getBBox();
-            // Todo: Minus 2 is a hack to get the text feeling 'right'.
-            return (d as any).height / 2 - b.height / 2 - 2;
-        })
-        .attr("x", function(d){
-            // Apply the correct x value to the tspan.
-            const b = (this as any).getBBox();
-            const x = (d as any).width / 2 - b.width / 2;
-            // We don't set the tspans with an x attribute.
-            d3.select(this).selectAll("tspan")
-                .attr("x", (d as any).width / 2);
-            return x;
         });
     }
 
@@ -238,177 +244,180 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      * Update the d3 visuals without layout changes.
      */
      function updateStyles() {
-         ///// GROUPS /////
-        group = group.data(groups);
+         return Promise.resolve()
+         .then(_ => {
+            ///// GROUPS /////
+            group = group.data(groups);
 
-        const groupEnter = group.enter()
-            .append("rect")
-            .attr("rx", 8)
-            .attr("ry", 8)
-            .attr("class", "group")
-            .style("fill", "green");
-            // .call(simulation.drag);
-        group = group.merge(groupEnter);
+            const groupEnter = group.enter()
+                .append("rect")
+                .attr("rx", 8)
+                .attr("ry", 8)
+                .attr("class", "group")
+                .style("fill", "green");
+                // .call(simulation.drag);
+            group = group.merge(groupEnter);
 
-        /////// NODE ///////
+            /////// NODE ///////
 
-        node = node.data(nodes, d => d.index);
-        node.exit().remove();
-        const nodeEnter = node.enter()
-                   .append("g")
-                   .classed("node", true);
+            node = node.data(nodes, d => d.index);
+            node.exit().remove();
+            const nodeEnter = node.enter()
+                    .append("g")
+                    .classed("node", true);
 
-        // Only allow dragging nodes if turned on.
-        if (layoutOptions.canDrag()) {
-            nodeEnter.attr("cursor", "move").call(drag);
-        } else {
-            nodeEnter.attr("cursor", "default");
-        }
+            // Only allow dragging nodes if turned on.
+            if (layoutOptions.canDrag()) {
+                nodeEnter.attr("cursor", "move").call(drag);
+            } else {
+                nodeEnter.attr("cursor", "default");
+            }
 
 
-        // Here we add node beauty.
-        // To fit nodes to the short-name calculate BBox
-        // from https://bl.ocks.org/mbostock/1160929
-        nodeEnter.append("text")
-                    .attr("dx", 0)
-                    .attr("dy", 0)
+            // Here we add node beauty.
+            // To fit nodes to the short-name calculate BBox
+            // from https://bl.ocks.org/mbostock/1160929
+            nodeEnter.append("text")
+                        .attr("dx", 0)
+                        .attr("dy", 0)
+                        .attr("text-anchor", "middle")
+                        .style("font", "100 22px Helvetica Neue");
+
+
+            // Choose the node shape and style.
+            let nodeShape;
+            nodeShape = nodeEnter.insert("path", "text");
+
+            if (typeof layoutOptions.nodeShape == "string" && layoutOptions.nodeShape == "rect") {
+                // nodeShape = nodeEnter.insert("rect", "text")     // The second arg is what the rect will sit behind.
+                nodeShape.attr("d", "M16 48 L48 48 L48 16 L16 16 Z");
+            } else if (typeof layoutOptions.nodeShape == "string" && layoutOptions.nodeShape == "circle") {
+                // Circle path technique from:
+                // http://stackoverflow.com/a/10477334/6421793
+                nodeShape.attr("d", "M20,40a20,20 0 1,0 40,0a20,20 0 1,0 -40,0");
+            } else if (typeof layoutOptions.nodeShape == "function") {
+                nodeShape.attr("d", layoutOptions.nodeShape);
+            }
+            nodeShape.attr("vector-effect", "non-scaling-stroke");
+
+            // Merge the entered nodes to the update nodes.
+            node = node.merge(nodeEnter);
+
+            /**
+             * Update the text property (allowing dynamically changing text)
+             * Check if the d.shortname is a list.
+             */
+            const textSelect = node.select("text")
+                        .text(undefined)
+                        .each(function(d){
+                            // This function takes the text element.
+                            // We can call .each on it and build up
+                            // the tspan elements from the array of text
+                            // in the data.
+                            // Derived from https://bl.ocks.org/mbostock/7555321
+                            const margin = layoutOptions.margin,
+                                pad    = layoutOptions.pad;
+                            const extra = 2 * margin + 2 * pad;
+                            const text = d3.select(this);
+
+                            /**
+                             * If no shortname, then use hash.
+                             */
+                            let tempText = (d as any).shortname || (d as any).hash;
+                            if (!Array.isArray(tempText)) {
+                                tempText = [tempText];
+                            }
+
+                            const textCopy = tempText.slice(),
+                                words = textCopy.reverse(),
+                                lineheight = 1.1, // em
+                                lineNumber = 0,
+                                dy = parseFloat(text.attr("dy")) || 0;
+                                let word,
+                                    // TODO: I don't know why there needs to be a undefined tspan at the start?
+                                    tspan = text.text(undefined).append("tspan").attr("dy", dy + "em");
+                            while (word = words.pop()) {
+                                tspan = text.append("tspan").attr("dy", lineheight + "em").text(word);
+                            }
+                        })
+                        // .attr("x", (d: any) => d.width / 2)
+                        // .attr("y", (d: any) => d.height / 2)
+                        .attr("pointer-events", "none");
+
+            /**
+             * Here we can update node properties that have already been attached.
+             * When restart() is called, these are the properties that will be affected
+             * by mutation.
+             */
+            const updateShapes = node.select("path");
+            // These changes apply to both rect and circle
+            updateShapes
+                    .attr("fill", layoutOptions.nodeToColor as any)
+                    .attr("stroke", layoutOptions.nodeStrokeColor as any)
+                    .attr("stroke-width", layoutOptions.nodeStrokeWidth as any);
+
+            // update size
+            updatePathDimensions();
+
+
+            // These CANNOT be arrow functions or 'this' context becomes wrong.
+            updateShapes.on("mouseover", function(d){
+                if (internalOptions.isDragging) { return; }
+
+                const element = d3.select(this);
+                layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element as any);
+            }).on("mouseout", function(d) {
+                if (internalOptions.isDragging) { return; }
+
+                const element = d3.select(this);
+                layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element as any);
+            }).on("click", function(d) {
+                const elem = d3.select(this);
+                setTimeout(() => {
+                    layoutOptions.clickNode(d, elem as any);
+                }, 50);
+
+            }).on("mouseup", function (d){
+                layoutOptions.mouseUpNode && layoutOptions.mouseUpNode(d, d3.select(this) as any);
+            }).on("mousedown", function(d){
+
+                if ((layoutOptions.canDrag === undefined) || (layoutOptions.canDrag())) { return; }
+                layoutOptions.mouseDownNode && layoutOptions.mouseDownNode(d, d3.select(this) as any);
+            });
+
+            /////// LINK ///////
+            link = link.data(links, d => d.source.index + "-" + d.target.index);
+            link.exit().remove();
+
+            const linkEnter = link.enter()
+                    .append("g")
+                    .classed("line", true);
+
+
+            linkEnter.append("path")
+                    .attr("stroke-width", layoutOptions.edgeStroke as any)
+                    // Todo: Have edge data changable from outside the library.
+                    .attr("stroke", layoutOptions.edgeColor as any)
+                    .attr("fill", "none")
+                    .attr("marker-end", d => `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : (layoutOptions.edgeColor as any)((d as any).edgeData)})`);
+
+            linkEnter.on("click", function(d) {
+                const elem = d3.select(this);
+                setTimeout(() => {
+                    layoutOptions.clickEdge(d, elem as any);
+                }, 50);
+            });
+
+            /** Optional label text */
+            if (layoutOptions.edgeLabelText !== "undefined") {
+                linkEnter.append("text")
                     .attr("text-anchor", "middle")
-                    .style("font", "100 22px Helvetica Neue");
+                    .style("font", "100 22px Helvetica Neue")
+                    .text(layoutOptions.edgeLabelText as any);
+            }
 
-
-        // Choose the node shape and style.
-        let nodeShape;
-        nodeShape = nodeEnter.insert("path", "text");
-
-        if (typeof layoutOptions.nodeShape == "string" && layoutOptions.nodeShape == "rect") {
-            // nodeShape = nodeEnter.insert("rect", "text")     // The second arg is what the rect will sit behind.
-            nodeShape.attr("d", "M16 48 L48 48 L48 16 L16 16 Z");
-        } else if (typeof layoutOptions.nodeShape == "string" && layoutOptions.nodeShape == "circle") {
-            // Circle path technique from:
-            // http://stackoverflow.com/a/10477334/6421793
-            nodeShape.attr("d", "M20,40a20,20 0 1,0 40,0a20,20 0 1,0 -40,0");
-        } else if (typeof layoutOptions.nodeShape == "function") {
-            nodeShape.attr("d", layoutOptions.nodeShape);
-        }
-        nodeShape.attr("vector-effect", "non-scaling-stroke");
-
-        // Merge the entered nodes to the update nodes.
-        node = node.merge(nodeEnter);
-
-        /**
-         * Update the text property (allowing dynamically changing text)
-         * Check if the d.shortname is a list.
-         */
-        const textSelect = node.select("text")
-                    .text(undefined)
-                    .each(function(d){
-                        // This function takes the text element.
-                        // We can call .each on it and build up
-                        // the tspan elements from the array of text
-                        // in the data.
-                        // Derived from https://bl.ocks.org/mbostock/7555321
-                        const margin = layoutOptions.margin,
-                              pad    = layoutOptions.pad;
-                        const extra = 2 * margin + 2 * pad;
-                        const text = d3.select(this);
-
-                        /**
-                         * If no shortname, then use hash.
-                         */
-                        let tempText = (d as any).shortname || (d as any).hash;
-                        if (!Array.isArray(tempText)) {
-                            tempText = [tempText];
-                        }
-
-                        const textCopy = tempText.slice(),
-                            words = textCopy.reverse(),
-                            lineheight = 1.1, // em
-                            lineNumber = 0,
-                            dy = parseFloat(text.attr("dy")) || 0;
-                            let word,
-                                // TODO: I don't know why there needs to be a undefined tspan at the start?
-                                tspan = text.text(undefined).append("tspan").attr("dy", dy + "em");
-                        while (word = words.pop()) {
-                            tspan = text.append("tspan").attr("dy", lineheight + "em").text(word);
-                        }
-                    })
-                    // .attr("x", (d: any) => d.width / 2)
-                    // .attr("y", (d: any) => d.height / 2)
-                    .attr("pointer-events", "none");
-
-        /**
-         * Here we can update node properties that have already been attached.
-         * When restart() is called, these are the properties that will be affected
-         * by mutation.
-         */
-        const updateShapes = node.select("path");
-        // These changes apply to both rect and circle
-        updateShapes
-                .attr("fill", layoutOptions.nodeToColor as any)
-                .attr("stroke", layoutOptions.nodeStrokeColor as any)
-                .attr("stroke-width", layoutOptions.nodeStrokeWidth as any);
-
-        // update size
-        updatePathDimensions();
-
-
-        // These CANNOT be arrow functions or 'this' context becomes wrong.
-        updateShapes.on("mouseover", function(d){
-            if (internalOptions.isDragging) { return; }
-
-            const element = d3.select(this);
-            layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element as any);
-        }).on("mouseout", function(d) {
-            if (internalOptions.isDragging) { return; }
-
-            const element = d3.select(this);
-            layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element as any);
-        }).on("click", function(d) {
-            const elem = d3.select(this);
-            setTimeout(() => {
-                layoutOptions.clickNode(d, elem as any);
-            }, 50);
-
-        }).on("mouseup", function (d){
-            layoutOptions.mouseUpNode && layoutOptions.mouseUpNode(d, d3.select(this) as any);
-        }).on("mousedown", function(d){
-
-            if ((layoutOptions.canDrag === undefined) || (layoutOptions.canDrag())) { return; }
-            layoutOptions.mouseDownNode && layoutOptions.mouseDownNode(d, d3.select(this) as any);
+            link = link.merge(linkEnter);
         });
-
-        /////// LINK ///////
-        link = link.data(links, d => d.source.index + "-" + d.target.index);
-        link.exit().remove();
-
-        const linkEnter = link.enter()
-                .append("g")
-                .classed("line", true);
-
-
-        linkEnter.append("path")
-                   .attr("stroke-width", layoutOptions.edgeStroke as any)
-                   // Todo: Have edge data changable from outside the library.
-                   .attr("stroke", layoutOptions.edgeColor as any)
-                   .attr("fill", "none")
-                   .attr("marker-end", d => `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : (layoutOptions.edgeColor as any)((d as any).edgeData)})`);
-
-        linkEnter.on("click", function(d) {
-            const elem = d3.select(this);
-            setTimeout(() => {
-                layoutOptions.clickEdge(d, elem as any);
-            }, 50);
-        });
-
-        /** Optional label text */
-        if (layoutOptions.edgeLabelText !== "undefined") {
-            linkEnter.append("text")
-                .attr("text-anchor", "middle")
-                .style("font", "100 22px Helvetica Neue")
-                .text(layoutOptions.edgeLabelText as any);
-        }
-
-        link = link.merge(linkEnter);
     }
 
     /**
@@ -417,88 +426,92 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      * This is where aesthetics can be changed.
      */
     function restart(callback?: () => void) {
-        updateStyles();
-        /**
-         * Helper function for drawing the lines.
-         */
-        const lineFunction = d3.line()
-            .x(d => (d as any).x)
-            .y(d => (d as any).y);
+        // Todo: Promise chain.
+        return Promise.resolve()
+        .then(updateStyles)
+        .then(repositionText)
+        .then(_ => {
+            /**
+             * Helper function for drawing the lines.
+             */
+            const lineFunction = d3.line()
+                .x(d => (d as any).x)
+                .y(d => (d as any).y);
 
-        /**
-         * Causes the links to bend around the rectangles.
-         * Source: https://github.com/tgdwyer/WebCola/blob/master/WebCola/examples/unix.html#L140
-         */
-        const routeEdges = function () {
-            if (links.length == 0 || !layoutOptions.enableEdgeRouting) {
-                return;
-            }
+            /**
+             * Causes the links to bend around the rectangles.
+             * Source: https://github.com/tgdwyer/WebCola/blob/master/WebCola/examples/unix.html#L140
+             */
+            const routeEdges = function () {
+                if (links.length == 0 || !layoutOptions.enableEdgeRouting) {
+                    return;
+                }
 
-            simulation.prepareEdgeRouting();
-            link.select("path").attr("d", d => lineFunction(simulation.routeEdge(d, undefined)));
-            if (isIE()) link.select("path").each(function (d) { (this as any).parentNode.insertBefore(this, this); });
+                simulation.prepareEdgeRouting();
+                link.select("path").attr("d", d => lineFunction(simulation.routeEdge(d, undefined)));
+                if (isIE()) link.select("path").each(function (d) { (this as any).parentNode.insertBefore(this, this); });
 
-            link.select("text").attr("x", d => {
-                const arrayX = simulation.routeEdge(d, undefined);
-                const middleIndex = Math.floor(arrayX.length / 2) - 1;
-                return (arrayX[middleIndex].x + arrayX[middleIndex + 1].x) / 2;
-            }).attr("y", d => {
-                const arrayY = simulation.routeEdge(d, undefined);
-                const middleIndex = Math.floor(arrayY.length / 2) - 1 ;
-                return (arrayY[middleIndex].y + arrayY[middleIndex + 1].y) / 2;
-            });
-        };
-
-        // Restart the simulation.
-        simulation.links(links)    // Required because we create new link lists
-                .groups(groups)
-                .start(10, 15, 20).on("tick", function() {
-            node.each((d: any) => {
-                    if (d.bounds) {
-                        // Initiate the innerBounds, and create it based on the width and height
-                        // of the node.
-                        d.innerBounds = (d as any).bounds.inflate(0);
-                        d.innerBounds.X = d.innerBounds.x + d.width;
-                        d.innerBounds.Y = d.innerBounds.y + d.height;
-                    }
+                link.select("text").attr("x", d => {
+                    const arrayX = simulation.routeEdge(d, undefined);
+                    const middleIndex = Math.floor(arrayX.length / 2) - 1;
+                    return (arrayX[middleIndex].x + arrayX[middleIndex + 1].x) / 2;
+                }).attr("y", d => {
+                    const arrayY = simulation.routeEdge(d, undefined);
+                    const middleIndex = Math.floor(arrayY.length / 2) - 1 ;
+                    return (arrayY[middleIndex].y + arrayY[middleIndex + 1].y) / 2;
                 });
+            };
+
+            // Restart the simulation.
+            simulation.links(links)    // Required because we create new link lists
+                    .groups(groups)
+                    .start(10, 15, 20).on("tick", function() {
+                node.each((d: any) => {
+                        if (d.bounds) {
+                            // Initiate the innerBounds, and create it based on the width and height
+                            // of the node.
+                            d.innerBounds = (d as any).bounds.inflate(0);
+                            d.innerBounds.X = d.innerBounds.x + d.width;
+                            d.innerBounds.Y = d.innerBounds.y + d.height;
+                        }
+                    });
+                node.attr("transform", d => (d as any).innerBounds ?
+                        `translate(${(d as any).innerBounds.x},${(d as any).innerBounds.y})`
+                        : `translate(${(d as any).x},${(d as any).y})`);
+
+                updatePathDimensions();
+
+                link.select("path").attr("d", d => {
+                    const route = cola.makeEdgeBetween((d as any).source.innerBounds, (d as any).target.innerBounds, 5);
+                    return lineFunction([route.sourceIntersection, route.arrowStart] as any);
+                });
+                if (isIE()) link.each(function (d) { (this as any).parentNode.insertBefore(this, this); });
+
+                link.select("text")
+                    .attr("x", d => {
+                        const route = cola.makeEdgeBetween((d as any).source.innerBounds, (d as any).target.innerBounds, 5);
+                        return (route.sourceIntersection.x + route.targetIntersection.x) / 2;
+                    })
+                    .attr("y", d => {
+                        const route = cola.makeEdgeBetween((d as any).source.innerBounds, (d as any).target.innerBounds, 5);
+                        return (route.sourceIntersection.y + route.targetIntersection.y) / 2;
+                    });
+
+                group.attr("x", function(d){ return (d as any).bounds.x; })
+                    .attr("y", function(d){ return (d as any).bounds.y; })
+                    .attr("width", function(d){ return (d as any).bounds.width(); })
+                    .attr("height", function(d){ return (d as any).bounds.height(); });
+
+            }).on("end", routeEdges);
+            function isIE() { return ((navigator.appName == "Microsoft Internet Explorer") || ((navigator.appName == "Netscape") && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined))); }
+
+            // After a tick make sure to add translation to the nodes.
+            // Sometimes it wasn"t added in a single tick.
             node.attr("transform", d => (d as any).innerBounds ?
-                    `translate(${(d as any).innerBounds.x},${(d as any).innerBounds.y})`
-                    : `translate(${(d as any).x},${(d as any).y})`);
-
-            updatePathDimensions();
-
-            link.select("path").attr("d", d => {
-                const route = cola.makeEdgeBetween((d as any).source.innerBounds, (d as any).target.innerBounds, 5);
-                return lineFunction([route.sourceIntersection, route.arrowStart] as any);
-            });
-            if (isIE()) link.each(function (d) { (this as any).parentNode.insertBefore(this, this); });
-
-            link.select("text")
-                .attr("x", d => {
-                    const route = cola.makeEdgeBetween((d as any).source.innerBounds, (d as any).target.innerBounds, 5);
-                    return (route.sourceIntersection.x + route.targetIntersection.x) / 2;
-                })
-                .attr("y", d => {
-                    const route = cola.makeEdgeBetween((d as any).source.innerBounds, (d as any).target.innerBounds, 5);
-                    return (route.sourceIntersection.y + route.targetIntersection.y) / 2;
-                });
-
-            group.attr("x", function(d){ return (d as any).bounds.x; })
-                .attr("y", function(d){ return (d as any).bounds.y; })
-                .attr("width", function(d){ return (d as any).bounds.width(); })
-                .attr("height", function(d){ return (d as any).bounds.height(); });
-
-        }).on("end", routeEdges);
-        function isIE() { return ((navigator.appName == "Microsoft Internet Explorer") || ((navigator.appName == "Netscape") && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined))); }
-
-        // After a tick make sure to add translation to the nodes.
-        // Sometimes it wasn"t added in a single tick.
-        node.attr("transform", d => (d as any).innerBounds ?
-                    `translate(${(d as any).innerBounds.x},${(d as any).innerBounds.y})`
-                    : `translate(${(d as any).x},${(d as any).y})`);
-
-        typeof callback === "function" && callback();
+                        `translate(${(d as any).innerBounds.x},${(d as any).innerBounds.y})`
+                        : `translate(${(d as any).x},${(d as any).y})`);
+        })
+        .then(() => typeof callback === "function" && callback());
     }
 
 
@@ -952,7 +965,6 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                         layoutOptions.layoutType = "flowLayout";
                         simulation = updateColaLayout(layoutOptions);
                     }
-
                     restart(callback);
                 },
                 right: (callback?: () => void) => {
@@ -963,7 +975,6 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                         layoutOptions.layoutType = "flowLayout";
                         simulation = updateColaLayout(layoutOptions);
                     }
-
                     restart(callback);
                 }
             }
