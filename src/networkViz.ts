@@ -310,6 +310,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
              */
             const textSelect = node.select("text")
                         .text(undefined)
+                        .attr("class", d => (d as any).class)
                         .each(function(d){
                             // This function takes the text element.
                             // We can call .each on it and build up
@@ -353,7 +354,8 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
              * When restart() is called, these are the properties that will be affected
              * by mutation.
              */
-            const updateShapes = node.select("path");
+            const updateShapes = node.select("path")
+                .attr("class", d => (d as any).class);
             // These changes apply to both rect and circle
             updateShapes
                     .attr("fill", layoutOptions.nodeToColor as any)

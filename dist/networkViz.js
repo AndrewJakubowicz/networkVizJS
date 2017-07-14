@@ -268,6 +268,7 @@ function networkVizJS(documentId, userLayoutOptions) {
              */
             const textSelect = node.select("text")
                 .text(undefined)
+                .attr("class", d => d.class)
                 .each(function (d) {
                 // This function takes the text element.
                 // We can call .each on it and build up
@@ -302,7 +303,8 @@ function networkVizJS(documentId, userLayoutOptions) {
              * When restart() is called, these are the properties that will be affected
              * by mutation.
              */
-            const updateShapes = node.select("path");
+            const updateShapes = node.select("path")
+                .attr("class", d => d.class);
             // These changes apply to both rect and circle
             updateShapes
                 .attr("fill", layoutOptions.nodeToColor)

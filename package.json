@@ -1,6 +1,6 @@
 {
   "name": "networkvizjs",
-  "version": "0.0.5-alpha.7",
+  "version": "0.0.6",
   "description": "Draw easy graphs or networks",
   "main": "./dist/networkViz.js",
   "scripts": {

@@ -6,8 +6,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [UNCHANGED]
 
+## [0.0.6]
+
 ### Added
 
+ - Added classes
  - Karma and Jasmine tests
  - Function for setting mouseDown on node.
  - zoom prevented if not initiated on svg

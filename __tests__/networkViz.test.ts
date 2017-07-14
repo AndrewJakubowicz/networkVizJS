@@ -71,6 +71,7 @@ describe("Api", function() {
                 // Check that we have 1 line group and 2 node groups.
                 expect(document.getElementsByClassName("line").length).toEqual(1);
                 expect(document.getElementsByClassName("node").length).toEqual(2);
+                expect(document.getElementsByClassName("wooItExists").length).toEqual(2);
                 done();
             });
     });
