@@ -8,7 +8,6 @@ import createColorArrow from "./util/createColorArrow";
 import * as I from "./interfaces";
 
 
-
 export default function networkVizJS(documentId: string, userLayoutOptions?: I.LayoutOptions) {
     /**
      * Default options for webcola and graph
@@ -268,11 +267,11 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                     .classed("node", true);
 
             // Only allow dragging nodes if turned on.
-            if (layoutOptions.canDrag()) {
-                nodeEnter.attr("cursor", "move").call(drag);
-            } else {
-                nodeEnter.attr("cursor", "default");
-            }
+            // if (layoutOptions.canDrag()) {
+            nodeEnter.attr("cursor", "move").call(drag); // Drag controlled by filter.
+            // } else {
+            //     nodeEnter.attr("cursor", "default");
+            // }
 
 
             // Here we add node beauty.
@@ -912,6 +911,17 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
             });
             callback(saved);
         });
+    };
+
+    /**
+     * These exist to prevent errors when the user
+     * tabs away from the graph.
+     */
+    window.onfocus = function() {
+        restart();
+    };
+    window.onblur = function() {
+        simulation.stop();
     };
 
     // Public api

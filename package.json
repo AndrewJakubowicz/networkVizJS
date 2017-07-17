@@ -1,6 +1,6 @@
 {
   "name": "networkvizjs",
-  "version": "0.0.6",
+  "version": "0.0.6-alpha.1",
   "description": "Draw easy graphs or networks",
   "main": "./dist/networkViz.js",
   "scripts": {
@@ -36,7 +36,7 @@
     "typescript": "2.3.2"
   },
   "dependencies": {
-    "d3": "~4.9.1",
+    "d3": "4.9.1",
     "level-browserify": "~1.1.1",
     "levelgraph": "~2.0.1",
     "webcola": "3.3.5"

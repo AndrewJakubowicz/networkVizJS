@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [UNCHANGED]
 
+### Changed
+
+- added layout.stop and .start on losing focus on the window.
+- canDrag now only through filter. (Styles might be removed and should be added by user)
+
 ## [0.0.6]
 
 ### Added

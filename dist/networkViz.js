@@ -230,12 +230,11 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .append("g")
                 .classed("node", true);
             // Only allow dragging nodes if turned on.
-            if (layoutOptions.canDrag()) {
-                nodeEnter.attr("cursor", "move").call(drag);
-            }
-            else {
-                nodeEnter.attr("cursor", "default");
-            }
+            // if (layoutOptions.canDrag()) {
+            nodeEnter.attr("cursor", "move").call(drag); // Drag controlled by filter.
+            // } else {
+            //     nodeEnter.attr("cursor", "default");
+            // }
             // Here we add node beauty.
             // To fit nodes to the short-name calculate BBox
             // from https://bl.ocks.org/mbostock/1160929
@@ -802,6 +801,16 @@ function networkVizJS(documentId, userLayoutOptions) {
             });
             callback(saved);
         });
+    };
+    /**
+     * These exist to prevent errors when the user
+     * tabs away from the graph.
+     */
+    window.onfocus = function () {
+        restart();
+    };
+    window.onblur = function () {
+        simulation.stop();
     };
     // Public api
     /**
