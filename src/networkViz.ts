@@ -109,8 +109,6 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                 .append("div")
                 .classed("svg-container", true)
                 .append("svg")
-                .attr("width", width)
-                .attr("height", height)
                 .attr("preserveAspectRatio", "xMinYMin meet")
                 .attr("viewBox", `0 0 ${width} ${height}`)
                 .classed("svg-content-responsive", true);
