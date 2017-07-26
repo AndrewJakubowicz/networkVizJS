@@ -142,6 +142,39 @@ describe("Api", function() {
             }
         );
     });
+
+    it("Adding fixed:true to a node adds a class 'fixed' to the node group", function(done) {
+        const graph = networkViz("graph");
+        const node1 = {hash: "1", class: "someClass1"};
+        const node2 = {hash: "2", class: "rar"};
+        new Promise((resolve, reject) => {
+            graph.addTriplet({
+                subject: node1,
+                predicate: {type: "edge"},
+                object: node2 },
+                () => {
+                    expect(document.getElementsByClassName("fixed").length).toEqual(0);
+                    resolve();
+                }
+            );
+        }).then(_ => {
+            (node1 as any).fixed = true;
+        }).then(graph.restart.styles)
+          .then(_ => {
+            // Check that fixed class is added
+            expect(document.getElementsByClassName("fixed").length).toEqual(1);
+        })
+          .then(_ => {
+            (node1 as any).fixed = false;
+        }).then(graph.restart.styles)
+          .then(_ => {
+            expect(document.getElementsByClassName("fixed").length).toEqual(0);
+            expect(document.getElementsByClassName("node").length).toEqual(2);
+            done();
+        });
+
+
+    });
 });
 
 

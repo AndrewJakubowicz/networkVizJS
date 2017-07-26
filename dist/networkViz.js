@@ -211,8 +211,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Update the d3 visuals without layout changes.
      */
     function updateStyles() {
-        return Promise.resolve()
-            .then(_ => {
+        return new Promise((resolve, reject) => {
             ///// GROUPS /////
             group = group.data(groups);
             const groupEnter = group.enter()
@@ -260,7 +259,8 @@ function networkVizJS(documentId, userLayoutOptions) {
             }
             nodeShape.attr("vector-effect", "non-scaling-stroke");
             // Merge the entered nodes to the update nodes.
-            node = node.merge(nodeEnter);
+            node = node.merge(nodeEnter)
+                .classed("fixed", d => d.fixed || false);
             /**
              * Update the text property (allowing dynamically changing text)
              * Check if the d.shortname is a list.
@@ -362,6 +362,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     .text(layoutOptions.edgeLabelText);
             }
             link = link.merge(linkEnter);
+            return resolve();
         });
     }
     /**

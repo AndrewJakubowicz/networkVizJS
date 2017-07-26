@@ -244,8 +244,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      * Update the d3 visuals without layout changes.
      */
      function updateStyles() {
-         return Promise.resolve()
-         .then(_ => {
+         return new Promise((resolve, reject) => {
             ///// GROUPS /////
             group = group.data(groups);
 
@@ -301,7 +300,8 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
             nodeShape.attr("vector-effect", "non-scaling-stroke");
 
             // Merge the entered nodes to the update nodes.
-            node = node.merge(nodeEnter);
+            node = node.merge(nodeEnter)
+                    .classed("fixed", d => (d as any).fixed || false);
 
             /**
              * Update the text property (allowing dynamically changing text)
@@ -422,6 +422,8 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
             }
 
             link = link.merge(linkEnter);
+
+            return resolve();
         });
     }
 
