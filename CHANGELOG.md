@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+- A lot of error handling in the tick and edge routing to try to prevent the infinite error when leaving the diagram in another tab.
 - canvasOptions setHeight and setWidth that allows modification of the canvas.
 - ability to control individual edges. Thus allows text changing of labels.
     - Do this using the predicates hash property.

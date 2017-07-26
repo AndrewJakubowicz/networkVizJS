@@ -398,10 +398,28 @@ function networkVizJS(documentId, userLayoutOptions) {
                 if (links.length == 0 || !layoutOptions.enableEdgeRouting) {
                     return;
                 }
-                simulation.prepareEdgeRouting();
-                link.select("path").attr("d", d => lineFunction(simulation.routeEdge(d, undefined)));
-                if (isIE())
-                    link.select("path").each(function (d) { this.parentNode.insertBefore(this, this); });
+                try {
+                    simulation.prepareEdgeRouting();
+                }
+                catch (err) {
+                    console.error(err);
+                    return;
+                }
+                try {
+                    link.select("path").attr("d", d => lineFunction(simulation.routeEdge(d, undefined)));
+                }
+                catch (err) {
+                    console.error(err);
+                    return;
+                }
+                try {
+                    if (isIE())
+                        link.select("path").each(function (d) { this.parentNode.insertBefore(this, this); });
+                }
+                catch (err) {
+                    console.log(err);
+                    return;
+                }
                 link.select("text").attr("x", d => {
                     const arrayX = simulation.routeEdge(d, undefined);
                     const middleIndex = Math.floor(arrayX.length / 2) - 1;
@@ -430,18 +448,39 @@ function networkVizJS(documentId, userLayoutOptions) {
                     : `translate(${d.x},${d.y})`);
                 updatePathDimensions();
                 link.select("path").attr("d", d => {
-                    const route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                    let route;
+                    try {
+                        route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                    }
+                    catch (err) {
+                        console.error(err);
+                        return;
+                    }
                     return lineFunction([route.sourceIntersection, route.arrowStart]);
                 });
                 if (isIE())
                     link.each(function (d) { this.parentNode.insertBefore(this, this); });
                 link.select("text")
                     .attr("x", d => {
-                    const route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                    let route;
+                    try {
+                        route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                    }
+                    catch (err) {
+                        console.error(err);
+                        return 0;
+                    }
                     return (route.sourceIntersection.x + route.targetIntersection.x) / 2;
                 })
                     .attr("y", d => {
-                    const route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                    let route;
+                    try {
+                        route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                    }
+                    catch (err) {
+                        console.error(err);
+                        return 0;
+                    }
                     return (route.sourceIntersection.y + route.targetIntersection.y) / 2;
                 });
                 group.attr("x", function (d) { return d.bounds.x; })
