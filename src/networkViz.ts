@@ -340,7 +340,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                             while (word = words.pop()) {
                                 tspan = text.append("tspan")
                                     .attr("dy", lineheight + "em")
-                                    .attr("x", (d as any).textPosition || ((d as any).width / 2))
+                                    .attr("x", (d as any).textPosition || ((d as any).width / 2) || 0)
                                     .text(word);
                             }
                         })
