@@ -866,6 +866,16 @@ function networkVizJS(documentId, userLayoutOptions) {
             redrawEdges: createNewLinks,
             layout: restart,
         },
+        canvasOptions: {
+            setWidth: (width) => {
+                svg.attr("viewBox", `0 0 ${width} ${layoutOptions.height}`);
+                layoutOptions.width = width;
+            },
+            setHeight: (height) => {
+                svg.attr("viewBox", `0 0 ${layoutOptions.width} ${height}`);
+                layoutOptions.height = height;
+            },
+        },
         // Set event handlers for node.
         nodeOptions: {
             setClickNode: setSelectNode,

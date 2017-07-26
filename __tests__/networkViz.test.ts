@@ -204,6 +204,20 @@ describe("Api", function() {
             done();
         });
     });
+
+    it("Change the canvas width and height", function(done) {
+        const graph = networkViz("graph", <any>{
+            width: 100,
+            height: 200,
+        });
+
+        expect(document.getElementsByTagName("svg")[0].getAttribute("viewBox")).toEqual("0 0 100 200");
+        graph.canvasOptions.setHeight(500);
+        expect(document.getElementsByTagName("svg")[0].getAttribute("viewBox")).toEqual("0 0 100 500");
+        graph.canvasOptions.setWidth(50);
+        expect(document.getElementsByTagName("svg")[0].getAttribute("viewBox")).toEqual("0 0 50 500");
+        done();
+    });
 });
 
 

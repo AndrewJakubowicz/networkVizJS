@@ -983,6 +983,16 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
             redrawEdges: createNewLinks,
             layout: restart,
         },
+        canvasOptions: {
+            setWidth: (width: number) => {
+                svg.attr("viewBox", `0 0 ${width} ${layoutOptions.height}`);
+                layoutOptions.width = width;
+            },
+            setHeight: (height: number) => {
+                svg.attr("viewBox", `0 0 ${layoutOptions.width} ${height}`);
+                layoutOptions.height = height;
+            },
+        },
         // Set event handlers for node.
         nodeOptions: {
             setClickNode: setSelectNode,
