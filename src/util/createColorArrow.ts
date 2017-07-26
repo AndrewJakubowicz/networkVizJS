@@ -3,9 +3,9 @@
  * @param defElement 'defs' element to append marker elements
  * @param color string representation of a valid color.
  */
-export default function createColorArrow(defElement: any, color: string){
+export default function createColorArrow(defElement: any, color: string) {
     defElement.append("marker")
-        .attr("id",`arrow-${color}`)
+        .attr("id", `arrow-${color}`)
         .attr("viewBox", "0 -5 10 10")
         .attr("refX", 8)
         .attr("markerWidth", 6)
@@ -14,5 +14,5 @@ export default function createColorArrow(defElement: any, color: string){
         .attr("orient", "auto")
         .append("path")
             .attr("d", "M0,-5L10,0L0,5")
-            .attr("class","arrowHead");
+            .attr("class", "arrowHead");
 }

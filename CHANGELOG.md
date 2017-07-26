@@ -6,8 +6,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [UNCHANGED]
 
+### Added
+
+- added class "fixed" when node is fixed in place.
+
 ### Changed
 
+- fixed NaN error with tspan
 - added layout.stop and .start on losing focus on the window.
 - canDrag now only through filter. (Styles might be removed and should be added by user)
 
