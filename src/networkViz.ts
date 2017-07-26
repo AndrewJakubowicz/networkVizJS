@@ -75,6 +75,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      */
     const nodeMap: Map<string, any> = new Map();
     const predicateTypeToColorMap: Map<string, any> = new Map();
+    const predicateMap: Map<string, any> = new Map();
 
     /**
      * Todo:    This is currently a hack. Create a random database on the client
@@ -413,15 +414,23 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                 }, 50);
             });
 
-            /** Optional label text */
-            if (layoutOptions.edgeLabelText !== "undefined") {
-                linkEnter.append("text")
+            // Add an empty text field.
+            linkEnter.append("text")
                     .attr("text-anchor", "middle")
                     .style("font", "100 22px Helvetica Neue")
-                    .text(layoutOptions.edgeLabelText as any);
-            }
+                    .text(undefined);
 
             link = link.merge(linkEnter);
+
+            /** Optional label text */
+            if (typeof layoutOptions.edgeLabelText === "function") {
+                link.select("text").text((d) => {
+                    if (typeof (d as any).edgeData.hash === "string") {
+                        return (layoutOptions.edgeLabelText as any)(predicateMap.get((d as any).edgeData.hash));
+                    }
+                    return (layoutOptions.edgeLabelText as any)((d as any).edgeData);
+                });
+            }
 
             return resolve();
         });
@@ -672,6 +681,20 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                     // Create an arrow head for the new color
                     createColorArrow(defs, edgeColor);
                 }
+
+                /**
+                 * If the predicate has a hash, it is added to a Map.
+                 * This way we can mutate the predicate to manipulate its
+                 * properties.
+                 * Basically we are saving a reference to the predicate object.
+                 */
+                if (predicate.hash) {
+                    if (predicateMap.has(predicate.hash)) {
+                        console.warn("Edge hash must be unique. There already exists a predicate with the hash: ", predicate.hash);
+                    }
+                    predicateMap.set(predicate.hash, predicate);
+                }
+
 
                 /**
                  * Put the triplet into the LevelGraph database

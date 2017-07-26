@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+- ability to control individual edges. Thus allows text changing of labels.
+    - Do this using the predicates hash property.
 - added class "fixed" when node is fixed in place.
 
 ### Changed

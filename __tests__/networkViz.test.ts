@@ -172,8 +172,37 @@ describe("Api", function() {
             expect(document.getElementsByClassName("node").length).toEqual(2);
             done();
         });
+    });
 
-
+    it("Changing edge labels", function(done) {
+        const graph = networkViz("graph", ({
+            edgeLabelText: d => d.someText,
+        } as any));
+        const node1 = {hash: "1", class: "someClass1"};
+        const node2 = {hash: "2", class: "rar"};
+        // Hash allows the edge to be stored uniquely.
+        // Type allows controlling the colour of the edge.
+        // someText is how we'll change the text.
+        const predicate1 = {hash: "1", type: "edge", someText: "Text that changes"};
+        new Promise((resolve, reject) => {
+            graph.addTriplet({
+                subject: node1,
+                predicate: predicate1,
+                object: node2 },
+                () => {
+                    expect(document.getElementsByClassName("line").length).toEqual(1);
+                    expect(document.getElementsByClassName("line")[0].textContent).toEqual("Text that changes");
+                    resolve();
+                }
+            );
+        }).then(_ => {
+            (predicate1 as any).someText = "CHANGED!";
+        }).then(graph.restart.styles)
+          .then(_ => {
+            // Check that the text has changed.
+            expect(document.getElementsByClassName("line")[0].textContent).toEqual("CHANGED!");
+            done();
+        });
     });
 });
 
