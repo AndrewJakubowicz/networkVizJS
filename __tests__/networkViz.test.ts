@@ -71,7 +71,6 @@ describe("Api", function() {
                 // Check that we have 1 line group and 2 node groups.
                 expect(document.getElementsByClassName("line").length).toEqual(1);
                 expect(document.getElementsByClassName("node").length).toEqual(2);
-                expect(document.getElementsByClassName("wooItExists").length).toEqual(2);
                 done();
             });
     });
@@ -125,7 +124,26 @@ describe("Api", function() {
                     });
             });
     });
+
+    it("Add nodes and check that classes are attached", function(done) {
+        const graph = networkViz("graph");
+        const node1 = {hash: "1", class: "someClass1"};
+        const node2 = {hash: "2", class: "rar"};
+
+        graph.addTriplet({
+            subject: node1,
+            predicate: {type: "edge"},
+            object: node2 },
+            () => {
+                // Each class is applied twice. Once on path and once on text content of node.
+                expect(document.getElementsByClassName("someClass1").length).toEqual(2);
+                expect(document.getElementsByClassName("node").length).toEqual(2);
+                done();
+            }
+        );
+    });
 });
+
 
 
 
