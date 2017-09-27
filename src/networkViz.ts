@@ -164,7 +164,9 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
         // Prevent zoom when mouse over node.
         return d3.event.target.tagName.toLowerCase() === "svg";
     });
-    svg.call(zoom);
+
+    svg.call(zoom).on("dblclick.zoom", null);
+
     function zoomed() {
         layoutOptions.clickAway();
         g.attr("transform", d3.event.transform);
@@ -379,7 +381,8 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                 if (internalOptions.isDragging) { return; }
 
                 const element = d3.select(this);
-                layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element as any);
+                const e = d3.event;
+                layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element as any,e);
             }).on("click", function(d) {
                 const elem = d3.select(this);
                 setTimeout(() => {

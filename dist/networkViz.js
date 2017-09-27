@@ -140,7 +140,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         // Prevent zoom when mouse over node.
         return d3.event.target.tagName.toLowerCase() === "svg";
     });
-    svg.call(zoom);
+    svg.call(zoom).on("dblclick.zoom", null);
     function zoomed() {
         layoutOptions.clickAway();
         g.attr("transform", d3.event.transform);
@@ -327,7 +327,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                     return;
                 }
                 const element = d3.select(this);
-                layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
+                const e = d3.event;
+                layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element, e);
             }).on("click", function (d) {
                 const elem = d3.select(this);
                 setTimeout(() => {
