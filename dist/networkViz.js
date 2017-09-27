@@ -32,10 +32,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         mouseOutNode: undefined,
         mouseUpNode: undefined,
         // These are "live options"
-        // nodeToColor: "white",
-        nodeToColor: function nodeToColor(d) {
-            return d.color ? d.color : "white";
-        },
+        nodeToColor: "white",
         nodeStrokeWidth: 2,
         nodeStrokeColor: "black",
         // TODO: clickNode (node, element) => void
