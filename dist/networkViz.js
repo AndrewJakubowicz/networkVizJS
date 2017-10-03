@@ -137,7 +137,9 @@ function networkVizJS(documentId, userLayoutOptions) {
         // Prevent zoom when mouse over node.
         return d3.event.target.tagName.toLowerCase() === "svg";
     });
+    //Ghazal Start
     svg.call(zoom).on("dblclick.zoom", null);
+    //Ghazal End
     function zoomed() {
         layoutOptions.clickAway();
         g.attr("transform", d3.event.transform);
@@ -318,16 +320,55 @@ function networkVizJS(documentId, userLayoutOptions) {
                     return;
                 }
                 const element = d3.select(this);
+                var foWidth = 2;
+                var foHeight = 1;
+                var foX = d.width;
+                var foY = 0;
+                var element = d3.select(this); // The node
+                var parent = d3.select(this.parentNode);
+                // var contextMenu = document.getElementsByClassName('.node-context-menu');
+                // if (contextMenu && contextMenu.length !== 0) return;
+                node.selectAll('.node-context-menu').remove();
+                var fo = parent.append('foreignObject')
+                    .attr('x', foX)
+                    .attr('y', foY)
+                    .attr('width', foWidth)
+                    .attr('height', foHeight)
+                    .attr('class', 'node-context-menu');
+                var div = fo.append('xhtml:div')
+                    .append('div')
+                    .attr('class', 'tools');
+                div.append('div')
+                    .html('<i class="fa fa-trash-o"></i>')
+                    .on("click", function () {
+                    console.log("clicked");
+                    layoutOptions.nodeRemove() && layoutOptions.nodeRemove(d);
+                })
+                    .on("mouseout", function () {
+                    console.log("mouseout");
+                    // parent.selectAll('.node-context-menu').remove();
+                });
+                div.append('div')
+                    .html('<i class="fa fa-arrow-right"></i>');
                 layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
             }).on("mouseout", function (d) {
                 if (internalOptions.isDragging) {
                     return;
                 }
-                const element = d3.select(this);
-                const e = d3.event;
-                layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element, e);
+                var element = d3.select(this);
+                var parent = d3.select(this.parentNode);
+                var e = d3.event;
+                var mouse = d3.mouse(this.parentElement);
+                var mosX = mouse[0];
+                var mosY = mouse[1];
+                if (mosX < -1 || mosX > (d.width + 40) || mosY < -1 || mosY > d.height - 2 ||
+                    (mosX < d.width && mosX > d.width / 2 && mosY > 0 && mosY < d.height) ||
+                    (mosX < d.width / 2 && mosX > 0 && mosY > 0 && mosY < d.height)) {
+                    parent.selectAll('.node-context-menu').remove();
+                }
+                layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
             }).on("click", function (d) {
-                const elem = d3.select(this);
+                var elem = d3.select(this);
                 setTimeout(() => {
                     layoutOptions.clickNode(d, elem);
                 }, 50);

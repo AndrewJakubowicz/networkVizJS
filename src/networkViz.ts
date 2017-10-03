@@ -107,12 +107,12 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      * This will try to fill the div that it's placed in.
      */
     const svg = d3.select(`#${documentId}`)
-                .append("div")
-                .classed("svg-container", true)
-                .append("svg")
-                .attr("preserveAspectRatio", "xMinYMin meet")
-                .attr("viewBox", `0 0 ${width} ${height}`)
-                .classed("svg-content-responsive", true);
+        .append("div")
+        .classed("svg-container", true)
+        .append("svg")
+        .attr("preserveAspectRatio", "xMinYMin meet")
+        .attr("viewBox", `0 0 ${width} ${height}`)
+        .classed("svg-content-responsive", true);
 
     svg.on("click", layoutOptions.clickAway);
 
@@ -122,10 +122,10 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      * the simulation whenever the layout is changed.
      */
     let simulation = updateColaLayout(layoutOptions)
-                            .nodes(nodes)
-                            .links(links)
-                            .groups(groups)
-                            .start();
+        .nodes(nodes)
+        .links(links)
+        .groups(groups)
+        .start();
 
     /**
      * Call nodeDragStart callback when drag event triggers.
@@ -147,11 +147,11 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
     // Define svg groups for storing the visuals.
     const g = svg.append("g");
     let group = g.append("g")
-                .selectAll(".group"),
+            .selectAll(".group"),
         link = g.append("g")
-                .selectAll(".link"),
+            .selectAll(".link"),
         node = g.append("g")
-                .selectAll(".node");
+            .selectAll(".node");
 
     /**
      * Zooming and panning behaviour.
@@ -161,8 +161,9 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
         // Prevent zoom when mouse over node.
         return d3.event.target.tagName.toLowerCase() === "svg";
     });
-
+    //Ghazal Start
     svg.call(zoom).on("dblclick.zoom", null);
+    //Ghazal End
 
     function zoomed() {
         layoutOptions.clickAway();
@@ -199,55 +200,55 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      */
     function repositionText() {
         return Promise.resolve()
-        .then(_ => {
-            node.select("text").each(function(d) {
-                const text = d3.select(this);
-                const margin = layoutOptions.margin,
+            .then(_ => {
+                node.select("text").each(function(d) {
+                    const text = d3.select(this);
+                    const margin = layoutOptions.margin,
                         pad    = layoutOptions.pad;
-                const extra = 2 * margin + 2 * pad;
-                // The width must reset to allow the box to get smaller.
-                // Later we will set width based on the widest tspan/line.
-                d.width = d.minWidth || 0;
-                if (!(d.width)) {
+                    const extra = 2 * margin + 2 * pad;
+                    // The width must reset to allow the box to get smaller.
+                    // Later we will set width based on the widest tspan/line.
                     d.width = d.minWidth || 0;
-                }
-                // Loop over the tspans and recalculate the width based on the longest text.
-                text.selectAll("tspan").each(function(d: any) {
-                    const lineLength = (this as any).getComputedTextLength();
-                    if (d.width < lineLength + extra) {
-                        d.width = lineLength + extra;
+                    if (!(d.width)) {
+                        d.width = d.minWidth || 0;
                     }
-                });
-            }).each(function(d: any){
-                // Only update the height, the width is calculated
-                // by iterating over the tspans in the `wrap` function.
-                const b = (this as any).getBBox();
-                const extra = 2 * margin + 2 * pad;
-                d.height = b.height + extra;
-            })
-            .attr("y",  function(d){
-                const b = (d3.select(this).node() as any).getBBox();
-                // Todo: Minus 2 is a hack to get the text feeling 'right'.
-                return (d as any).height / 2 - b.height / 2 - 2;
-            })
-            .attr("x", function(d){
-                // Apply the correct x value to the tspan.
-                const b = (this as any).getBBox();
-                const x = (d as any).width / 2 - b.width / 2;
-                (d as any).textPosition = x;
-                // We don't set the tspans with an x attribute.
-                d3.select(this).selectAll("tspan")
-                    .attr("x", (d as any).textPosition);
-                return (d as any).textPosition;
+                    // Loop over the tspans and recalculate the width based on the longest text.
+                    text.selectAll("tspan").each(function(d: any) {
+                        const lineLength = (this as any).getComputedTextLength();
+                        if (d.width < lineLength + extra) {
+                            d.width = lineLength + extra;
+                        }
+                    });
+                }).each(function(d: any){
+                    // Only update the height, the width is calculated
+                    // by iterating over the tspans in the `wrap` function.
+                    const b = (this as any).getBBox();
+                    const extra = 2 * margin + 2 * pad;
+                    d.height = b.height + extra;
+                })
+                    .attr("y",  function(d){
+                        const b = (d3.select(this).node() as any).getBBox();
+                        // Todo: Minus 2 is a hack to get the text feeling 'right'.
+                        return (d as any).height / 2 - b.height / 2 - 2;
+                    })
+                    .attr("x", function(d){
+                        // Apply the correct x value to the tspan.
+                        const b = (this as any).getBBox();
+                        const x = (d as any).width / 2 - b.width / 2;
+                        (d as any).textPosition = x;
+                        // We don't set the tspans with an x attribute.
+                        d3.select(this).selectAll("tspan")
+                            .attr("x", (d as any).textPosition);
+                        return (d as any).textPosition;
+                    });
             });
-        });
     }
 
     /**
      * Update the d3 visuals without layout changes.
      */
-     function updateStyles() {
-         return new Promise((resolve, reject) => {
+    function updateStyles() {
+        return new Promise((resolve, reject) => {
             ///// GROUPS /////
             group = group.data(groups);
 
@@ -257,7 +258,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                 .attr("ry", 8)
                 .attr("class", "group")
                 .style("fill", "green");
-                // .call(simulation.drag);
+            // .call(simulation.drag);
             group = group.merge(groupEnter);
 
             /////// NODE ///////
@@ -265,8 +266,8 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
             node = node.data(nodes, d => d.index);
             node.exit().remove();
             const nodeEnter = node.enter()
-                    .append("g")
-                    .classed("node", true);
+                .append("g")
+                .classed("node", true);
 
             // Only allow dragging nodes if turned on.
             // if (layoutOptions.canDrag()) {
@@ -280,10 +281,10 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
             // To fit nodes to the short-name calculate BBox
             // from https://bl.ocks.org/mbostock/1160929
             nodeEnter.append("text")
-                        .attr("dx", 0)
-                        .attr("dy", 0)
-                        .attr("text-anchor", "left")
-                        .style("font", "100 22px Helvetica Neue");
+                .attr("dx", 0)
+                .attr("dy", 0)
+                .attr("text-anchor", "left")
+                .style("font", "100 22px Helvetica Neue");
 
 
             // Choose the node shape and style.
@@ -304,52 +305,52 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
 
             // Merge the entered nodes to the update nodes.
             node = node.merge(nodeEnter)
-                    .classed("fixed", d => (d as any).fixed || false);
+                .classed("fixed", d => (d as any).fixed || false);
 
             /**
              * Update the text property (allowing dynamically changing text)
              * Check if the d.shortname is a list.
              */
             const textSelect = node.select("text")
-                        .text(undefined)
-                        .attr("class", d => (d as any).class)
-                        .each(function(d){
-                            // This function takes the text element.
-                            // We can call .each on it and build up
-                            // the tspan elements from the array of text
-                            // in the data.
-                            // Derived from https://bl.ocks.org/mbostock/7555321
-                            const margin = layoutOptions.margin,
-                                pad    = layoutOptions.pad;
-                            const extra = 2 * margin + 2 * pad;
-                            const text = d3.select(this);
+                .text(undefined)
+                .attr("class", d => (d as any).class)
+                .each(function(d){
+                    // This function takes the text element.
+                    // We can call .each on it and build up
+                    // the tspan elements from the array of text
+                    // in the data.
+                    // Derived from https://bl.ocks.org/mbostock/7555321
+                    const margin = layoutOptions.margin,
+                        pad    = layoutOptions.pad;
+                    const extra = 2 * margin + 2 * pad;
+                    const text = d3.select(this);
 
-                            /**
-                             * If no shortname, then use hash.
-                             */
-                            let tempText = (d as any).shortname || (d as any).hash;
-                            if (!Array.isArray(tempText)) {
-                                tempText = [tempText];
-                            }
+                    /**
+                     * If no shortname, then use hash.
+                     */
+                    let tempText = (d as any).shortname || (d as any).hash;
+                    if (!Array.isArray(tempText)) {
+                        tempText = [tempText];
+                    }
 
-                            const textCopy = tempText.slice(),
-                                words = textCopy.reverse(),
-                                lineheight = 1.1, // em
-                                lineNumber = 0,
-                                dy = parseFloat(text.attr("dy")) || 0;
-                                let word,
-                                    // TODO: I don't know why there needs to be a undefined tspan at the start?
-                                    tspan = text.text(undefined).append("tspan").attr("dy", dy + "em");
-                            while (word = words.pop()) {
-                                tspan = text.append("tspan")
-                                    .attr("dy", lineheight + "em")
-                                    .attr("x", (d as any).textPosition || ((d as any).width / 2) || 0)
-                                    .text(word);
-                            }
-                        })
-                        // .attr("x", (d: any) => d.width / 2)
-                        // .attr("y", (d: any) => d.height / 2)
-                        .attr("pointer-events", "none");
+                    const textCopy = tempText.slice(),
+                        words = textCopy.reverse(),
+                        lineheight = 1.1, // em
+                        lineNumber = 0,
+                        dy = parseFloat(text.attr("dy")) || 0;
+                    let word,
+                        // TODO: I don't know why there needs to be a undefined tspan at the start?
+                        tspan = text.text(undefined).append("tspan").attr("dy", dy + "em");
+                    while (word = words.pop()) {
+                        tspan = text.append("tspan")
+                            .attr("dy", lineheight + "em")
+                            .attr("x", (d as any).textPosition || ((d as any).width / 2) || 0)
+                            .text(word);
+                    }
+                })
+                // .attr("x", (d: any) => d.width / 2)
+                // .attr("y", (d: any) => d.height / 2)
+                .attr("pointer-events", "none");
 
             /**
              * Here we can update node properties that have already been attached.
@@ -360,9 +361,9 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                 .attr("class", d => (d as any).class);
             // These changes apply to both rect and circle
             updateShapes
-                    .attr("fill", layoutOptions.nodeToColor as any)
-                    .attr("stroke", layoutOptions.nodeStrokeColor as any)
-                    .attr("stroke-width", layoutOptions.nodeStrokeWidth as any);
+                .attr("fill", layoutOptions.nodeToColor as any)
+                .attr("stroke", layoutOptions.nodeStrokeColor as any)
+                .attr("stroke-width", layoutOptions.nodeStrokeWidth as any);
 
             // update size
             updatePathDimensions();
@@ -373,15 +374,63 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                 if (internalOptions.isDragging) { return; }
 
                 const element = d3.select(this);
+
+                var foWidth = 2;
+                var foHeight = 1;
+                var foX = d.width;
+                var foY = 0;
+                var element = d3.select(this); // The node
+                var parent = d3.select(this.parentNode);
+
+                // var contextMenu = document.getElementsByClassName('.node-context-menu');
+                // if (contextMenu && contextMenu.length !== 0) return;
+                node.selectAll('.node-context-menu').remove();
+                var fo = parent.append('foreignObject')
+                    .attr('x', foX)
+                    .attr('y', foY)
+                    .attr('width', foWidth)
+                    .attr('height', foHeight)
+                    .attr('class', 'node-context-menu')
+
+                var div = fo.append('xhtml:div')
+                    .append('div')
+                    .attr('class', 'tools');
+
+                div.append('div')
+                    .html('<i class="fa fa-trash-o"></i>')
+                    .on("click", function () {
+                        console.log("clicked");
+                        layoutOptions.nodeRemove() && layoutOptions.nodeRemove(d);
+                    })
+                    .on("mouseout", function () {
+                        console.log("mouseout");
+                        // parent.selectAll('.node-context-menu').remove();
+                    });
+
+                div.append('div')
+                    .html('<i class="fa fa-arrow-right"></i>');
+
                 layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element as any);
+
             }).on("mouseout", function(d) {
                 if (internalOptions.isDragging) { return; }
 
-                const element = d3.select(this);
-                const e = d3.event;
-                layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element as any,e);
+                var element = d3.select(this);
+                var parent = d3.select(this.parentNode)
+                var e = d3.event;
+                var mouse = d3.mouse(this.parentElement);
+                var mosX = mouse[0]
+                var mosY = mouse[1]
+                if (mosX < -1 || mosX > (d.width + 40) || mosY < -1 || mosY > d.height - 2 ||
+                    (mosX < d.width && mosX > d.width / 2 && mosY > 0 && mosY < d.height) ||
+                    (mosX < d.width / 2 && mosX > 0  && mosY > 0 && mosY < d.height))
+                {
+                    parent.selectAll('.node-context-menu').remove();
+                }
+
+                layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element as any);
             }).on("click", function(d) {
-                const elem = d3.select(this);
+                let elem = d3.select(this);
                 setTimeout(() => {
                     layoutOptions.clickNode(d, elem as any);
                 }, 50);
@@ -399,16 +448,16 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
             link.exit().remove();
 
             const linkEnter = link.enter()
-                    .append("g")
-                    .classed("line", true);
+                .append("g")
+                .classed("line", true);
 
 
             linkEnter.append("path")
-                    .attr("stroke-width", layoutOptions.edgeStroke as any)
-                    // Todo: Have edge data changable from outside the library.
-                    .attr("stroke", layoutOptions.edgeColor as any)
-                    .attr("fill", "none")
-                    .attr("marker-end", d => `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : (layoutOptions.edgeColor as any)((d as any).edgeData)})`);
+                .attr("stroke-width", layoutOptions.edgeStroke as any)
+                // Todo: Have edge data changable from outside the library.
+                .attr("stroke", layoutOptions.edgeColor as any)
+                .attr("fill", "none")
+                .attr("marker-end", d => `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : (layoutOptions.edgeColor as any)((d as any).edgeData)})`);
 
             linkEnter.on("click", function(d) {
                 const elem = d3.select(this);
@@ -419,9 +468,9 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
 
             // Add an empty text field.
             linkEnter.append("text")
-                    .attr("text-anchor", "middle")
-                    .style("font", "100 22px Helvetica Neue")
-                    .text(undefined);
+                .attr("text-anchor", "middle")
+                .style("font", "100 22px Helvetica Neue")
+                .text(undefined);
 
             link = link.merge(linkEnter);
 
@@ -447,60 +496,60 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
     function restart(callback?: () => void) {
         // Todo: Promise chain.
         return Promise.resolve()
-        .then(updateStyles)
-        .then(repositionText)
-        .then(_ => {
-            /**
-             * Helper function for drawing the lines.
-             */
-            const lineFunction = d3.line()
-                .x(d => (d as any).x)
-                .y(d => (d as any).y);
+            .then(updateStyles)
+            .then(repositionText)
+            .then(_ => {
+                /**
+                 * Helper function for drawing the lines.
+                 */
+                const lineFunction = d3.line()
+                    .x(d => (d as any).x)
+                    .y(d => (d as any).y);
 
-            /**
-             * Causes the links to bend around the rectangles.
-             * Source: https://github.com/tgdwyer/WebCola/blob/master/WebCola/examples/unix.html#L140
-             */
-            const routeEdges = function () {
-                if (links.length == 0 || !layoutOptions.enableEdgeRouting) {
-                    return;
-                }
-                try {
-                    simulation.prepareEdgeRouting();
-                } catch (err) {
-                    console.error(err);
-                    return;
-                }
+                /**
+                 * Causes the links to bend around the rectangles.
+                 * Source: https://github.com/tgdwyer/WebCola/blob/master/WebCola/examples/unix.html#L140
+                 */
+                const routeEdges = function () {
+                    if (links.length == 0 || !layoutOptions.enableEdgeRouting) {
+                        return;
+                    }
+                    try {
+                        simulation.prepareEdgeRouting();
+                    } catch (err) {
+                        console.error(err);
+                        return;
+                    }
 
-                try {
-                    link.select("path").attr("d", d => lineFunction(simulation.routeEdge(d, undefined)));
-                } catch (err) {
-                    console.error(err);
-                    return;
-                }
+                    try {
+                        link.select("path").attr("d", d => lineFunction(simulation.routeEdge(d, undefined)));
+                    } catch (err) {
+                        console.error(err);
+                        return;
+                    }
 
-                try {
-                    if (isIE()) link.select("path").each(function (d) { (this as any).parentNode.insertBefore(this, this); });
-                } catch (err) {
-                    console.log(err);
-                    return;
-                }
-                link.select("text").attr("x", d => {
-                    const arrayX = simulation.routeEdge(d, undefined);
-                    const middleIndex = Math.floor(arrayX.length / 2) - 1;
-                    return (arrayX[middleIndex].x + arrayX[middleIndex + 1].x) / 2;
-                }).attr("y", d => {
-                    const arrayY = simulation.routeEdge(d, undefined);
-                    const middleIndex = Math.floor(arrayY.length / 2) - 1 ;
-                    return (arrayY[middleIndex].y + arrayY[middleIndex + 1].y) / 2;
-                });
-            };
+                    try {
+                        if (isIE()) link.select("path").each(function (d) { (this as any).parentNode.insertBefore(this, this); });
+                    } catch (err) {
+                        console.log(err);
+                        return;
+                    }
+                    link.select("text").attr("x", d => {
+                        const arrayX = simulation.routeEdge(d, undefined);
+                        const middleIndex = Math.floor(arrayX.length / 2) - 1;
+                        return (arrayX[middleIndex].x + arrayX[middleIndex + 1].x) / 2;
+                    }).attr("y", d => {
+                        const arrayY = simulation.routeEdge(d, undefined);
+                        const middleIndex = Math.floor(arrayY.length / 2) - 1 ;
+                        return (arrayY[middleIndex].y + arrayY[middleIndex + 1].y) / 2;
+                    });
+                };
 
-            // Restart the simulation.
-            simulation.links(links)    // Required because we create new link lists
+                // Restart the simulation.
+                simulation.links(links)    // Required because we create new link lists
                     .groups(groups)
                     .start(10, 15, 20).on("tick", function() {
-                node.each((d: any) => {
+                    node.each((d: any) => {
                         if (d.bounds) {
                             // Initiate the innerBounds, and create it based on the width and height
                             // of the node.
@@ -509,61 +558,61 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                             d.innerBounds.Y = d.innerBounds.y + d.height;
                         }
                     });
-                node.attr("transform", d => (d as any).innerBounds ?
+                    node.attr("transform", d => (d as any).innerBounds ?
                         `translate(${(d as any).innerBounds.x},${(d as any).innerBounds.y})`
                         : `translate(${(d as any).x},${(d as any).y})`);
 
-                updatePathDimensions();
+                    updatePathDimensions();
 
-                link.select("path").attr("d", d => {
-                    let route;
-                    try {
-                        route = cola.makeEdgeBetween((d as any).source.innerBounds, (d as any).target.innerBounds, 5);
-                    } catch (err) {
-                        console.error(err);
-                        return;
-                    }
-                    return lineFunction([route.sourceIntersection, route.arrowStart] as any);
-                });
-                if (isIE()) link.each(function (d) { (this as any).parentNode.insertBefore(this, this); });
-
-                link.select("text")
-                    .attr("x", d => {
+                    link.select("path").attr("d", d => {
                         let route;
                         try {
                             route = cola.makeEdgeBetween((d as any).source.innerBounds, (d as any).target.innerBounds, 5);
                         } catch (err) {
                             console.error(err);
-                            return 0;
+                            return;
                         }
-                        return (route.sourceIntersection.x + route.targetIntersection.x) / 2;
-                    })
-                    .attr("y", d => {
-                        let route;
-                        try {
-                            route = cola.makeEdgeBetween((d as any).source.innerBounds, (d as any).target.innerBounds, 5);
-                        } catch (err) {
-                            console.error(err);
-                            return 0;
-                        }
-                        return (route.sourceIntersection.y + route.targetIntersection.y) / 2;
+                        return lineFunction([route.sourceIntersection, route.arrowStart] as any);
                     });
+                    if (isIE()) link.each(function (d) { (this as any).parentNode.insertBefore(this, this); });
 
-                group.attr("x", function(d){ return (d as any).bounds.x; })
-                    .attr("y", function(d){ return (d as any).bounds.y; })
-                    .attr("width", function(d){ return (d as any).bounds.width(); })
-                    .attr("height", function(d){ return (d as any).bounds.height(); });
+                    link.select("text")
+                        .attr("x", d => {
+                            let route;
+                            try {
+                                route = cola.makeEdgeBetween((d as any).source.innerBounds, (d as any).target.innerBounds, 5);
+                            } catch (err) {
+                                console.error(err);
+                                return 0;
+                            }
+                            return (route.sourceIntersection.x + route.targetIntersection.x) / 2;
+                        })
+                        .attr("y", d => {
+                            let route;
+                            try {
+                                route = cola.makeEdgeBetween((d as any).source.innerBounds, (d as any).target.innerBounds, 5);
+                            } catch (err) {
+                                console.error(err);
+                                return 0;
+                            }
+                            return (route.sourceIntersection.y + route.targetIntersection.y) / 2;
+                        });
 
-            }).on("end", routeEdges);
-            function isIE() { return ((navigator.appName == "Microsoft Internet Explorer") || ((navigator.appName == "Netscape") && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined))); }
+                    group.attr("x", function(d){ return (d as any).bounds.x; })
+                        .attr("y", function(d){ return (d as any).bounds.y; })
+                        .attr("width", function(d){ return (d as any).bounds.width(); })
+                        .attr("height", function(d){ return (d as any).bounds.height(); });
 
-            // After a tick make sure to add translation to the nodes.
-            // Sometimes it wasn"t added in a single tick.
-            node.attr("transform", d => (d as any).innerBounds ?
-                        `translate(${(d as any).innerBounds.x},${(d as any).innerBounds.y})`
-                        : `translate(${(d as any).x},${(d as any).y})`);
-        })
-        .then(() => typeof callback === "function" && callback());
+                }).on("end", routeEdges);
+                function isIE() { return ((navigator.appName == "Microsoft Internet Explorer") || ((navigator.appName == "Netscape") && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined))); }
+
+                // After a tick make sure to add translation to the nodes.
+                // Sometimes it wasn"t added in a single tick.
+                node.attr("transform", d => (d as any).innerBounds ?
+                    `translate(${(d as any).innerBounds.x},${(d as any).innerBounds.y})`
+                    : `translate(${(d as any).x},${(d as any).y})`);
+            })
+            .then(() => typeof callback === "function" && callback());
     }
 
 
@@ -657,8 +706,8 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
 
         // Node needs a unique hash associated with it.
         const subject = tripletObject.subject,
-              predicate = tripletObject.predicate,
-              object = tripletObject.object;
+            predicate = tripletObject.predicate,
+            object = tripletObject.object;
 
         if (!(subject && predicate && object && true)) {
             throw new Error("Triplets added need to include all three fields.");
@@ -692,77 +741,77 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
         }
         // Node needs a unique hash associated with it.
         const subject = tripletObject.subject,
-              predicate = tripletObject.predicate,
-              object = tripletObject.object;
+            predicate = tripletObject.predicate,
+            object = tripletObject.object;
 
         // Check that predicate doesn't already exist
         new Promise((resolve, reject) => tripletsDB.get({subject: subject.hash,
             predicate: predicate.type,
             object: object.hash}, function(err: Error, list: any[]){
-                if (err) reject(err);
-                resolve(list.length === 0);
-            })).then(doesntExist => {
-                if (!doesntExist) {
-                    console.warn("That edge already exists. Hash's and predicate type needs to be unique!");
-                    return;
+            if (err) reject(err);
+            resolve(list.length === 0);
+        })).then(doesntExist => {
+            if (!doesntExist) {
+                console.warn("That edge already exists. Hash's and predicate type needs to be unique!");
+                return;
+            }
+            /**
+             * If a predicate type already has a color,
+             * it is not redefined.
+             */
+            const edgeColor = typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : (layoutOptions.edgeColor as any)(predicate);
+            if (!predicateTypeToColorMap.has(edgeColor)) {
+                predicateTypeToColorMap.set(edgeColor, true);
+
+                // Create an arrow head for the new color
+                createColorArrow(defs, edgeColor);
+            }
+
+            /**
+             * If the predicate has a hash, it is added to a Map.
+             * This way we can mutate the predicate to manipulate its
+             * properties.
+             * Basically we are saving a reference to the predicate object.
+             */
+            if (predicate.hash) {
+                if (predicateMap.has(predicate.hash)) {
+                    console.warn("Edge hash must be unique. There already exists a predicate with the hash: ", predicate.hash);
                 }
-                /**
-                 * If a predicate type already has a color,
-                 * it is not redefined.
-                 */
-                const edgeColor = typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : (layoutOptions.edgeColor as any)(predicate);
-                if (!predicateTypeToColorMap.has(edgeColor)) {
-                    predicateTypeToColorMap.set(edgeColor, true);
+                predicateMap.set(predicate.hash, predicate);
+            }
 
-                    // Create an arrow head for the new color
-                    createColorArrow(defs, edgeColor);
+
+            /**
+             * Put the triplet into the LevelGraph database
+             * and mutates the d3 nodes and links list to
+             * visually pop on the node/s.
+             */
+            tripletsDB.put({
+                subject: subject.hash,
+                predicate: predicate.type,
+                object: object.hash,
+                edgeData: predicate
+            }, (err: Error) => {
+                if (err) {
+                    console.error(err);
                 }
 
-                /**
-                 * If the predicate has a hash, it is added to a Map.
-                 * This way we can mutate the predicate to manipulate its
-                 * properties.
-                 * Basically we are saving a reference to the predicate object.
-                 */
-                if (predicate.hash) {
-                    if (predicateMap.has(predicate.hash)) {
-                        console.warn("Edge hash must be unique. There already exists a predicate with the hash: ", predicate.hash);
-                    }
-                    predicateMap.set(predicate.hash, predicate);
+                // Add nodes to graph
+                simulation.stop();
+                if (!nodeMap.has(subject.hash)) {
+                    // Set the node
+                    nodes.push(subject);
+                    nodeMap.set(subject.hash, subject);
                 }
-
-
-                /**
-                 * Put the triplet into the LevelGraph database
-                 * and mutates the d3 nodes and links list to
-                 * visually pop on the node/s.
-                 */
-                tripletsDB.put({
-                    subject: subject.hash,
-                    predicate: predicate.type,
-                    object: object.hash,
-                    edgeData: predicate
-                }, (err: Error) => {
-                    if (err) {
-                        console.error(err);
-                    }
-
-                    // Add nodes to graph
-                    simulation.stop();
-                    if (!nodeMap.has(subject.hash)) {
-                        // Set the node
-                        nodes.push(subject);
-                        nodeMap.set(subject.hash, subject);
-                    }
-                    if (!nodeMap.has(object.hash)) {
-                        nodes.push(object);
-                        nodeMap.set(object.hash, object);
-                    }
-                    if (!preventLayout) {
-                        createNewLinks(callback);
-                    }
-                });
+                if (!nodeMap.has(object.hash)) {
+                    nodes.push(object);
+                    nodeMap.set(object.hash, object);
+                }
+                if (!preventLayout) {
+                    createNewLinks(callback);
+                }
             });
+        });
     }
 
     /**
@@ -775,21 +824,21 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
         }
         // Node needs a unique hash associated with it.
         const subject = tripletObject.subject,
-              predicate = tripletObject.predicate,
-              object = tripletObject.object;
+            predicate = tripletObject.predicate,
+            object = tripletObject.object;
 
         // Check that predicate doesn't already exist
         new Promise((resolve, reject) => tripletsDB.del({subject: subject.hash,
             predicate: predicate.type,
             object: object.hash}, function(err: Error){
-                if (err) reject(err);
-                resolve();
-            })).then(() => {
-                // Add nodes to graph
-                simulation.stop();
+            if (err) reject(err);
+            resolve();
+        })).then(() => {
+            // Add nodes to graph
+            simulation.stop();
 
-                createNewLinks(callback);
-            });
+            createNewLinks(callback);
+        });
     }
 
     /**
