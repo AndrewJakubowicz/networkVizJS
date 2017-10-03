@@ -319,15 +319,13 @@ function networkVizJS(documentId, userLayoutOptions) {
                 if (internalOptions.isDragging) {
                     return;
                 }
-                const element = d3.select(this);
+
                 var foWidth = 2;
                 var foHeight = 1;
                 var foX = d.width;
                 var foY = 0;
                 var element = d3.select(this); // The node
                 var parent = d3.select(this.parentNode);
-                // var contextMenu = document.getElementsByClassName('.node-context-menu');
-                // if (contextMenu && contextMenu.length !== 0) return;
                 node.selectAll('.node-context-menu').remove();
                 var fo = parent.append('foreignObject')
                     .attr('x', foX)
