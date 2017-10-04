@@ -418,6 +418,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                             d.fixed = false; // eslint-disable-line no-param-reassign
                             parent.selectAll('.node-status-icons').remove();
                         }
+                        restart();
                         parent.selectAll('.radial-menu').remove();
 
                         // layoutOptions.pinNode && layoutOptions.pinNode(d);
