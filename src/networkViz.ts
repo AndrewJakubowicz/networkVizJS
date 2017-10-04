@@ -373,44 +373,56 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
             updateShapes.on("mouseover", function(d){
                 if (internalOptions.isDragging) { return; }
 
-                const element = d3.select(this);
-
                 var foWidth = 2;
                 var foHeight = 1;
                 var foX = d.width;
                 var foY = 0;
                 var element = d3.select(this); // The node
                 var parent = d3.select(this.parentNode);
+                node.selectAll('.radial-menu').remove();
 
-                // var contextMenu = document.getElementsByClassName('.node-context-menu');
-                // if (contextMenu && contextMenu.length !== 0) return;
-                node.selectAll('.node-context-menu').remove();
                 var fo = parent.append('foreignObject')
                     .attr('x', foX)
                     .attr('y', foY)
                     .attr('width', foWidth)
                     .attr('height', foHeight)
-                    .attr('class', 'node-context-menu')
+                    .attr('class', 'radial-menu');
 
                 var div = fo.append('xhtml:div')
                     .append('div')
                     .attr('class', 'tools');
-
                 div.append('div')
                     .html('<i class="fa fa-trash-o"></i>')
                     .on("click", function () {
                         console.log("clicked");
-                        layoutOptions.nodeRemove() && layoutOptions.nodeRemove(d);
+                        layoutOptions.nodeRemove && layoutOptions.nodeRemove(d);
                     })
                     .on("mouseout", function () {
                         console.log("mouseout");
-                        // parent.selectAll('.node-context-menu').remove();
-                    });
+                    })
 
                 div.append('div')
-                    .html('<i class="fa fa-arrow-right"></i>');
+                    .html('<i class="fa fa-thumb-tack"></i>')
+                    .on("click", function () {
+                        if (!d.fixed) {
+                            d.fixed = true; // eslint-disable-line no-param-reassign
+                            var foOnNode = parent.append('foreignObject')
+                                .attr('x', d.width / 2)
+                                .attr('y', 0)
+                                .attr('class', 'node-status-icons');
 
-                layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element as any);
+                            var div = foOnNode.append('xhtml:div');
+                            div.append('div')
+                                .html('<i class="fa fa-thumb-tack"></i>')
+                        } else {
+                            d.fixed = false; // eslint-disable-line no-param-reassign
+                            parent.selectAll('.node-status-icons').remove();
+                        }
+                        parent.selectAll('.radial-menu').remove();
+
+                        // layoutOptions.pinNode && layoutOptions.pinNode(d);
+                    });
+                layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
 
             }).on("mouseout", function(d) {
                 if (internalOptions.isDragging) { return; }

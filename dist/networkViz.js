@@ -319,20 +319,19 @@ function networkVizJS(documentId, userLayoutOptions) {
                 if (internalOptions.isDragging) {
                     return;
                 }
-
                 var foWidth = 2;
                 var foHeight = 1;
                 var foX = d.width;
                 var foY = 0;
                 var element = d3.select(this); // The node
                 var parent = d3.select(this.parentNode);
-                node.selectAll('.node-context-menu').remove();
+                node.selectAll('.radial-menu').remove();
                 var fo = parent.append('foreignObject')
                     .attr('x', foX)
                     .attr('y', foY)
                     .attr('width', foWidth)
                     .attr('height', foHeight)
-                    .attr('class', 'node-context-menu');
+                    .attr('class', 'radial-menu');
                 var div = fo.append('xhtml:div')
                     .append('div')
                     .attr('class', 'tools');
@@ -340,14 +339,31 @@ function networkVizJS(documentId, userLayoutOptions) {
                     .html('<i class="fa fa-trash-o"></i>')
                     .on("click", function () {
                     console.log("clicked");
-                    layoutOptions.nodeRemove() && layoutOptions.nodeRemove(d);
+                    layoutOptions.nodeRemove && layoutOptions.nodeRemove(d);
                 })
                     .on("mouseout", function () {
                     console.log("mouseout");
-                    // parent.selectAll('.node-context-menu').remove();
                 });
                 div.append('div')
-                    .html('<i class="fa fa-arrow-right"></i>');
+                    .html('<i class="fa fa-thumb-tack"></i>')
+                    .on("click", function () {
+                    if (!d.fixed) {
+                        d.fixed = true; // eslint-disable-line no-param-reassign
+                        var foOnNode = parent.append('foreignObject')
+                            .attr('x', d.width / 2)
+                            .attr('y', 0)
+                            .attr('class', 'node-status-icons');
+                        var div = foOnNode.append('xhtml:div');
+                        div.append('div')
+                            .html('<i class="fa fa-thumb-tack"></i>');
+                    }
+                    else {
+                        d.fixed = false; // eslint-disable-line no-param-reassign
+                        parent.selectAll('.node-status-icons').remove();
+                    }
+                    parent.selectAll('.radial-menu').remove();
+                    // layoutOptions.pinNode && layoutOptions.pinNode(d);
+                });
                 layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
             }).on("mouseout", function (d) {
                 if (internalOptions.isDragging) {
@@ -366,7 +382,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 }
                 layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
             }).on("click", function (d) {
-                var elem = d3.select(this);
+                let elem = d3.select(this);
                 setTimeout(() => {
                     layoutOptions.clickNode(d, elem);
                 }, 50);
