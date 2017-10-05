@@ -343,9 +343,14 @@ function networkVizJS(documentId, userLayoutOptions) {
                 })
                     .on("mouseout", function () {
                     console.log("mouseout");
+                    parent.selectAll('.radial-menu').remove();
                 });
                 div.append('div')
                     .html('<i class="fa fa-thumb-tack"></i>')
+                    .on("mouseout", function () {
+                    console.log("mouseout");
+                    parent.selectAll('.radial-menu').remove();
+                })
                     .on("click", function () {
                     if (!d.fixed) {
                         d.fixed = true; // eslint-disable-line no-param-reassign
@@ -363,7 +368,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                     }
                     restart();
                     parent.selectAll('.radial-menu').remove();
-                    // layoutOptions.pinNode && layoutOptions.pinNode(d);
                 });
                 layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
             }).on("mouseout", function (d) {
@@ -379,7 +383,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 if (mosX < -1 || mosX > (d.width + 40) || mosY < -1 || mosY > d.height - 2 ||
                     (mosX < d.width && mosX > d.width / 2 && mosY > 0 && mosY < d.height) ||
                     (mosX < d.width / 2 && mosX > 0 && mosY > 0 && mosY < d.height)) {
-                    parent.selectAll('.node-context-menu').remove();
+                    parent.selectAll('.radial-menu').remove();
                 }
                 layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
             }).on("click", function (d) {

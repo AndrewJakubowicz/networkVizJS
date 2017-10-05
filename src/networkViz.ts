@@ -370,8 +370,10 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
 
 
             // These CANNOT be arrow functions or 'this' context becomes wrong.
-            updateShapes.on("mouseover", function(d){
-                if (internalOptions.isDragging) { return; }
+            updateShapes.on("mouseover", function (d) {
+                if (internalOptions.isDragging) {
+                    return;
+                }
 
                 var foWidth = 2;
                 var foHeight = 1;
@@ -390,7 +392,8 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
 
                 var div = fo.append('xhtml:div')
                     .append('div')
-                    .attr('class', 'tools');
+                    .attr('class', 'tools')
+
                 div.append('div')
                     .html('<i class="fa fa-trash-o"></i>')
                     .on("click", function () {
@@ -399,10 +402,15 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                     })
                     .on("mouseout", function () {
                         console.log("mouseout");
-                    })
+                        parent.selectAll('.radial-menu').remove();
+                    });
 
                 div.append('div')
                     .html('<i class="fa fa-thumb-tack"></i>')
+                    .on("mouseout", function () {
+                        console.log("mouseout");
+                        parent.selectAll('.radial-menu').remove();
+                    })
                     .on("click", function () {
                         if (!d.fixed) {
                             d.fixed = true; // eslint-disable-line no-param-reassign
@@ -420,28 +428,25 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                         }
                         restart();
                         parent.selectAll('.radial-menu').remove();
-
-                        // layoutOptions.pinNode && layoutOptions.pinNode(d);
                     });
                 layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
 
-            }).on("mouseout", function(d) {
-                if (internalOptions.isDragging) { return; }
-
+            }).on("mouseout", function (d) {
+                if (internalOptions.isDragging) {
+                    return;
+                }
                 var element = d3.select(this);
-                var parent = d3.select(this.parentNode)
+                var parent = d3.select(this.parentNode);
                 var e = d3.event;
                 var mouse = d3.mouse(this.parentElement);
-                var mosX = mouse[0]
-                var mosY = mouse[1]
+                var mosX = mouse[0];
+                var mosY = mouse[1];
                 if (mosX < -1 || mosX > (d.width + 40) || mosY < -1 || mosY > d.height - 2 ||
                     (mosX < d.width && mosX > d.width / 2 && mosY > 0 && mosY < d.height) ||
-                    (mosX < d.width / 2 && mosX > 0  && mosY > 0 && mosY < d.height))
-                {
-                    parent.selectAll('.node-context-menu').remove();
+                    (mosX < d.width / 2 && mosX > 0 && mosY > 0 && mosY < d.height)) {
+                    parent.selectAll('.radial-menu').remove();
                 }
-
-                layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element as any);
+                layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
             }).on("click", function(d) {
                 let elem = d3.select(this);
                 setTimeout(() => {
