@@ -915,6 +915,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      *         nodes: hash[]
      */
     const saveGraph = (callback) => {
+        d3.selectAll('.radial-menu').remove();
         tripletsDB.get({}, (err, l) => {
             const saved = JSON.stringify({
                 triplets: l.map(v => ({ subject: v.subject, predicate: v.predicate, object: v.object })),

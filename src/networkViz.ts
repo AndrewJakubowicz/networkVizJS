@@ -1032,6 +1032,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      *         nodes: hash[]
      */
     const saveGraph = (callback: (_: string) => any) => {
+        d3.selectAll('.radial-menu').remove();
         tripletsDB.get({}, (err: Error, l: any[]) => {
             const saved = JSON.stringify({
                 triplets: l.map(v => ({ subject: v.subject, predicate: v.predicate, object: v.object })),
