@@ -9,6 +9,7 @@ const d3 = require("d3");
 function updateColaLayout(layoutOptions) {
     let tempSimulation = cola.d3adaptor(d3)
         .size([layoutOptions.width, layoutOptions.height])
+        .linkDistance(20)
         .avoidOverlaps(layoutOptions.avoidOverlaps)
         .handleDisconnected(layoutOptions.handleDisconnected);
     // TODO: Work out what's up with the edge length.
