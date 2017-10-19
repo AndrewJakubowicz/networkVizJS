@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 import * as cola from "webcola";
+
 const levelgraph = require("levelgraph");
 const level = require("level-browserify");
 
@@ -34,6 +35,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
         mouseOutNode: undefined,
         mouseUpNode: undefined,
         // These are "live options"
+        nodeToPin: false,
         nodeToColor: "white",
         nodeStrokeWidth: 2,
         nodeStrokeColor: "black",
@@ -42,7 +44,10 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
         clickAway: () => undefined,
         edgeColor: "black",
         edgeStroke: 2,
-        edgeLength: d => {console.log(`length`, d); return 150; },
+        edgeLength: d => {
+            console.log(`length`, d);
+            return 150;
+        },
         clickEdge: (d, element) => undefined,
     };
 
@@ -157,12 +162,13 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      * Zooming and panning behaviour.
      */
     const zoom = d3.zoom().scaleExtent([0.1, 5]).on("zoom", zoomed);
-    zoom.filter(function(){
+    zoom.filter(function () {
         // Prevent zoom when mouse over node.
         return d3.event.target.tagName.toLowerCase() === "svg";
     });
     //Ghazal Start
     svg.call(zoom).on("dblclick.zoom", null);
+
     //Ghazal End
 
     function zoomed() {
@@ -176,7 +182,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      */
     function updatePathDimensions() {
         node.select("path")
-            .attr("transform", function(d: any) {
+            .attr("transform", function (d: any) {
                 // Scale appropriately using http://stackoverflow.com/a/9877871/6421793
                 const currentWidth = (this as any).getBBox().width,
                     w = d.width,
@@ -201,10 +207,10 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
     function repositionText() {
         return Promise.resolve()
             .then(_ => {
-                node.select("text").each(function(d) {
+                node.select("text").each(function (d) {
                     const text = d3.select(this);
                     const margin = layoutOptions.margin,
-                        pad    = layoutOptions.pad;
+                        pad = layoutOptions.pad;
                     const extra = 2 * margin + 2 * pad;
                     // The width must reset to allow the box to get smaller.
                     // Later we will set width based on the widest tspan/line.
@@ -213,25 +219,25 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                         d.width = d.minWidth || 0;
                     }
                     // Loop over the tspans and recalculate the width based on the longest text.
-                    text.selectAll("tspan").each(function(d: any) {
+                    text.selectAll("tspan").each(function (d: any) {
                         const lineLength = (this as any).getComputedTextLength();
                         if (d.width < lineLength + extra) {
                             d.width = lineLength + extra;
                         }
                     });
-                }).each(function(d: any){
+                }).each(function (d: any) {
                     // Only update the height, the width is calculated
                     // by iterating over the tspans in the `wrap` function.
                     const b = (this as any).getBBox();
                     const extra = 2 * margin + 2 * pad;
                     d.height = b.height + extra;
                 })
-                    .attr("y",  function(d){
+                    .attr("y", function (d) {
                         const b = (d3.select(this).node() as any).getBBox();
                         // Todo: Minus 2 is a hack to get the text feeling 'right'.
                         return (d as any).height / 2 - b.height / 2 - 2;
                     })
-                    .attr("x", function(d){
+                    .attr("x", function (d) {
                         // Apply the correct x value to the tspan.
                         const b = (this as any).getBBox();
                         const x = (d as any).width / 2 - b.width / 2;
@@ -241,6 +247,21 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                             .attr("x", (d as any).textPosition);
                         return (d as any).textPosition;
                     });
+
+                d3.selectAll("#graph .node").each(function (d) {
+                    const node = d3.select(this);
+                    const foOnNode = node.selectAll('.node-status-icons')
+                    var pined = layoutOptions.nodeToPin && layoutOptions.nodeToPin(d);
+                    if (pined) {
+                        foOnNode
+                            .attr('x', d => d.width / 2 || 0)
+                            .attr('y', 0)
+                            .style("opacity", 1)
+                    } else {
+                        foOnNode
+                            .style("opacity", 0)
+                    }
+                });
             });
     }
 
@@ -303,6 +324,12 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
             }
             nodeShape.attr("vector-effect", "non-scaling-stroke");
 
+            nodeEnter.append("foreignObject")
+                .classed("node-status-icons", true)
+                .append('xhtml:div')
+                .append('div')
+                .html('<i class="fa fa-thumb-tack"></i>');
+
             // Merge the entered nodes to the update nodes.
             node = node.merge(nodeEnter)
                 .classed("fixed", d => (d as any).fixed || false);
@@ -314,14 +341,14 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
             const textSelect = node.select("text")
                 .text(undefined)
                 .attr("class", d => (d as any).class)
-                .each(function(d){
+                .each(function (d) {
                     // This function takes the text element.
                     // We can call .each on it and build up
                     // the tspan elements from the array of text
                     // in the data.
                     // Derived from https://bl.ocks.org/mbostock/7555321
                     const margin = layoutOptions.margin,
-                        pad    = layoutOptions.pad;
+                        pad = layoutOptions.pad;
                     const extra = 2 * margin + 2 * pad;
                     const text = d3.select(this);
 
@@ -414,17 +441,10 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                     .on("click", function () {
                         if (!d.fixed) {
                             d.fixed = true; // eslint-disable-line no-param-reassign
-                            var foOnNode = parent.append('foreignObject')
-                                .attr('x', d.width / 2)
-                                .attr('y', 0)
-                                .attr('class', 'node-status-icons');
-
-                            var div = foOnNode.append('xhtml:div');
-                            div.append('div')
-                                .html('<i class="fa fa-thumb-tack"></i>')
-                        } else {
+                            layoutOptions.clickPin && layoutOptions.clickPin(d, element);
+                        }
+                        else {
                             d.fixed = false; // eslint-disable-line no-param-reassign
-                            parent.selectAll('.node-status-icons').remove();
                         }
                         restart();
                         parent.selectAll('.radial-menu').remove();
@@ -447,17 +467,19 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                     parent.selectAll('.radial-menu').remove();
                 }
                 layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
-            }).on("click", function(d) {
+            }).on("click", function (d) {
                 let elem = d3.select(this);
                 setTimeout(() => {
                     layoutOptions.clickNode(d, elem as any);
                 }, 50);
 
-            }).on("mouseup", function (d){
+            }).on("mouseup", function (d) {
                 layoutOptions.mouseUpNode && layoutOptions.mouseUpNode(d, d3.select(this) as any);
-            }).on("mousedown", function(d){
+            }).on("mousedown", function (d) {
 
-                if ((layoutOptions.canDrag === undefined) || (layoutOptions.canDrag())) { return; }
+                if ((layoutOptions.canDrag === undefined) || (layoutOptions.canDrag())) {
+                    return;
+                }
                 layoutOptions.mouseDownNode && layoutOptions.mouseDownNode(d, d3.select(this) as any);
             });
 
@@ -477,7 +499,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                 .attr("fill", "none")
                 .attr("marker-end", d => `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : (layoutOptions.edgeColor as any)((d as any).edgeData)})`);
 
-            linkEnter.on("click", function(d) {
+            linkEnter.on("click", function (d) {
                 const elem = d3.select(this);
                 setTimeout(() => {
                     layoutOptions.clickEdge(d, elem as any);
@@ -547,7 +569,9 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                     }
 
                     try {
-                        if (isIE()) link.select("path").each(function (d) { (this as any).parentNode.insertBefore(this, this); });
+                        if (isIE()) link.select("path").each(function (d) {
+                            (this as any).parentNode.insertBefore(this, this);
+                        });
                     } catch (err) {
                         console.log(err);
                         return;
@@ -558,7 +582,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                         return (arrayX[middleIndex].x + arrayX[middleIndex + 1].x) / 2;
                     }).attr("y", d => {
                         const arrayY = simulation.routeEdge(d, undefined);
-                        const middleIndex = Math.floor(arrayY.length / 2) - 1 ;
+                        const middleIndex = Math.floor(arrayY.length / 2) - 1;
                         return (arrayY[middleIndex].y + arrayY[middleIndex + 1].y) / 2;
                     });
                 };
@@ -566,7 +590,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                 // Restart the simulation.
                 simulation.links(links)    // Required because we create new link lists
                     .groups(groups)
-                    .start(10, 15, 20).on("tick", function() {
+                    .start(10, 15, 20).on("tick", function () {
                     node.each((d: any) => {
                         if (d.bounds) {
                             // Initiate the innerBounds, and create it based on the width and height
@@ -592,7 +616,9 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                         }
                         return lineFunction([route.sourceIntersection, route.arrowStart] as any);
                     });
-                    if (isIE()) link.each(function (d) { (this as any).parentNode.insertBefore(this, this); });
+                    if (isIE()) link.each(function (d) {
+                        (this as any).parentNode.insertBefore(this, this);
+                    });
 
                     link.select("text")
                         .attr("x", d => {
@@ -616,13 +642,24 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                             return (route.sourceIntersection.y + route.targetIntersection.y) / 2;
                         });
 
-                    group.attr("x", function(d){ return (d as any).bounds.x; })
-                        .attr("y", function(d){ return (d as any).bounds.y; })
-                        .attr("width", function(d){ return (d as any).bounds.width(); })
-                        .attr("height", function(d){ return (d as any).bounds.height(); });
+                    group.attr("x", function (d) {
+                        return (d as any).bounds.x;
+                    })
+                        .attr("y", function (d) {
+                            return (d as any).bounds.y;
+                        })
+                        .attr("width", function (d) {
+                            return (d as any).bounds.width();
+                        })
+                        .attr("height", function (d) {
+                            return (d as any).bounds.height();
+                        });
 
                 }).on("end", routeEdges);
-                function isIE() { return ((navigator.appName == "Microsoft Internet Explorer") || ((navigator.appName == "Netscape") && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined))); }
+
+                function isIE() {
+                    return ((navigator.appName == "Microsoft Internet Explorer") || ((navigator.appName == "Netscape") && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined)));
+                }
 
                 // After a tick make sure to add translation to the nodes.
                 // Sometimes it wasn"t added in a single tick.
@@ -645,7 +682,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
             links = l.map(({subject, object, edgeData}) => {
                 const source = nodeMap.get(subject);
                 const target = nodeMap.get(object);
-                return { source, target, edgeData };
+                return {source, target, edgeData};
             });
             restart(callback);
         });
@@ -665,6 +702,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
         function isArray(obj: any) {
             return !!obj && obj.constructor === Array;
         }
+
         function addNodeObjectHelper(nodeObject: any) {
             // Check that hash exists
             if (!(nodeObject.hash)) {
@@ -763,9 +801,11 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
             object = tripletObject.object;
 
         // Check that predicate doesn't already exist
-        new Promise((resolve, reject) => tripletsDB.get({subject: subject.hash,
+        new Promise((resolve, reject) => tripletsDB.get({
+            subject: subject.hash,
             predicate: predicate.type,
-            object: object.hash}, function(err: Error, list: any[]){
+            object: object.hash
+        }, function (err: Error, list: any[]) {
             if (err) reject(err);
             resolve(list.length === 0);
         })).then(doesntExist => {
@@ -846,9 +886,11 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
             object = tripletObject.object;
 
         // Check that predicate doesn't already exist
-        new Promise((resolve, reject) => tripletsDB.del({subject: subject.hash,
+        new Promise((resolve, reject) => tripletsDB.del({
+            subject: subject.hash,
             predicate: predicate.type,
-            object: object.hash}, function(err: Error){
+            object: object.hash
+        }, function (err: Error) {
             if (err) reject(err);
             resolve();
         })).then(() => {
@@ -864,11 +906,11 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      * @param {String} nodeHash hash of the node to remove.
      */
     function removeNode(nodeHash: string, callback?: () => void) {
-        tripletsDB.get({subject: nodeHash}, function(err: Error, l1: any[]){
+        tripletsDB.get({subject: nodeHash}, function (err: Error, l1: any[]) {
             if (err) {
                 return console.error(err);
             }
-            tripletsDB.get({object: nodeHash}, function(err: Error, l2: any[]){
+            tripletsDB.get({object: nodeHash}, function (err: Error, l2: any[]) {
                 if (err) {
                     return console.error(err);
                 }
@@ -893,8 +935,10 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                     return;
                 }
 
-                tripletsDB.del([...l1, ...l2], function(err: Error){
-                    if (err) { return err; }
+                tripletsDB.del([...l1, ...l2], function (err: Error) {
+                    if (err) {
+                        return err;
+                    }
 
                     // Once the edges are deleted we can remove the node.
                     let nodeIndex = -1;
@@ -1013,7 +1057,7 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
             const indexOfSet = [];
             const setArray = [...set];
             let nodeIndex;
-            for (let i = 0; i < setArray.length; i ++) {
+            for (let i = 0; i < setArray.length; i++) {
                 nodeIndex = nodeMap.get(setArray[i]).index;
                 indexOfSet.push(nodeIndex);
             }
@@ -1035,8 +1079,8 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
         d3.selectAll('.radial-menu').remove();
         tripletsDB.get({}, (err: Error, l: any[]) => {
             const saved = JSON.stringify({
-                triplets: l.map(v => ({ subject: v.subject, predicate: v.predicate, object: v.object })),
-                nodes: nodes.map(v => ({ hash: v.hash, x: v.x, y: v.y }))
+                triplets: l.map(v => ({subject: v.subject, predicate: v.predicate, object: v.object})),
+                nodes: nodes.map(v => ({hash: v.hash, x: v.x, y: v.y}))
             });
             callback(saved);
         });
@@ -1046,10 +1090,10 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
      * These exist to prevent errors when the user
      * tabs away from the graph.
      */
-    window.onfocus = function() {
+    window.onfocus = function () {
         restart();
     };
-    window.onblur = function() {
+    window.onblur = function () {
         simulation.stop();
     };
 
@@ -1106,7 +1150,9 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
         },
         // Handler for clicking on the edge.
         edgeOptions: {
-            setClickEdge: (callback: (link?: any, d3selection?: any) => void) => {layoutOptions.clickEdge = callback; }
+            setClickEdge: (callback: (link?: any, d3selection?: any) => void) => {
+                layoutOptions.clickEdge = callback;
+            }
         },
         // Change layouts on the fly.
         // May be a webcola memory leak if you change the layout too many times.

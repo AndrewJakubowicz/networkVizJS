@@ -32,6 +32,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         mouseOutNode: undefined,
         mouseUpNode: undefined,
         // These are "live options"
+        nodeToPin: false,
         nodeToColor: "white",
         nodeStrokeWidth: 2,
         nodeStrokeColor: "black",
@@ -40,7 +41,10 @@ function networkVizJS(documentId, userLayoutOptions) {
         clickAway: () => undefined,
         edgeColor: "black",
         edgeStroke: 2,
-        edgeLength: d => { console.log(`length`, d); return 150; },
+        edgeLength: d => {
+            console.log(`length`, d);
+            return 150;
+        },
         clickEdge: (d, element) => undefined,
     };
     const internalOptions = {
@@ -208,6 +212,21 @@ function networkVizJS(documentId, userLayoutOptions) {
                     .attr("x", d.textPosition);
                 return d.textPosition;
             });
+            d3.selectAll("#graph .node").each(function (d) {
+                const node = d3.select(this);
+                const foOnNode = node.selectAll('.node-status-icons');
+                var pined = layoutOptions.nodeToPin && layoutOptions.nodeToPin(d);
+                if (pined) {
+                    foOnNode
+                        .attr('x', d => d.width / 2 || 0)
+                        .attr('y', 0)
+                        .style("opacity", 1);
+                }
+                else {
+                    foOnNode
+                        .style("opacity", 0);
+                }
+            });
         });
     }
     /**
@@ -261,6 +280,11 @@ function networkVizJS(documentId, userLayoutOptions) {
                 nodeShape.attr("d", layoutOptions.nodeShape);
             }
             nodeShape.attr("vector-effect", "non-scaling-stroke");
+            nodeEnter.append("foreignObject")
+                .classed("node-status-icons", true)
+                .append('xhtml:div')
+                .append('div')
+                .html('<i class="fa fa-thumb-tack"></i>');
             // Merge the entered nodes to the update nodes.
             node = node.merge(nodeEnter)
                 .classed("fixed", d => d.fixed || false);
@@ -354,17 +378,10 @@ function networkVizJS(documentId, userLayoutOptions) {
                     .on("click", function () {
                     if (!d.fixed) {
                         d.fixed = true; // eslint-disable-line no-param-reassign
-                        var foOnNode = parent.append('foreignObject')
-                            .attr('x', d.width / 2)
-                            .attr('y', 0)
-                            .attr('class', 'node-status-icons');
-                        var div = foOnNode.append('xhtml:div');
-                        div.append('div')
-                            .html('<i class="fa fa-thumb-tack"></i>');
+                        layoutOptions.clickPin && layoutOptions.clickPin(d, element);
                     }
                     else {
                         d.fixed = false; // eslint-disable-line no-param-reassign
-                        parent.selectAll('.node-status-icons').remove();
                     }
                     restart();
                     parent.selectAll('.radial-menu').remove();
@@ -475,7 +492,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                 }
                 try {
                     if (isIE())
-                        link.select("path").each(function (d) { this.parentNode.insertBefore(this, this); });
+                        link.select("path").each(function (d) {
+                            this.parentNode.insertBefore(this, this);
+                        });
                 }
                 catch (err) {
                     console.log(err);
@@ -520,7 +539,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                     return lineFunction([route.sourceIntersection, route.arrowStart]);
                 });
                 if (isIE())
-                    link.each(function (d) { this.parentNode.insertBefore(this, this); });
+                    link.each(function (d) {
+                        this.parentNode.insertBefore(this, this);
+                    });
                 link.select("text")
                     .attr("x", d => {
                     let route;
@@ -544,12 +565,22 @@ function networkVizJS(documentId, userLayoutOptions) {
                     }
                     return (route.sourceIntersection.y + route.targetIntersection.y) / 2;
                 });
-                group.attr("x", function (d) { return d.bounds.x; })
-                    .attr("y", function (d) { return d.bounds.y; })
-                    .attr("width", function (d) { return d.bounds.width(); })
-                    .attr("height", function (d) { return d.bounds.height(); });
+                group.attr("x", function (d) {
+                    return d.bounds.x;
+                })
+                    .attr("y", function (d) {
+                    return d.bounds.y;
+                })
+                    .attr("width", function (d) {
+                    return d.bounds.width();
+                })
+                    .attr("height", function (d) {
+                    return d.bounds.height();
+                });
             }).on("end", routeEdges);
-            function isIE() { return ((navigator.appName == "Microsoft Internet Explorer") || ((navigator.appName == "Netscape") && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined))); }
+            function isIE() {
+                return ((navigator.appName == "Microsoft Internet Explorer") || ((navigator.appName == "Netscape") && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined)));
+            }
             // After a tick make sure to add translation to the nodes.
             // Sometimes it wasn"t added in a single tick.
             node.attr("transform", d => d.innerBounds ?
@@ -671,9 +702,11 @@ function networkVizJS(documentId, userLayoutOptions) {
         // Node needs a unique hash associated with it.
         const subject = tripletObject.subject, predicate = tripletObject.predicate, object = tripletObject.object;
         // Check that predicate doesn't already exist
-        new Promise((resolve, reject) => tripletsDB.get({ subject: subject.hash,
+        new Promise((resolve, reject) => tripletsDB.get({
+            subject: subject.hash,
             predicate: predicate.type,
-            object: object.hash }, function (err, list) {
+            object: object.hash
+        }, function (err, list) {
             if (err)
                 reject(err);
             resolve(list.length === 0);
@@ -746,9 +779,11 @@ function networkVizJS(documentId, userLayoutOptions) {
         // Node needs a unique hash associated with it.
         const subject = tripletObject.subject, predicate = tripletObject.predicate, object = tripletObject.object;
         // Check that predicate doesn't already exist
-        new Promise((resolve, reject) => tripletsDB.del({ subject: subject.hash,
+        new Promise((resolve, reject) => tripletsDB.del({
+            subject: subject.hash,
             predicate: predicate.type,
-            object: object.hash }, function (err) {
+            object: object.hash
+        }, function (err) {
             if (err)
                 reject(err);
             resolve();
@@ -986,7 +1021,9 @@ function networkVizJS(documentId, userLayoutOptions) {
         },
         // Handler for clicking on the edge.
         edgeOptions: {
-            setClickEdge: (callback) => { layoutOptions.clickEdge = callback; }
+            setClickEdge: (callback) => {
+                layoutOptions.clickEdge = callback;
+            }
         },
         // Change layouts on the fly.
         // May be a webcola memory leak if you change the layout too many times.
