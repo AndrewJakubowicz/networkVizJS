@@ -229,6 +229,66 @@ function networkVizJS(documentId, userLayoutOptions) {
             });
         });
     }
+    function addHoverMenu(d, me) {
+        var foWidth = 2;
+        var foHeight = 1;
+        var foX = d.width;
+        var foY = 0;
+        var element = d3.select(me); // The node
+        var parent = d3.select(me.parentNode);
+        node.selectAll('.radial-menu').remove();
+        var fo = parent.append('foreignObject')
+            .attr('x', foX)
+            .attr('y', foY)
+            .attr('width', foWidth)
+            .attr('height', foHeight)
+            .attr('class', 'radial-menu');
+        var div = fo.append('xhtml:div')
+            .append('div')
+            .attr('class', 'tools');
+        div.append('div')
+            .html('<i class="fa fa-trash-o"></i>')
+            .on("click", function () {
+            console.log("clicked");
+            layoutOptions.nodeRemove && layoutOptions.nodeRemove(d);
+        })
+            .on("mouseout", function () {
+            console.log("mouseout");
+            parent.selectAll('.radial-menu').remove();
+        });
+        div.append('div')
+            .html('<i class="fa fa-thumb-tack"></i>')
+            .on("mouseout", function () {
+            console.log("mouseout");
+            parent.selectAll('.radial-menu').remove();
+        })
+            .on("click", function () {
+            if (!d.fixed) {
+                d.fixed = true; // eslint-disable-line no-param-reassign
+            }
+            else {
+                d.fixed = false; // eslint-disable-line no-param-reassign
+            }
+            layoutOptions.clickPin && layoutOptions.clickPin(d, element);
+            restart();
+            parent.selectAll('.radial-menu').remove();
+        });
+        layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
+    }
+    function removeHoverMenu(d, me) {
+        var element = d3.select(me);
+        var parent = d3.select(me.parentNode);
+        var e = d3.event;
+        var mouse = d3.mouse(me.parentElement);
+        var mosX = mouse[0];
+        var mosY = mouse[1];
+        if (mosX < -1 || mosX > (d.width + 40) || mosY < -1 || mosY > d.height - 2 ||
+            (mosX < d.width && mosX > d.width / 2 && mosY > 0 && mosY < d.height) ||
+            (mosX < d.width / 2 && mosX > 0 && mosY > 0 && mosY < d.height)) {
+            parent.selectAll('.radial-menu').remove();
+        }
+        layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
+    }
     /**
      * Update the d3 visuals without layout changes.
      */
@@ -343,66 +403,12 @@ function networkVizJS(documentId, userLayoutOptions) {
                 if (internalOptions.isDragging) {
                     return;
                 }
-                var foWidth = 2;
-                var foHeight = 1;
-                var foX = d.width;
-                var foY = 0;
-                var element = d3.select(this); // The node
-                var parent = d3.select(this.parentNode);
-                node.selectAll('.radial-menu').remove();
-                var fo = parent.append('foreignObject')
-                    .attr('x', foX)
-                    .attr('y', foY)
-                    .attr('width', foWidth)
-                    .attr('height', foHeight)
-                    .attr('class', 'radial-menu');
-                var div = fo.append('xhtml:div')
-                    .append('div')
-                    .attr('class', 'tools');
-                div.append('div')
-                    .html('<i class="fa fa-trash-o"></i>')
-                    .on("click", function () {
-                    console.log("clicked");
-                    layoutOptions.nodeRemove && layoutOptions.nodeRemove(d);
-                })
-                    .on("mouseout", function () {
-                    console.log("mouseout");
-                    parent.selectAll('.radial-menu').remove();
-                });
-                div.append('div')
-                    .html('<i class="fa fa-thumb-tack"></i>')
-                    .on("mouseout", function () {
-                    console.log("mouseout");
-                    parent.selectAll('.radial-menu').remove();
-                })
-                    .on("click", function () {
-                    if (!d.fixed) {
-                        d.fixed = true; // eslint-disable-line no-param-reassign
-                        layoutOptions.clickPin && layoutOptions.clickPin(d, element);
-                    }
-                    else {
-                        d.fixed = false; // eslint-disable-line no-param-reassign
-                    }
-                    restart();
-                    parent.selectAll('.radial-menu').remove();
-                });
-                layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
+                addHoverMenu(d, this);
             }).on("mouseout", function (d) {
                 if (internalOptions.isDragging) {
                     return;
                 }
-                var element = d3.select(this);
-                var parent = d3.select(this.parentNode);
-                var e = d3.event;
-                var mouse = d3.mouse(this.parentElement);
-                var mosX = mouse[0];
-                var mosY = mouse[1];
-                if (mosX < -1 || mosX > (d.width + 40) || mosY < -1 || mosY > d.height - 2 ||
-                    (mosX < d.width && mosX > d.width / 2 && mosY > 0 && mosY < d.height) ||
-                    (mosX < d.width / 2 && mosX > 0 && mosY > 0 && mosY < d.height)) {
-                    parent.selectAll('.radial-menu').remove();
-                }
-                layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
+                removeHoverMenu(d, this);
             }).on("click", function (d) {
                 let elem = d3.select(this);
                 setTimeout(() => {
