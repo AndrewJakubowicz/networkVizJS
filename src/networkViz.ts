@@ -273,15 +273,56 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
         var element = d3.select(me); // The node
         var parent = d3.select(me.parentNode);
         node.selectAll('.radial-menu').remove();
+
         var fo = parent.append('foreignObject')
             .attr('x', foX)
             .attr('y', foY)
             .attr('width', foWidth)
             .attr('height', foHeight)
             .attr('class', 'radial-menu');
+
         var div = fo.append('xhtml:div')
             .append('div')
-            .attr('class', 'tools');
+            .attr('class', 'tools')
+            .on("mouseover", function () {
+                layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
+            });
+
+        //CREATE COLOR PICKER
+        if (d.id.slice(0, 5) === 'note-') {
+
+            fo.attr('y', -10)
+
+            div.append('div')
+                .html('<div id="controls"><div><span data-type="color" id="bgpicker" /></span></div></div>');
+
+            $("#bgpicker").css('background-color', d.color);
+
+            div.on("click", function () {
+                var current = {
+                    'picker': "#bgpicker",
+                    'color': d.color,
+                    'graphic': "#brush"
+                };
+                $("#bgpicker").colpick({
+                    color: d.color,
+                    onChange: function (hsb, hex, rgb, el, bySetColor) {
+                        var newColor = '#' + hex;
+                        $("#brush").css("fill", newColor);
+                        $("#bgpicker").css('background-color', newColor);
+                        d.color = newColor
+                        element.attr('fill', newColor)
+                        layoutOptions.updateNodeColor && layoutOptions.updateNodeColor(d);
+                    },
+                    onSubmit: function (hsb, hex, rgb, el) {
+                        $(el).colpickHide();
+                    }
+                }).css('background-color', d.color);
+
+            })
+        }
+
+        //CREATE TRASH ICON
         div.append('div')
             .html('<i class="fa fa-trash-o"></i>')
             .on("click", function () {
@@ -292,25 +333,28 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
                 console.log("mouseout");
                 parent.selectAll('.radial-menu').remove();
             });
+
+        //CREATE PIN ICON
         div.append('div')
             .html('<i class="fa fa-thumb-tack"></i>')
             .on("mouseout", function () {
                 console.log("mouseout");
                 parent.selectAll('.radial-menu').remove();
-            })
-            .on("click", function () {
-                if (!d.fixed) {
-                    d.fixed = true; // eslint-disable-line no-param-reassign
-                }
-                else {
-                    d.fixed = false; // eslint-disable-line no-param-reassign
-                }
-                layoutOptions.clickPin && layoutOptions.clickPin(d, element);
-                restart();
-                parent.selectAll('.radial-menu').remove();
-            });
+
+            }).on("click", function () {
+            if (!d.fixed) {
+                d.fixed = true; // eslint-disable-line no-param-reassign
+            }
+            else {
+                d.fixed = false; // eslint-disable-line no-param-reassign
+            }
+            layoutOptions.clickPin && layoutOptions.clickPin(d, element);
+            restart();
+            parent.selectAll('.radial-menu').remove();
+        });
         layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
     }
+
 
     function removeHoverMenu(d, me) {
         var element = d3.select(me);
