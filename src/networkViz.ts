@@ -1,8 +1,10 @@
 import * as d3 from "d3";
 import * as cola from "webcola";
 
+const $ = require("jquery");
 const levelgraph = require("levelgraph");
 const level = require("level-browserify");
+const jscolor = require("./util/jscolor");
 
 import {updateColaLayout} from "./updateColaLayout";
 import createColorArrow from "./util/createColorArrow";
@@ -35,6 +37,9 @@ export default function networkVizJS(documentId: string, userLayoutOptions?: I.L
         mouseOutNode: undefined,
         mouseUpNode: undefined,
         // These are "live options"
+        updateNodeColor: undefined,
+        nodeRemove: undefined,
+        clickPin: undefined,
         nodeToPin: false,
         nodeToColor: "white",
         nodeStrokeWidth: 2,

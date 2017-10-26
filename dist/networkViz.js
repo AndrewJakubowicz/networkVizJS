@@ -2,8 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const d3 = require("d3");
 const cola = require("webcola");
+const $ = require("jquery");
 const levelgraph = require("levelgraph");
 const level = require("level-browserify");
+const jscolor = require("./util/jscolor");
 const updateColaLayout_1 = require("./updateColaLayout");
 const createColorArrow_1 = require("./util/createColorArrow");
 function networkVizJS(documentId, userLayoutOptions) {
@@ -32,6 +34,9 @@ function networkVizJS(documentId, userLayoutOptions) {
         mouseOutNode: undefined,
         mouseUpNode: undefined,
         // These are "live options"
+        updateNodeColor: undefined,
+        nodeRemove: undefined,
+        clickPin: undefined,
         nodeToPin: false,
         nodeToColor: "white",
         nodeStrokeWidth: 2,
