@@ -417,7 +417,7 @@ function networkVizJS(documentId, userLayoutOptions) {
 
         //CREATE RIGHT MENU
         var fo = parent.append('foreignObject')
-            .attr('x', foX)
+            .attr('x', foX + 5)
             .attr('y', foY)
             .attr('width', foWidth)
             .attr('height', foHeight)
