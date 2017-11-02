@@ -39,8 +39,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         clickPin: undefined,
         nodeToPin: false,
         nodeToColor: "white",
-        nodeStrokeWidth: 2,
-        nodeStrokeColor: "black",
+        nodeStrokeWidth: 1,
+        nodeStrokeColor: "grey",
         // TODO: clickNode (node, element) => void
         clickNode: (node) => console.log("clicked", node),
         clickAway: () => undefined,
@@ -52,6 +52,17 @@ function networkVizJS(documentId, userLayoutOptions) {
         },
         clickEdge: (d, element) => undefined,
     };
+    const X = 37;
+    const Y = -13;
+    const p1x = 25 + X;
+    const p1y = 25 + Y;
+    const p2x = 75 + X;
+    const p3x = 100 + X;
+    const p4y = 50 + Y;
+    var d0 = "M16 48 L48 48 L48 16 L16 16 Z", //RECT
+    d1 = "M20,40a20,20 0 1,0 40,0a20,20 0 1,0 -40,0", //CIRCLE
+    // d2 = "M148.1,310.5h-13.4c-4.2,0-7.7-3.4-7.7-7.7v-7.4c0-4.2,3.4-7.7,7.7-7.7h13.4c4.2,0,7.7,3.4,7.7,7.7v7.4  C155.7,307.1,152.3,310.5,148.1,310.5z"; //CAPSULE
+    d2 = `M ${p1x} ${p1y} L ${p2x} ${p1y} C ${p3x} ${p1y} ${p3x} ${p4y} ${p2x} ${p4y} L ${p1x} ${p4y} C ${X} ${p4y} ${X} ${p1y} ${p1x} ${p1y} `; //CAPSULE
     const internalOptions = {
         isDragging: false
     };
@@ -146,9 +157,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         // Prevent zoom when mouse over node.
         return d3.event.target.tagName.toLowerCase() === "svg";
     });
-    //Ghazal Start
     svg.call(zoom).on("dblclick.zoom", null);
-    //Ghazal End
     function zoomed() {
         layoutOptions.clickAway();
         g.attr("transform", d3.event.transform);
@@ -234,33 +243,135 @@ function networkVizJS(documentId, userLayoutOptions) {
             });
         });
     }
+    /**
+     * This function remove the icons from
+     * the hover menu
+     * @param node element's parent
+     */
+    function hoverMenuRemoveIcons(parent) {
+        if (parent) {
+            parent.selectAll('.menu-action').remove();
+            parent.selectAll('.menu-shape').remove();
+            parent.selectAll('.menu-color').remove();
+        }
+        else {
+            d3.selectAll('.menu-action').remove();
+            d3.selectAll('.menu-shape').remove();
+            d3.selectAll('.menu-color').remove();
+        }
+    }
+    /**
+     * This function add a a menu to
+     * Delete, Pin, Change color and Change shape of a node
+     * @param node data, node d3 element
+     */
     function addHoverMenu(d, me) {
-        var foWidth = 2;
-        var foHeight = 1;
-        var foX = d.width;
-        var foY = 0;
         var element = d3.select(me); // The node
         var parent = d3.select(me.parentNode);
-        node.selectAll('.radial-menu').remove();
-        var fo = parent.append('foreignObject')
-            .attr('x', foX)
+        var foWidth = 40;
+        var foHeight = d.height;
+        var foX = d.width;
+        var foY = 0;
+        let currentShape = d.nodeShape;
+        let firstShape = true;
+        let shapeY = 3;
+        hoverMenuRemoveIcons();
+        //CREATE SHAPES MENU
+        var shapeMenu = parent.append("g")
+            .attr('x', -30)
             .attr('y', foY)
-            .attr('width', foWidth)
+            .attr('width', 30)
             .attr('height', foHeight)
-            .attr('class', 'radial-menu');
-        var div = fo.append('xhtml:div')
-            .append('div')
-            .attr('class', 'tools')
-            .on("mouseover", function () {
-            layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
+            .attr('class', 'menu-shape')
+            .on("mouseout", function () {
+            var e = d3.event;
+            var element = d3.select(this);
+            var mouse = d3.mouse(this);
+            var mosX = mouse[0];
+            var mosY = mouse[1];
+            setTimeout(function () {
+                if (mosX < -20 || (mosY > d.height - 4 || mosY < 2)) {
+                    hoverMenuRemoveIcons(parent);
+                }
+            }, 50);
         });
-        //CREATE COLOR PICKER
+        if (currentShape !== "capsule") {
+            firstShape = false;
+            shapeMenu.append("rect")
+                .attr("rx", 6)
+                .attr("ry", 6)
+                .attr("x", -27)
+                .attr("y", shapeY)
+                .attr("width", 24)
+                .attr("height", 21)
+                .attr('class', 'menu-shape-rect')
+                .attr('fill', '#edfdfd')
+                .attr('stroke', '#b8c6c6')
+                .attr('stroke-width', 2)
+                .on("click", function () {
+                hoverMenuRemoveIcons(parent);
+                parent.selectAll('path').remove();
+                parent.insert("path", "text")
+                    .attr("d", d2);
+                d.nodeShape = "capsule";
+                updateStyles();
+            });
+        }
+        if (currentShape !== "rect") {
+            if (!firstShape)
+                shapeY = shapeY + 26;
+            firstShape = false;
+            shapeMenu.append("rect")
+                .attr("x", -27)
+                .attr("y", shapeY)
+                .attr("width", 24)
+                .attr("height", 21)
+                .attr('class', 'menu-shape-rect')
+                .attr('fill', '#edfdfd')
+                .attr('stroke', '#b8c6c6')
+                .attr('stroke-width', 2)
+                .on("click", function () {
+                hoverMenuRemoveIcons(parent);
+                parent.selectAll('path').remove();
+                parent.insert("path", "text")
+                    .attr("d", d0);
+                updateStyles();
+                d.nodeShape = "rect";
+            });
+        }
+        if (currentShape !== "circle") {
+            if (!firstShape)
+                shapeY = shapeY + 36;
+            firstShape = false;
+            shapeMenu.append("circle")
+                .attr("cx", -15)
+                .attr("cy", shapeY)
+                .attr("r", 12)
+                .attr('class', 'menu-shape-circle')
+                .attr('fill', '#edfdfd')
+                .attr('stroke', '#b8c6c6')
+                .attr('stroke-width', 2)
+                .on("click", function () {
+                hoverMenuRemoveIcons(parent);
+                parent.selectAll('path').remove();
+                parent.insert("path", "text")
+                    .attr("d", d1);
+                d.nodeShape = "circle";
+                updateStyles();
+            });
+        }
+        //CREATE COLOR SELECTOR ICON
+        var foColor = parent.append('foreignObject')
+            .attr("x", (d.width / 2) - 12)
+            .attr("y", -25)
+            .attr('class', 'menu-color');
+        var colorPik = foColor.append('xhtml:div')
+            .append('div');
         if (d.id.slice(0, 5) === 'note-') {
-            fo.attr('y', -10);
-            div.append('div')
+            colorPik.append('div')
                 .html('<div id="controls"><div><span data-type="color" id="bgpicker" /></span></div></div>');
             $("#bgpicker").css('background-color', d.color);
-            div.on("click", function () {
+            colorPik.on("click", function () {
                 var current = {
                     'picker': "#bgpicker",
                     'color': d.color,
@@ -278,28 +389,52 @@ function networkVizJS(documentId, userLayoutOptions) {
                     },
                     onSubmit: function (hsb, hex, rgb, el) {
                         $(el).colpickHide();
+                        hoverMenuRemoveIcons(parent);
                     }
                 }).css('background-color', d.color);
+            })
+                .on("mouseout", function () {
+                setTimeout(function () {
+                    hoverMenuRemoveIcons(parent);
+                }, 50);
             });
         }
+        //CREATE RIGHT MENU
+        var fo = parent.append('foreignObject')
+            .attr('x', foX)
+            .attr('y', foY)
+            .attr('width', foWidth)
+            .attr('height', foHeight)
+            .attr('class', 'menu-action')
+            .on("mouseout", function () {
+            var e = d3.event;
+            var element = d3.select(this);
+            var mouse = d3.mouse(this);
+            var mosX = mouse[0];
+            var mosY = mouse[1];
+            setTimeout(function () {
+                if (mosX > d.width + 21 || mosY > d.height - 4 || mosY < 2) {
+                    hoverMenuRemoveIcons(parent);
+                }
+            }, 50);
+        });
+        var div = fo.append('xhtml:div')
+            .append('div')
+            .on("mouseover", function () {
+            layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
+        });
         //CREATE TRASH ICON
         div.append('div')
-            .html('<i class="fa fa-trash-o"></i>')
+            .attr('class', 'icon-wrapper')
+            .html('<i class="fa fa-trash-o custom-icon"></i>')
             .on("click", function () {
             console.log("clicked");
             layoutOptions.nodeRemove && layoutOptions.nodeRemove(d);
-        })
-            .on("mouseout", function () {
-            console.log("mouseout");
-            parent.selectAll('.radial-menu').remove();
         });
         //CREATE PIN ICON
         div.append('div')
-            .html('<i class="fa fa-thumb-tack"></i>')
-            .on("mouseout", function () {
-            console.log("mouseout");
-            parent.selectAll('.radial-menu').remove();
-        }).on("click", function () {
+            .html('<i class="fa fa-thumb-tack custom-icon"></i>')
+            .on("click", function () {
             if (!d.fixed) {
                 d.fixed = true; // eslint-disable-line no-param-reassign
             }
@@ -307,23 +442,33 @@ function networkVizJS(documentId, userLayoutOptions) {
                 d.fixed = false; // eslint-disable-line no-param-reassign
             }
             layoutOptions.clickPin && layoutOptions.clickPin(d, element);
+            hoverMenuRemoveIcons(parent);
             restart();
-            parent.selectAll('.radial-menu').remove();
         });
         layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
     }
-    function removeHoverMenu(d, me) {
+    /**
+     * This function delete the node hover menu.
+     * It will calculate at which position to the node
+     * the menu should be removed
+     * @param node data, node d3 element
+     */
+    function deleteHoverMenu(d, me) {
+        var e = d3.event;
+        e.preventDefault();
         var element = d3.select(me);
         var parent = d3.select(me.parentNode);
-        var e = d3.event;
         var mouse = d3.mouse(me.parentElement);
         var mosX = mouse[0];
         var mosY = mouse[1];
-        if (mosX < -1 || mosX > (d.width + 40) || mosY < -1 || mosY > d.height - 2 ||
-            (mosX < d.width && mosX > d.width / 2 && mosY > 0 && mosY < d.height) ||
-            (mosX < d.width / 2 && mosX > 0 && mosY > 0 && mosY < d.height)) {
-            parent.selectAll('.radial-menu').remove();
+        if (mosY < -15 || mosY > d.height || mosX < -30 || mosX > d.width + 20) {
+            hoverMenuRemoveIcons(parent);
         }
+        // if (mosX < -20 || mosX > (d.width + 40) || mosY < -15 || mosY > d.height + 10 ||
+        //   (mosX < d.width && mosX > d.width / 2 && mosY > 0 && mosY < d.height) ||
+        //   (mosX < d.width / 2 && mosX > 0 && mosY > 0 && mosY < d.height)) {
+        //   hoverMenuRemoveIcons(parent)
+        // }
         layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
     }
     /**
@@ -445,7 +590,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 if (internalOptions.isDragging) {
                     return;
                 }
-                removeHoverMenu(d, this);
+                deleteHoverMenu(d, this);
             }).on("click", function (d) {
                 let elem = d3.select(this);
                 setTimeout(() => {
