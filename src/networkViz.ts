@@ -28,7 +28,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         margin: 10,
         canDrag: () => true,
         nodeDragStart: undefined,
-        edgeLabelText: undefined,
+        edgeLabelText: (edgeData)=>edgeData.text,
         // Both mouseout and mouseover take data AND the selection (arg1, arg2)
         mouseDownNode: undefined,
         mouseOverNode: undefined,
@@ -652,6 +652,12 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .text(undefined);
             link = link.merge(linkEnter);
             /** Optional label text */
+            // link.select("text").text(d=> {
+            //     console.log(d)
+            //     console.log(tripletsDB)
+            //     console.log(links)
+            //     console.log(predicateMap)
+            //     return d.edgeData.text});
             if (typeof layoutOptions.edgeLabelText === "function") {
                 link.select("text").text((d) => {
                     if (typeof d.edgeData.hash === "string") {
@@ -1198,6 +1204,18 @@ function networkVizJS(documentId, userLayoutOptions) {
     window.onblur = function () {
         simulation.stop();
     };
+    const updateEdge = (tripletObject) =>{
+    if (predicateMap.has(tripletObject.edgeData.hash)) {
+        predicateMap.set(tripletObject.edgeData.hash, tripletObject.edgeData);
+        tripletsDB.del({subject:tripletObject.subject, object:tripletObject.object}, (err)=> {
+            if(err){console.log(err)}
+            tripletsDB.put(tripletObject, (err)=>{
+                if (err){
+                    console.log(err)
+                }
+            })
+        });
+    }};
     // Public api
     /**
      * TODO:
@@ -1206,6 +1224,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      *  - Maybe have a "this" reference passed into the callbacks.
      */
     return {
+        updateEdge,
         // Check if node is drawn.
         hasNode: (nodeHash) => nodes.filter(v => v.hash == nodeHash).length === 1,
         // Public access to the levelgraph db.
