@@ -393,11 +393,11 @@ function networkVizJS(documentId, userLayoutOptions) {
                         $("#bgpicker").css('background-color', newColor);
                         d.color = newColor;
                         element.attr('fill', newColor);
-                        if (newColor === '#ffffff') {
-                            element.attr('stroke', 'gray');
-                        } else {
-                            element.attr('stroke', newColor);
-                        }
+                        // if (newColor === '#ffffff') {
+                        //     element.attr('stroke', 'gray');
+                        // } else {
+                        //     element.attr('stroke', newColor);
+                        // }
                         layoutOptions.updateNodeColor && layoutOptions.updateNodeColor(d);
                     },
                     onSubmit: function (hsb, hex, rgb, el) {

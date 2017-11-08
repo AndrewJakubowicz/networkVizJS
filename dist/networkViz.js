@@ -39,13 +39,13 @@ function networkVizJS(documentId, userLayoutOptions) {
         clickPin: undefined,
         nodeToPin: false,
         nodeToColor: "white",
-        nodeStrokeWidth: 1,
+        nodeStrokeWidth: .8,
         nodeStrokeColor: "grey",
         // TODO: clickNode (node, element) => void
         clickNode: (node) => console.log("clicked", node),
         clickAway: () => undefined,
         edgeColor: "black",
-        edgeStroke: 2,
+        edgeStroke: 1,
         edgeLength: d => {
             console.log(`length`, d);
             return 150;
@@ -60,9 +60,9 @@ function networkVizJS(documentId, userLayoutOptions) {
     const p3x = 100 + X;
     const p4y = 50 + Y;
     var d0 = "M16 48 L48 48 L48 16 L16 16 Z", //RECT
-    d1 = "M20,40a20,20 0 1,0 40,0a20,20 0 1,0 -40,0", //CIRCLE
-    // d2 = "M148.1,310.5h-13.4c-4.2,0-7.7-3.4-7.7-7.7v-7.4c0-4.2,3.4-7.7,7.7-7.7h13.4c4.2,0,7.7,3.4,7.7,7.7v7.4  C155.7,307.1,152.3,310.5,148.1,310.5z"; //CAPSULE
-    d2 = `M ${p1x} ${p1y} L ${p2x} ${p1y} C ${p3x} ${p1y} ${p3x} ${p4y} ${p2x} ${p4y} L ${p1x} ${p4y} C ${X} ${p4y} ${X} ${p1y} ${p1x} ${p1y} `; //CAPSULE
+        d1 = "M20,40a20,20 0 1,0 40,0a20,20 0 1,0 -40,0", //CIRCLE
+        // d2 = "M148.1,310.5h-13.4c-4.2,0-7.7-3.4-7.7-7.7v-7.4c0-4.2,3.4-7.7,7.7-7.7h13.4c4.2,0,7.7,3.4,7.7,7.7v7.4  C155.7,307.1,152.3,310.5,148.1,310.5z"; //CAPSULE
+        d2 = `M ${p1x} ${p1y} L ${p2x} ${p1y} C ${p3x} ${p1y} ${p3x} ${p4y} ${p2x} ${p4y} L ${p1x} ${p4y} C ${X} ${p4y} ${X} ${p1y} ${p1x} ${p1y} `; //CAPSULE
     const internalOptions = {
         isDragging: false
     };
@@ -169,13 +169,13 @@ function networkVizJS(documentId, userLayoutOptions) {
     function updatePathDimensions() {
         node.select("path")
             .attr("transform", function (d) {
-            // Scale appropriately using http://stackoverflow.com/a/9877871/6421793
-            const currentWidth = this.getBBox().width, w = d.width, currentHeight = this.getBBox().height, h = d.height, scaleW = w / currentWidth, scaleH = h / currentHeight;
-            if (isNaN(scaleW) || isNaN(scaleH) || isNaN(w) || isNaN(h)) {
-                return "";
-            }
-            return `translate(${-w / 2},${-h / 2}) scale(${scaleW},${scaleH})`;
-        });
+                // Scale appropriately using http://stackoverflow.com/a/9877871/6421793
+                const currentWidth = this.getBBox().width, w = d.width, currentHeight = this.getBBox().height, h = d.height, scaleW = w / currentWidth, scaleH = h / currentHeight;
+                if (isNaN(scaleW) || isNaN(scaleH) || isNaN(w) || isNaN(h)) {
+                    return "";
+                }
+                return `translate(${-w / 2},${-h / 2}) scale(${scaleW},${scaleH})`;
+            });
     }
     /**
      * This function re-centers the text.
@@ -187,61 +187,61 @@ function networkVizJS(documentId, userLayoutOptions) {
     function repositionText() {
         return Promise.resolve()
             .then(_ => {
-            node.select("text").each(function (d) {
-                const text = d3.select(this);
-                const margin = layoutOptions.margin, pad = layoutOptions.pad;
-                const extra = 2 * margin + 2 * pad;
-                // The width must reset to allow the box to get smaller.
-                // Later we will set width based on the widest tspan/line.
-                d.width = d.minWidth || 0;
-                if (!(d.width)) {
+                node.select("text").each(function (d) {
+                    const text = d3.select(this);
+                    const margin = layoutOptions.margin, pad = layoutOptions.pad;
+                    const extra = 2 * margin + 2 * pad;
+                    // The width must reset to allow the box to get smaller.
+                    // Later we will set width based on the widest tspan/line.
                     d.width = d.minWidth || 0;
-                }
-                // Loop over the tspans and recalculate the width based on the longest text.
-                text.selectAll("tspan").each(function (d) {
-                    const lineLength = this.getComputedTextLength();
-                    if (d.width < lineLength + extra) {
-                        d.width = lineLength + extra;
+                    if (!(d.width)) {
+                        d.width = d.minWidth || 0;
+                    }
+                    // Loop over the tspans and recalculate the width based on the longest text.
+                    text.selectAll("tspan").each(function (d) {
+                        const lineLength = this.getComputedTextLength();
+                        if (d.width < lineLength + extra) {
+                            d.width = lineLength + extra;
+                        }
+                    });
+                }).each(function (d) {
+                    // Only update the height, the width is calculated
+                    // by iterating over the tspans in the `wrap` function.
+                    const b = this.getBBox();
+                    const extra = 2 * margin + 2 * pad;
+                    d.height = b.height + extra;
+                })
+                    .attr("y", function (d) {
+                        const b = d3.select(this).node().getBBox();
+                        // Todo: Minus 2 is a hack to get the text feeling 'right'.
+                        return d.height / 2 - b.height / 2 - 2;
+                    })
+                    .attr("x", function (d) {
+                        // Apply the correct x value to the tspan.
+                        const b = this.getBBox();
+                        const x = d.width / 2 - b.width / 2;
+                        d.textPosition = x;
+                        // We don't set the tspans with an x attribute.
+                        d3.select(this).selectAll("tspan")
+                            .attr("x", d.textPosition);
+                        return d.textPosition;
+                    });
+                d3.selectAll("#graph .node").each(function (d) {
+                    const node = d3.select(this);
+                    const foOnNode = node.selectAll('.node-status-icons');
+                    var pined = layoutOptions.nodeToPin && layoutOptions.nodeToPin(d);
+                    if (pined) {
+                        foOnNode
+                            .attr('x', d => d.width / 2 || 0)
+                            .attr('y', 0)
+                            .style("opacity", 1);
+                    }
+                    else {
+                        foOnNode
+                            .style("opacity", 0);
                     }
                 });
-            }).each(function (d) {
-                // Only update the height, the width is calculated
-                // by iterating over the tspans in the `wrap` function.
-                const b = this.getBBox();
-                const extra = 2 * margin + 2 * pad;
-                d.height = b.height + extra;
-            })
-                .attr("y", function (d) {
-                const b = d3.select(this).node().getBBox();
-                // Todo: Minus 2 is a hack to get the text feeling 'right'.
-                return d.height / 2 - b.height / 2 - 2;
-            })
-                .attr("x", function (d) {
-                // Apply the correct x value to the tspan.
-                const b = this.getBBox();
-                const x = d.width / 2 - b.width / 2;
-                d.textPosition = x;
-                // We don't set the tspans with an x attribute.
-                d3.select(this).selectAll("tspan")
-                    .attr("x", d.textPosition);
-                return d.textPosition;
             });
-            d3.selectAll("#graph .node").each(function (d) {
-                const node = d3.select(this);
-                const foOnNode = node.selectAll('.node-status-icons');
-                var pined = layoutOptions.nodeToPin && layoutOptions.nodeToPin(d);
-                if (pined) {
-                    foOnNode
-                        .attr('x', d => d.width / 2 || 0)
-                        .attr('y', 0)
-                        .style("opacity", 1);
-                }
-                else {
-                    foOnNode
-                        .style("opacity", 0);
-                }
-            });
-        });
     }
     /**
      * This function remove the icons from
@@ -284,17 +284,17 @@ function networkVizJS(documentId, userLayoutOptions) {
             .attr('height', foHeight)
             .attr('class', 'menu-shape')
             .on("mouseout", function () {
-            var e = d3.event;
-            var element = d3.select(this);
-            var mouse = d3.mouse(this);
-            var mosX = mouse[0];
-            var mosY = mouse[1];
-            setTimeout(function () {
-                if (mosX < -20 || (mosY > d.height - 4 || mosY < 2)) {
-                    hoverMenuRemoveIcons(parent);
-                }
-            }, 50);
-        });
+                var e = d3.event;
+                var element = d3.select(this);
+                var mouse = d3.mouse(this);
+                var mosX = mouse[0];
+                var mosY = mouse[1];
+                setTimeout(function () {
+                    if (mosX < -20 || (mosY > d.height - 4 || mosY < 2)) {
+                        hoverMenuRemoveIcons(parent);
+                    }
+                }, 50);
+            });
         if (currentShape !== "capsule") {
             firstShape = false;
             shapeMenu.append("rect")
@@ -307,15 +307,15 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr('class', 'menu-shape-rect')
                 .attr('fill', '#edfdfd')
                 .attr('stroke', '#b8c6c6')
-                .attr('stroke-width', 2)
+                .attr('stroke-width', 1)
                 .on("click", function () {
-                hoverMenuRemoveIcons(parent);
-                parent.selectAll('path').remove();
-                parent.insert("path", "text")
-                    .attr("d", d2);
-                d.nodeShape = "capsule";
-                updateStyles();
-            });
+                    hoverMenuRemoveIcons(parent);
+                    parent.selectAll('path').remove();
+                    parent.insert("path", "text")
+                        .attr("d", d2);
+                    d.nodeShape = "capsule";
+                    updateStyles();
+                });
         }
         if (currentShape !== "rect") {
             if (!firstShape)
@@ -329,15 +329,15 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr('class', 'menu-shape-rect')
                 .attr('fill', '#edfdfd')
                 .attr('stroke', '#b8c6c6')
-                .attr('stroke-width', 2)
+                .attr('stroke-width', 1)
                 .on("click", function () {
-                hoverMenuRemoveIcons(parent);
-                parent.selectAll('path').remove();
-                parent.insert("path", "text")
-                    .attr("d", d0);
-                updateStyles();
-                d.nodeShape = "rect";
-            });
+                    hoverMenuRemoveIcons(parent);
+                    parent.selectAll('path').remove();
+                    parent.insert("path", "text")
+                        .attr("d", d0);
+                    updateStyles();
+                    d.nodeShape = "rect";
+                });
         }
         if (currentShape !== "circle") {
             if (!firstShape)
@@ -350,15 +350,15 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr('class', 'menu-shape-circle')
                 .attr('fill', '#edfdfd')
                 .attr('stroke', '#b8c6c6')
-                .attr('stroke-width', 2)
+                .attr('stroke-width', 1)
                 .on("click", function () {
-                hoverMenuRemoveIcons(parent);
-                parent.selectAll('path').remove();
-                parent.insert("path", "text")
-                    .attr("d", d1);
-                d.nodeShape = "circle";
-                updateStyles();
-            });
+                    hoverMenuRemoveIcons(parent);
+                    parent.selectAll('path').remove();
+                    parent.insert("path", "text")
+                        .attr("d", d1);
+                    d.nodeShape = "circle";
+                    updateStyles();
+                });
         }
         //CREATE COLOR SELECTOR ICON
         var foColor = parent.append('foreignObject')
@@ -385,12 +385,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                         $("#bgpicker").css('background-color', newColor);
                         d.color = newColor;
                         element.attr('fill', newColor);
-                        if (newColor === '#ffffff') {
-                            element.attr('stroke', 'gray');
-                        }
-                        else {
-                            element.attr('stroke', newColor);
-                        }
                         layoutOptions.updateNodeColor && layoutOptions.updateNodeColor(d);
                     },
                     onSubmit: function (hsb, hex, rgb, el) {
@@ -400,10 +394,10 @@ function networkVizJS(documentId, userLayoutOptions) {
                 }).css('background-color', d.color);
             })
                 .on("mouseout", function () {
-                setTimeout(function () {
-                    hoverMenuRemoveIcons(parent);
-                }, 50);
-            });
+                    setTimeout(function () {
+                        hoverMenuRemoveIcons(parent);
+                    }, 50);
+                });
         }
         //CREATE RIGHT MENU
         var fo = parent.append('foreignObject')
@@ -413,44 +407,44 @@ function networkVizJS(documentId, userLayoutOptions) {
             .attr('height', foHeight)
             .attr('class', 'menu-action')
             .on("mouseout", function () {
-            var e = d3.event;
-            var element = d3.select(this);
-            var mouse = d3.mouse(this);
-            var mosX = mouse[0];
-            var mosY = mouse[1];
-            setTimeout(function () {
-                if (mosX > d.width + 21 || mosY > d.height - 4 || mosY < 2) {
-                    hoverMenuRemoveIcons(parent);
-                }
-            }, 50);
-        });
+                var e = d3.event;
+                var element = d3.select(this);
+                var mouse = d3.mouse(this);
+                var mosX = mouse[0];
+                var mosY = mouse[1];
+                setTimeout(function () {
+                    if (mosX > d.width + 21 || mosY > d.height - 4 || mosY < 2) {
+                        hoverMenuRemoveIcons(parent);
+                    }
+                }, 50);
+            });
         var div = fo.append('xhtml:div')
             .append('div')
             .on("mouseover", function () {
-            layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
-        });
+                layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
+            });
         //CREATE TRASH ICON
         div.append('div')
             .attr('class', 'icon-wrapper')
             .html('<i class="fa fa-trash-o custom-icon"></i>')
             .on("click", function () {
-            console.log("clicked");
-            layoutOptions.nodeRemove && layoutOptions.nodeRemove(d);
-        });
+                console.log("clicked");
+                layoutOptions.nodeRemove && layoutOptions.nodeRemove(d);
+            });
         //CREATE PIN ICON
         div.append('div')
             .html('<i class="fa fa-thumb-tack custom-icon"></i>')
             .on("click", function () {
-            if (!d.fixed) {
-                d.fixed = true; // eslint-disable-line no-param-reassign
-            }
-            else {
-                d.fixed = false; // eslint-disable-line no-param-reassign
-            }
-            layoutOptions.clickPin && layoutOptions.clickPin(d, element);
-            hoverMenuRemoveIcons(parent);
-            restart();
-        });
+                if (!d.fixed) {
+                    d.fixed = true; // eslint-disable-line no-param-reassign
+                }
+                else {
+                    d.fixed = false; // eslint-disable-line no-param-reassign
+                }
+                layoutOptions.clickPin && layoutOptions.clickPin(d, element);
+                hoverMenuRemoveIcons(parent);
+                restart();
+            });
         layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
     }
     /**
@@ -544,33 +538,33 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .text(undefined)
                 .attr("class", d => d.class)
                 .each(function (d) {
-                // This function takes the text element.
-                // We can call .each on it and build up
-                // the tspan elements from the array of text
-                // in the data.
-                // Derived from https://bl.ocks.org/mbostock/7555321
-                const margin = layoutOptions.margin, pad = layoutOptions.pad;
-                const extra = 2 * margin + 2 * pad;
-                const text = d3.select(this);
-                /**
-                 * If no shortname, then use hash.
-                 */
-                let tempText = d.shortname || d.hash;
-                if (!Array.isArray(tempText)) {
-                    tempText = [tempText];
-                }
-                const textCopy = tempText.slice(), words = textCopy.reverse(), lineheight = 1.1, // em
-                lineNumber = 0, dy = parseFloat(text.attr("dy")) || 0;
-                let word, 
-                // TODO: I don't know why there needs to be a undefined tspan at the start?
-                tspan = text.text(undefined).append("tspan").attr("dy", dy + "em");
-                while (word = words.pop()) {
-                    tspan = text.append("tspan")
-                        .attr("dy", lineheight + "em")
-                        .attr("x", d.textPosition || (d.width / 2) || 0)
-                        .text(word);
-                }
-            })
+                    // This function takes the text element.
+                    // We can call .each on it and build up
+                    // the tspan elements from the array of text
+                    // in the data.
+                    // Derived from https://bl.ocks.org/mbostock/7555321
+                    const margin = layoutOptions.margin, pad = layoutOptions.pad;
+                    const extra = 2 * margin + 2 * pad;
+                    const text = d3.select(this);
+                    /**
+                     * If no shortname, then use hash.
+                     */
+                    let tempText = d.shortname || d.hash;
+                    if (!Array.isArray(tempText)) {
+                        tempText = [tempText];
+                    }
+                    const textCopy = tempText.slice(), words = textCopy.reverse(), lineheight = 1.1, // em
+                        lineNumber = 0, dy = parseFloat(text.attr("dy")) || 0;
+                    let word,
+                        // TODO: I don't know why there needs to be a undefined tspan at the start?
+                        tspan = text.text(undefined).append("tspan").attr("dy", dy + "em");
+                    while (word = words.pop()) {
+                        tspan = text.append("tspan")
+                            .attr("dy", lineheight + "em")
+                            .attr("x", d.textPosition || (d.width / 2) || 0)
+                            .text(word);
+                    }
+                })
                 .attr("pointer-events", "none");
             /**
              * Here we can update node properties that have already been attached.
@@ -656,131 +650,131 @@ function networkVizJS(documentId, userLayoutOptions) {
             .then(updateStyles)
             .then(repositionText)
             .then(_ => {
-            /**
-             * Helper function for drawing the lines.
-             */
-            const lineFunction = d3.line()
-                .x(d => d.x)
-                .y(d => d.y);
-            /**
-             * Causes the links to bend around the rectangles.
-             * Source: https://github.com/tgdwyer/WebCola/blob/master/WebCola/examples/unix.html#L140
-             */
-            const routeEdges = function () {
-                if (links.length == 0 || !layoutOptions.enableEdgeRouting) {
-                    return;
-                }
-                try {
-                    simulation.prepareEdgeRouting();
-                }
-                catch (err) {
-                    console.error(err);
-                    return;
-                }
-                try {
-                    link.select("path").attr("d", d => lineFunction(simulation.routeEdge(d, undefined)));
-                }
-                catch (err) {
-                    console.error(err);
-                    return;
-                }
-                try {
-                    if (isIE())
-                        link.select("path").each(function (d) {
-                            this.parentNode.insertBefore(this, this);
-                        });
-                }
-                catch (err) {
-                    console.log(err);
-                    return;
-                }
-                link.select("text").attr("x", d => {
-                    const arrayX = simulation.routeEdge(d, undefined);
-                    const middleIndex = Math.floor(arrayX.length / 2) - 1;
-                    return (arrayX[middleIndex].x + arrayX[middleIndex + 1].x) / 2;
-                }).attr("y", d => {
-                    const arrayY = simulation.routeEdge(d, undefined);
-                    const middleIndex = Math.floor(arrayY.length / 2) - 1;
-                    return (arrayY[middleIndex].y + arrayY[middleIndex + 1].y) / 2;
-                });
-            };
-            // Restart the simulation.
-            simulation.links(links) // Required because we create new link lists
-                .groups(groups)
-                .start(10, 15, 20).on("tick", function () {
-                node.each((d) => {
-                    if (d.bounds) {
-                        // Initiate the innerBounds, and create it based on the width and height
-                        // of the node.
-                        d.innerBounds = d.bounds.inflate(0);
-                        d.innerBounds.X = d.innerBounds.x + d.width;
-                        d.innerBounds.Y = d.innerBounds.y + d.height;
+                /**
+                 * Helper function for drawing the lines.
+                 */
+                const lineFunction = d3.line()
+                    .x(d => d.x)
+                    .y(d => d.y);
+                /**
+                 * Causes the links to bend around the rectangles.
+                 * Source: https://github.com/tgdwyer/WebCola/blob/master/WebCola/examples/unix.html#L140
+                 */
+                const routeEdges = function () {
+                    if (links.length == 0 || !layoutOptions.enableEdgeRouting) {
+                        return;
                     }
-                });
-                node.attr("transform", d => d.innerBounds ?
-                    `translate(${d.innerBounds.x},${d.innerBounds.y})`
-                    : `translate(${d.x},${d.y})`);
-                updatePathDimensions();
-                link.select("path").attr("d", d => {
-                    let route;
                     try {
-                        route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                        simulation.prepareEdgeRouting();
                     }
                     catch (err) {
                         console.error(err);
                         return;
                     }
-                    return lineFunction([route.sourceIntersection, route.arrowStart]);
-                });
-                if (isIE())
-                    link.each(function (d) {
-                        this.parentNode.insertBefore(this, this);
+                    try {
+                        link.select("path").attr("d", d => lineFunction(simulation.routeEdge(d, undefined)));
+                    }
+                    catch (err) {
+                        console.error(err);
+                        return;
+                    }
+                    try {
+                        if (isIE())
+                            link.select("path").each(function (d) {
+                                this.parentNode.insertBefore(this, this);
+                            });
+                    }
+                    catch (err) {
+                        console.log(err);
+                        return;
+                    }
+                    link.select("text").attr("x", d => {
+                        const arrayX = simulation.routeEdge(d, undefined);
+                        const middleIndex = Math.floor(arrayX.length / 2) - 1;
+                        return (arrayX[middleIndex].x + arrayX[middleIndex + 1].x) / 2;
+                    }).attr("y", d => {
+                        const arrayY = simulation.routeEdge(d, undefined);
+                        const middleIndex = Math.floor(arrayY.length / 2) - 1;
+                        return (arrayY[middleIndex].y + arrayY[middleIndex + 1].y) / 2;
                     });
-                link.select("text")
-                    .attr("x", d => {
-                    let route;
-                    try {
-                        route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
-                    }
-                    catch (err) {
-                        console.error(err);
-                        return 0;
-                    }
-                    return (route.sourceIntersection.x + route.targetIntersection.x) / 2;
-                })
-                    .attr("y", d => {
-                    let route;
-                    try {
-                        route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
-                    }
-                    catch (err) {
-                        console.error(err);
-                        return 0;
-                    }
-                    return (route.sourceIntersection.y + route.targetIntersection.y) / 2;
-                });
-                group.attr("x", function (d) {
-                    return d.bounds.x;
-                })
-                    .attr("y", function (d) {
-                    return d.bounds.y;
-                })
-                    .attr("width", function (d) {
-                    return d.bounds.width();
-                })
-                    .attr("height", function (d) {
-                    return d.bounds.height();
-                });
-            }).on("end", routeEdges);
-            function isIE() {
-                return ((navigator.appName == "Microsoft Internet Explorer") || ((navigator.appName == "Netscape") && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined)));
-            }
-            // After a tick make sure to add translation to the nodes.
-            // Sometimes it wasn"t added in a single tick.
-            node.attr("transform", d => d.innerBounds ?
-                `translate(${d.innerBounds.x},${d.innerBounds.y})`
-                : `translate(${d.x},${d.y})`);
-        })
+                };
+                // Restart the simulation.
+                simulation.links(links) // Required because we create new link lists
+                    .groups(groups)
+                    .start(10, 15, 20).on("tick", function () {
+                    node.each((d) => {
+                        if (d.bounds) {
+                            // Initiate the innerBounds, and create it based on the width and height
+                            // of the node.
+                            d.innerBounds = d.bounds.inflate(0);
+                            d.innerBounds.X = d.innerBounds.x + d.width;
+                            d.innerBounds.Y = d.innerBounds.y + d.height;
+                        }
+                    });
+                    node.attr("transform", d => d.innerBounds ?
+                        `translate(${d.innerBounds.x},${d.innerBounds.y})`
+                        : `translate(${d.x},${d.y})`);
+                    updatePathDimensions();
+                    link.select("path").attr("d", d => {
+                        let route;
+                        try {
+                            route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                        }
+                        catch (err) {
+                            console.error(err);
+                            return;
+                        }
+                        return lineFunction([route.sourceIntersection, route.arrowStart]);
+                    });
+                    if (isIE())
+                        link.each(function (d) {
+                            this.parentNode.insertBefore(this, this);
+                        });
+                    link.select("text")
+                        .attr("x", d => {
+                            let route;
+                            try {
+                                route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                            }
+                            catch (err) {
+                                console.error(err);
+                                return 0;
+                            }
+                            return (route.sourceIntersection.x + route.targetIntersection.x) / 2;
+                        })
+                        .attr("y", d => {
+                            let route;
+                            try {
+                                route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                            }
+                            catch (err) {
+                                console.error(err);
+                                return 0;
+                            }
+                            return (route.sourceIntersection.y + route.targetIntersection.y) / 2;
+                        });
+                    group.attr("x", function (d) {
+                        return d.bounds.x;
+                    })
+                        .attr("y", function (d) {
+                            return d.bounds.y;
+                        })
+                        .attr("width", function (d) {
+                            return d.bounds.width();
+                        })
+                        .attr("height", function (d) {
+                            return d.bounds.height();
+                        });
+                }).on("end", routeEdges);
+                function isIE() {
+                    return ((navigator.appName == "Microsoft Internet Explorer") || ((navigator.appName == "Netscape") && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined)));
+                }
+                // After a tick make sure to add translation to the nodes.
+                // Sometimes it wasn"t added in a single tick.
+                node.attr("transform", d => d.innerBounds ?
+                    `translate(${d.innerBounds.x},${d.innerBounds.y})`
+                    : `translate(${d.x},${d.y})`);
+            })
             .then(() => typeof callback === "function" && callback());
     }
     // Helper function for updating links after node mutations.
