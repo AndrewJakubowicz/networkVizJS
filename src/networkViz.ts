@@ -53,7 +53,6 @@ function networkVizJS(documentId, userLayoutOptions) {
         },
         clickEdge: (d, element) => undefined,
     };
-
     const X = 37;
     const Y = -13;
     const p1x = 25 + X;
@@ -65,7 +64,6 @@ function networkVizJS(documentId, userLayoutOptions) {
         d1 = "M20,40a20,20 0 1,0 40,0a20,20 0 1,0 -40,0", //CIRCLE
         // d2 = "M148.1,310.5h-13.4c-4.2,0-7.7-3.4-7.7-7.7v-7.4c0-4.2,3.4-7.7,7.7-7.7h13.4c4.2,0,7.7,3.4,7.7,7.7v7.4  C155.7,307.1,152.3,310.5,148.1,310.5z"; //CAPSULE
         d2 = `M ${p1x} ${p1y} L ${p2x} ${p1y} C ${p3x} ${p1y} ${p3x} ${p4y} ${p2x} ${p4y} L ${p1x} ${p4y} C ${X} ${p4y} ${X} ${p1y} ${p1x} ${p1y} `; //CAPSULE
-
     const internalOptions = {
         isDragging: false
     };
@@ -161,7 +159,6 @@ function networkVizJS(documentId, userLayoutOptions) {
         // Prevent zoom when mouse over node.
         return d3.event.target.tagName.toLowerCase() === "svg";
     });
-
     svg.call(zoom).on("dblclick.zoom", null);
 
     function zoomed() {
@@ -263,7 +260,8 @@ function networkVizJS(documentId, userLayoutOptions) {
             parent.selectAll('.menu-action').remove();
             parent.selectAll('.menu-shape').remove();
             parent.selectAll('.menu-color').remove();
-        } else {
+        }
+        else {
             d3.selectAll('.menu-action').remove();
             d3.selectAll('.menu-shape').remove();
             d3.selectAll('.menu-color').remove();
@@ -282,34 +280,31 @@ function networkVizJS(documentId, userLayoutOptions) {
         var foHeight = d.height;
         var foX = d.width;
         var foY = 0;
-        let currentShape = d.nodeShape
-        let firstShape = true
-        let shapeY = 3
-        hoverMenuRemoveIcons()
-
+        let currentShape = d.nodeShape;
+        let firstShape = true;
+        let shapeY = 3;
+        hoverMenuRemoveIcons();
         //CREATE SHAPES MENU
-        var shapeMenu =
-            parent.append("g")
-                .attr('x', -30)
-                .attr('y', foY)
-                .attr('width', 30)
-                .attr('height', foHeight)
-                .attr('class', 'menu-shape')
-                .on("mouseout", function () {
-                    var e = d3.event;
-                    var element = d3.select(this);
-                    var mouse = d3.mouse(this);
-                    var mosX = mouse[0];
-                    var mosY = mouse[1];
-                    setTimeout(function () {
-                        if (mosX < -20 || (mosY > d.height - 4 || mosY < 2)) {
-                            hoverMenuRemoveIcons(parent)
-                        }
-                    }, 50)
-                })
-
+        var shapeMenu = parent.append("g")
+            .attr('x', -30)
+            .attr('y', foY)
+            .attr('width', 30)
+            .attr('height', foHeight)
+            .attr('class', 'menu-shape')
+            .on("mouseout", function () {
+                var e = d3.event;
+                var element = d3.select(this);
+                var mouse = d3.mouse(this);
+                var mosX = mouse[0];
+                var mosY = mouse[1];
+                setTimeout(function () {
+                    if (mosX < -20 || (mosY > d.height - 4 || mosY < 2)) {
+                        hoverMenuRemoveIcons(parent);
+                    }
+                }, 50);
+            });
         if (currentShape !== "capsule") {
-            firstShape = false
+            firstShape = false;
             shapeMenu.append("rect")
                 .attr("rx", 6)
                 .attr("ry", 6)
@@ -322,18 +317,18 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr('stroke', '#b8c6c6')
                 .attr('stroke-width', 2)
                 .on("click", function () {
-                    hoverMenuRemoveIcons(parent)
+                    hoverMenuRemoveIcons(parent);
                     parent.selectAll('path').remove();
                     parent.insert("path", "text")
-                        .attr("d", d2)
-                    d.nodeShape = "capsule"
-                    updateStyles()
-                })
+                        .attr("d", d2);
+                    d.nodeShape = "capsule";
+                    updateStyles();
+                });
         }
-
         if (currentShape !== "rect") {
-            if (!firstShape) shapeY = shapeY + 26
-            firstShape = false
+            if (!firstShape)
+                shapeY = shapeY + 26;
+            firstShape = false;
             shapeMenu.append("rect")
                 .attr("x", -27)
                 .attr("y", shapeY)
@@ -344,18 +339,18 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr('stroke', '#b8c6c6')
                 .attr('stroke-width', 2)
                 .on("click", function () {
-                    hoverMenuRemoveIcons(parent)
+                    hoverMenuRemoveIcons(parent);
                     parent.selectAll('path').remove();
                     parent.insert("path", "text")
-                        .attr("d", d0)
-                    updateStyles()
-                    d.nodeShape = "rect"
-                })
+                        .attr("d", d0);
+                    updateStyles();
+                    d.nodeShape = "rect";
+                });
         }
-
         if (currentShape !== "circle") {
-            if (!firstShape) shapeY = shapeY + 36
-            firstShape = false
+            if (!firstShape)
+                shapeY = shapeY + 36;
+            firstShape = false;
             shapeMenu.append("circle")
                 .attr("cx", -15)
                 .attr("cy", shapeY)
@@ -365,15 +360,14 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr('stroke', '#b8c6c6')
                 .attr('stroke-width', 2)
                 .on("click", function () {
-                    hoverMenuRemoveIcons(parent)
+                    hoverMenuRemoveIcons(parent);
                     parent.selectAll('path').remove();
                     parent.insert("path", "text")
-                        .attr("d", d1)
-                    d.nodeShape = "circle"
-                    updateStyles()
-                })
+                        .attr("d", d1);
+                    d.nodeShape = "circle";
+                    updateStyles();
+                });
         }
-
         //CREATE COLOR SELECTOR ICON
         var foColor = parent.append('foreignObject')
             .attr("x", (d.width / 2) - 12)
@@ -381,7 +375,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             .attr('class', 'menu-color');
         var colorPik = foColor.append('xhtml:div')
             .append('div');
-
         if (d.id.slice(0, 5) === 'note-') {
             colorPik.append('div')
                 .html('<div id="controls"><div><span data-type="color" id="bgpicker" /></span></div></div>');
@@ -398,26 +391,32 @@ function networkVizJS(documentId, userLayoutOptions) {
                         var newColor = '#' + hex;
                         $("#brush").css("fill", newColor);
                         $("#bgpicker").css('background-color', newColor);
-                        d.color = newColor;
+                        layoutOptions.nodeToColor = d.color = newColor;
                         element.attr('fill', newColor);
+                        if (newColor === '#ffffff') {
+                            layoutOptions.nodeStrokeColor = 'grey'
+                            element.attr('stroke', 'gray');
+                        } else {
+                            layoutOptions.nodeStrokeColor = newColor
+                            element.attr('stroke', newColor);
+                        }
                         layoutOptions.updateNodeColor && layoutOptions.updateNodeColor(d);
                     },
                     onSubmit: function (hsb, hex, rgb, el) {
                         $(el).colpickHide();
-                        hoverMenuRemoveIcons(parent)
+                        hoverMenuRemoveIcons(parent);
                     }
                 }).css('background-color', d.color);
             })
                 .on("mouseout", function () {
                     setTimeout(function () {
-                        hoverMenuRemoveIcons(parent)
-                    }, 50)
+                        hoverMenuRemoveIcons(parent);
+                    }, 50);
                 });
         }
-
         //CREATE RIGHT MENU
         var fo = parent.append('foreignObject')
-            .attr('x', foX)
+            .attr('x', foX + 5)
             .attr('y', foY)
             .attr('width', foWidth)
             .attr('height', foHeight)
@@ -430,17 +429,15 @@ function networkVizJS(documentId, userLayoutOptions) {
                 var mosY = mouse[1];
                 setTimeout(function () {
                     if (mosX > d.width + 21 || mosY > d.height - 4 || mosY < 2) {
-                        hoverMenuRemoveIcons(parent)
+                        hoverMenuRemoveIcons(parent);
                     }
-                }, 50)
+                }, 50);
             });
-
         var div = fo.append('xhtml:div')
             .append('div')
             .on("mouseover", function () {
                 layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
-            })
-
+            });
         //CREATE TRASH ICON
         div.append('div')
             .attr('class', 'icon-wrapper')
@@ -448,8 +445,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             .on("click", function () {
                 console.log("clicked");
                 layoutOptions.nodeRemove && layoutOptions.nodeRemove(d);
-            })
-
+            });
         //CREATE PIN ICON
         div.append('div')
             .html('<i class="fa fa-thumb-tack custom-icon"></i>')
@@ -461,7 +457,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     d.fixed = false; // eslint-disable-line no-param-reassign
                 }
                 layoutOptions.clickPin && layoutOptions.clickPin(d, element);
-                hoverMenuRemoveIcons(parent)
+                hoverMenuRemoveIcons(parent);
                 restart();
             });
         layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
@@ -475,14 +471,14 @@ function networkVizJS(documentId, userLayoutOptions) {
      */
     function deleteHoverMenu(d, me) {
         var e = d3.event;
-        e.preventDefault()
+        e.preventDefault();
         var element = d3.select(me);
         var parent = d3.select(me.parentNode);
         var mouse = d3.mouse(me.parentElement);
         var mosX = mouse[0];
         var mosY = mouse[1];
         if (mosY < -15 || mosY > d.height || mosX < -30 || mosX > d.width + 20) {
-            hoverMenuRemoveIcons(parent)
+            hoverMenuRemoveIcons(parent);
         }
         // if (mosX < -20 || mosX > (d.width + 40) || mosY < -15 || mosY > d.height + 10 ||
         //   (mosX < d.width && mosX > d.width / 2 && mosY > 0 && mosY < d.height) ||
@@ -512,10 +508,9 @@ function networkVizJS(documentId, userLayoutOptions) {
             node.exit().remove();
             const nodeEnter = node.enter()
                 .append("g")
-                .classed("node", true)
+                .classed("node", true);
             // Only allow dragging nodes if turned on.
             // if (layoutOptions.canDrag()) {
-
             nodeEnter.attr("cursor", "move").call(drag); // Drag controlled by filter.
             // } else {
             //     nodeEnter.attr("cursor", "default");
@@ -530,7 +525,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .style("font", "100 22px Helvetica Neue");
             // Choose the node shape and style.
             let nodeShape;
-
             nodeShape = nodeEnter.insert("path", "text");
             if (typeof layoutOptions.nodeShape == "string" && layoutOptions.nodeShape == "rect") {
                 // nodeShape = nodeEnter.insert("rect", "text")     // The second arg is what the rect will sit behind.
@@ -545,7 +539,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                 nodeShape.attr("d", layoutOptions.nodeShape);
             }
             nodeShape.attr("vector-effect", "non-scaling-stroke");
-
             nodeEnter.append("foreignObject")
                 .classed("node-status-icons", true)
                 .append('xhtml:div')
@@ -1286,5 +1279,4 @@ function networkVizJS(documentId, userLayoutOptions) {
 }
 
 exports.default = networkVizJS;
-
 //# sourceMappingURL=networkViz.js.map

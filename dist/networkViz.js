@@ -383,8 +383,16 @@ function networkVizJS(documentId, userLayoutOptions) {
                         var newColor = '#' + hex;
                         $("#brush").css("fill", newColor);
                         $("#bgpicker").css('background-color', newColor);
-                        d.color = newColor;
+                        layoutOptions.nodeToColor = d.color = newColor;
                         element.attr('fill', newColor);
+                        if (newColor === '#ffffff') {
+                            layoutOptions.nodeStrokeColor = 'grey';
+                            element.attr('stroke', 'gray');
+                        }
+                        else {
+                            layoutOptions.nodeStrokeColor = newColor;
+                            element.attr('stroke', newColor);
+                        }
                         layoutOptions.updateNodeColor && layoutOptions.updateNodeColor(d);
                     },
                     onSubmit: function (hsb, hex, rgb, el) {
@@ -401,7 +409,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         }
         //CREATE RIGHT MENU
         var fo = parent.append('foreignObject')
-            .attr('x', foX)
+            .attr('x', foX + 5)
             .attr('y', foY)
             .attr('width', foWidth)
             .attr('height', foHeight)
