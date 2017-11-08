@@ -325,6 +325,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     updateStyles();
                 });
         }
+
         if (currentShape !== "rect") {
             if (!firstShape)
                 shapeY = shapeY + 26;
