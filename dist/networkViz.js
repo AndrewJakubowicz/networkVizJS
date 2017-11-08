@@ -383,14 +383,12 @@ function networkVizJS(documentId, userLayoutOptions) {
                         var newColor = '#' + hex;
                         $("#brush").css("fill", newColor);
                         $("#bgpicker").css('background-color', newColor);
-                        layoutOptions.nodeToColor = d.color = newColor;
+                        d.color = newColor;
                         element.attr('fill', newColor);
                         if (newColor === '#ffffff') {
-                            layoutOptions.nodeStrokeColor = 'grey';
                             element.attr('stroke', 'gray');
                         }
                         else {
-                            layoutOptions.nodeStrokeColor = newColor;
                             element.attr('stroke', newColor);
                         }
                         layoutOptions.updateNodeColor && layoutOptions.updateNodeColor(d);
