@@ -376,6 +376,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .html('<div id="controls"><div><span data-type="color" id="bgpicker" /></span></div></div>');
             $("#bgpicker").css('background-color', d.color);
             colorPik.on("click", function () {
+                layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
                 var current = {
                     'picker': "#bgpicker",
                     'color': d.color,
