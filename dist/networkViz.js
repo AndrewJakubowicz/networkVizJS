@@ -2,8 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const d3 = require("d3");
 const cola = require("webcola");
+const $ = require("jquery");
 const levelgraph = require("levelgraph");
 const level = require("level-browserify");
+const jscolor = require("./util/jscolor");
 const updateColaLayout_1 = require("./updateColaLayout");
 const createColorArrow_1 = require("./util/createColorArrow");
 function networkVizJS(documentId, userLayoutOptions) {
@@ -32,17 +34,36 @@ function networkVizJS(documentId, userLayoutOptions) {
         mouseOutNode: undefined,
         mouseUpNode: undefined,
         // These are "live options"
+        updateNodeColor: undefined,
+        updateNodeShape: undefined,
+        nodeRemove: undefined,
+        clickPin: undefined,
+        nodeToPin: false,
         nodeToColor: "white",
-        nodeStrokeWidth: 2,
-        nodeStrokeColor: "black",
+        nodeStrokeWidth: 1,
+        nodeStrokeColor: "grey",
         // TODO: clickNode (node, element) => void
         clickNode: (node) => console.log("clicked", node),
         clickAway: () => undefined,
         edgeColor: "black",
         edgeStroke: 2,
-        edgeLength: d => { console.log(`length`, d); return 150; },
+        edgeLength: d => {
+            console.log(`length`, d);
+            return 150;
+        },
         clickEdge: (d, element) => undefined,
     };
+    const X = 37;
+    const Y = -13;
+    const p1x = 25 + X;
+    const p1y = 25 + Y;
+    const p2x = 75 + X;
+    const p3x = 100 + X;
+    const p4y = 50 + Y;
+    var d0 = "M16 48 L48 48 L48 16 L16 16 Z", //RECT
+    d1 = "M20,40a20,20 0 1,0 40,0a20,20 0 1,0 -40,0", //CIRCLE
+    // d2 = "M148.1,310.5h-13.4c-4.2,0-7.7-3.4-7.7-7.7v-7.4c0-4.2,3.4-7.7,7.7-7.7h13.4c4.2,0,7.7,3.4,7.7,7.7v7.4  C155.7,307.1,152.3,310.5,148.1,310.5z"; //CAPSULE
+    d2 = `M ${p1x} ${p1y} L ${p2x} ${p1y} C ${p3x} ${p1y} ${p3x} ${p4y} ${p2x} ${p4y} L ${p1x} ${p4y} C ${X} ${p4y} ${X} ${p1y} ${p1x} ${p1y} `; //CAPSULE
     const internalOptions = {
         isDragging: false
     };
@@ -137,9 +158,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         // Prevent zoom when mouse over node.
         return d3.event.target.tagName.toLowerCase() === "svg";
     });
-    //Ghazal Start
     svg.call(zoom).on("dblclick.zoom", null);
-    //Ghazal End
     function zoomed() {
         layoutOptions.clickAway();
         g.attr("transform", d3.event.transform);
@@ -208,7 +227,253 @@ function networkVizJS(documentId, userLayoutOptions) {
                     .attr("x", d.textPosition);
                 return d.textPosition;
             });
+            d3.selectAll("#graph .node").each(function (d) {
+                const node = d3.select(this);
+                const foOnNode = node.selectAll('.node-status-icons');
+                var pined = layoutOptions.nodeToPin && layoutOptions.nodeToPin(d);
+                if (pined) {
+                    foOnNode
+                        .attr('x', d => d.width / 2 || 0)
+                        .attr('y', 0)
+                        .style("opacity", 1);
+                }
+                else {
+                    foOnNode
+                        .style("opacity", 0);
+                }
+            });
         });
+    }
+    /**
+     * This function remove the icons from
+     * the hover menu
+     * @param node element's parent
+     */
+    function hoverMenuRemoveIcons(parent) {
+        if (parent) {
+            parent.selectAll('.menu-action').remove();
+            parent.selectAll('.menu-shape').remove();
+            parent.selectAll('.menu-color').remove();
+        }
+        else {
+            d3.selectAll('.menu-action').remove();
+            d3.selectAll('.menu-shape').remove();
+            d3.selectAll('.menu-color').remove();
+        }
+    }
+    /**
+     * This function add a a menu to
+     * Delete, Pin, Change color and Change shape of a node
+     * @param node data, node d3 element
+     */
+    function addHoverMenu(d, me) {
+        var element = d3.select(me); // The node
+        var parent = d3.select(me.parentNode);
+        var foWidth = 40;
+        var foHeight = d.height;
+        var foX = d.width;
+        var foY = 0;
+        let currentShape = d.nodeShape;
+        let firstShape = true;
+        let shapeY = 3;
+        hoverMenuRemoveIcons();
+        //CREATE SHAPES MENU
+        var shapeMenu = parent.append("g")
+            .attr('x', -30)
+            .attr('y', foY)
+            .attr('width', 30)
+            .attr('height', foHeight)
+            .attr('class', 'menu-shape')
+            .on("mouseout", function () {
+            var e = d3.event;
+            var element = d3.select(this);
+            var mouse = d3.mouse(this);
+            var mosX = mouse[0];
+            var mosY = mouse[1];
+            setTimeout(function () {
+                if (mosX < -20 || (mosY > d.height - 4 || mosY < 2)) {
+                    hoverMenuRemoveIcons(parent);
+                }
+            }, 50);
+        });
+        if (currentShape !== "capsule") {
+            firstShape = false;
+            shapeMenu.append("rect")
+                .attr("rx", 6)
+                .attr("ry", 6)
+                .attr("x", -27)
+                .attr("y", shapeY)
+                .attr("width", 24)
+                .attr("height", 21)
+                .attr('class', 'menu-shape-rect')
+                .attr('fill', '#edfdfd')
+                .attr('stroke', '#b8c6c6')
+                .attr('stroke-width', 2)
+                .on("click", function () {
+                hoverMenuRemoveIcons(parent);
+                parent.selectAll('path').remove();
+                parent.insert("path", "text")
+                    .attr("d", d2);
+                d.nodeShape = "capsule";
+                layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d);
+                updateStyles();
+            });
+        }
+        if (currentShape !== "rect") {
+            if (!firstShape)
+                shapeY = shapeY + 26;
+            firstShape = false;
+            shapeMenu.append("rect")
+                .attr("x", -27)
+                .attr("y", shapeY)
+                .attr("width", 24)
+                .attr("height", 21)
+                .attr('class', 'menu-shape-rect')
+                .attr('fill', '#edfdfd')
+                .attr('stroke', '#b8c6c6')
+                .attr('stroke-width', 2)
+                .on("click", function () {
+                hoverMenuRemoveIcons(parent);
+                parent.selectAll('path').remove();
+                parent.insert("path", "text")
+                    .attr("d", d0);
+                d.nodeShape = "rect";
+                layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d);
+                updateStyles();
+            });
+        }
+        if (currentShape !== "circle") {
+            if (!firstShape)
+                shapeY = shapeY + 36;
+            firstShape = false;
+            shapeMenu.append("circle")
+                .attr("cx", -15)
+                .attr("cy", shapeY)
+                .attr("r", 12)
+                .attr('class', 'menu-shape-circle')
+                .attr('fill', '#edfdfd')
+                .attr('stroke', '#b8c6c6')
+                .attr('stroke-width', 2)
+                .on("click", function () {
+                hoverMenuRemoveIcons(parent);
+                parent.selectAll('path').remove();
+                parent.insert("path", "text")
+                    .attr("d", d1);
+                d.nodeShape = "circle";
+                layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d);
+                updateStyles();
+            });
+        }
+        //CREATE COLOR SELECTOR ICON
+        var foColor = parent.append('foreignObject')
+            .attr("x", (d.width / 2) - 12)
+            .attr("y", -25)
+            .attr('class', 'menu-color');
+        var colorPik = foColor.append('xhtml:div')
+            .append('div');
+        if (d.id.slice(0, 5) === 'note-') {
+            colorPik.append('div')
+                .html('<div id="controls"><div><span data-type="color" id="bgpicker" /></span></div></div>');
+            $("#bgpicker").css('background-color', d.color);
+            colorPik.on("click", function () {
+                var current = {
+                    'picker': "#bgpicker",
+                    'color': d.color,
+                    'graphic': "#brush"
+                };
+                $("#bgpicker").colpick({
+                    color: d.color,
+                    onChange: function (hsb, hex, rgb, el, bySetColor) {
+                        var newColor = '#' + hex;
+                        $("#brush").css("fill", newColor);
+                        $("#bgpicker").css('background-color', newColor);
+                        d.color = newColor;
+                        element.attr('fill', newColor);
+                        layoutOptions.updateNodeColor && layoutOptions.updateNodeColor(d);
+                    },
+                    onSubmit: function (hsb, hex, rgb, el) {
+                        $(el).colpickHide();
+                        hoverMenuRemoveIcons(parent);
+                    }
+                }).css('background-color', d.color);
+            })
+                .on("mouseout", function () {
+                setTimeout(function () {
+                    hoverMenuRemoveIcons(parent);
+                }, 50);
+            });
+        }
+        //CREATE RIGHT MENU
+        var fo = parent.append('foreignObject')
+            .attr('x', foX + 5)
+            .attr('y', foY)
+            .attr('width', foWidth)
+            .attr('height', foHeight)
+            .attr('class', 'menu-action')
+            .on("mouseout", function () {
+            var e = d3.event;
+            var element = d3.select(this);
+            var mouse = d3.mouse(this);
+            var mosX = mouse[0];
+            var mosY = mouse[1];
+            setTimeout(function () {
+                if (mosX > d.width + 21 || mosY > d.height - 4 || mosY < 2) {
+                    hoverMenuRemoveIcons(parent);
+                }
+            }, 50);
+        });
+        var div = fo.append('xhtml:div')
+            .append('div')
+            .on("mouseover", function () {
+            layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
+        });
+        //CREATE TRASH ICON
+        div.append('div')
+            .attr('class', 'icon-wrapper')
+            .html('<i class="fa fa-trash-o custom-icon"></i>')
+            .on("click", function () {
+            console.log("clicked");
+            layoutOptions.nodeRemove && layoutOptions.nodeRemove(d);
+        });
+        //CREATE PIN ICON
+        div.append('div')
+            .html('<i class="fa fa-thumb-tack custom-icon"></i>')
+            .on("click", function () {
+            if (!d.fixed) {
+                d.fixed = true; // eslint-disable-line no-param-reassign
+            }
+            else {
+                d.fixed = false; // eslint-disable-line no-param-reassign
+            }
+            layoutOptions.clickPin && layoutOptions.clickPin(d, element);
+            hoverMenuRemoveIcons(parent);
+            restart();
+        });
+        layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
+    }
+    /**
+     * This function delete the node hover menu.
+     * It will calculate at which position to the node
+     * the menu should be removed
+     * @param node data, node d3 element
+     */
+    function deleteHoverMenu(d, me) {
+        var e = d3.event;
+        e.preventDefault();
+        var element = d3.select(me);
+        var parent = d3.select(me.parentNode);
+        var mouse = d3.mouse(me.parentElement);
+        var mosX = mouse[0];
+        var mosY = mouse[1];
+        if (mosY < -15 || mosY > d.height || mosX < -30 || mosX > d.width + 20) {
+            hoverMenuRemoveIcons(parent);
+        }
+        // if (mosX < -20 || mosX > (d.width + 40) || mosY < -15 || mosY > d.height + 10 ||
+        //   (mosX < d.width && mosX > d.width / 2 && mosY > 0 && mosY < d.height) ||
+        //   (mosX < d.width / 2 && mosX > 0 && mosY > 0 && mosY < d.height)) {
+        //   hoverMenuRemoveIcons(parent)
+        // }
+        layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
     }
     /**
      * Update the d3 visuals without layout changes.
@@ -261,6 +526,11 @@ function networkVizJS(documentId, userLayoutOptions) {
                 nodeShape.attr("d", layoutOptions.nodeShape);
             }
             nodeShape.attr("vector-effect", "non-scaling-stroke");
+            nodeEnter.append("foreignObject")
+                .classed("node-status-icons", true)
+                .append('xhtml:div')
+                .append('div')
+                .html('<i class="fa fa-thumb-tack"></i>');
             // Merge the entered nodes to the update nodes.
             node = node.merge(nodeEnter)
                 .classed("fixed", d => d.fixed || false);
@@ -319,73 +589,12 @@ function networkVizJS(documentId, userLayoutOptions) {
                 if (internalOptions.isDragging) {
                     return;
                 }
-                var foWidth = 2;
-                var foHeight = 1;
-                var foX = d.width;
-                var foY = 0;
-                var element = d3.select(this); // The node
-                var parent = d3.select(this.parentNode);
-                node.selectAll('.radial-menu').remove();
-                var fo = parent.append('foreignObject')
-                    .attr('x', foX)
-                    .attr('y', foY)
-                    .attr('width', foWidth)
-                    .attr('height', foHeight)
-                    .attr('class', 'radial-menu');
-                var div = fo.append('xhtml:div')
-                    .append('div')
-                    .attr('class', 'tools');
-                div.append('div')
-                    .html('<i class="fa fa-trash-o"></i>')
-                    .on("click", function () {
-                    console.log("clicked");
-                    layoutOptions.nodeRemove && layoutOptions.nodeRemove(d);
-                })
-                    .on("mouseout", function () {
-                    console.log("mouseout");
-                    parent.selectAll('.radial-menu').remove();
-                });
-                div.append('div')
-                    .html('<i class="fa fa-thumb-tack"></i>')
-                    .on("mouseout", function () {
-                    console.log("mouseout");
-                    parent.selectAll('.radial-menu').remove();
-                })
-                    .on("click", function () {
-                    if (!d.fixed) {
-                        d.fixed = true; // eslint-disable-line no-param-reassign
-                        var foOnNode = parent.append('foreignObject')
-                            .attr('x', d.width / 2)
-                            .attr('y', 0)
-                            .attr('class', 'node-status-icons');
-                        var div = foOnNode.append('xhtml:div');
-                        div.append('div')
-                            .html('<i class="fa fa-thumb-tack"></i>');
-                    }
-                    else {
-                        d.fixed = false; // eslint-disable-line no-param-reassign
-                        parent.selectAll('.node-status-icons').remove();
-                    }
-                    restart();
-                    parent.selectAll('.radial-menu').remove();
-                });
-                layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
+                addHoverMenu(d, this);
             }).on("mouseout", function (d) {
                 if (internalOptions.isDragging) {
                     return;
                 }
-                var element = d3.select(this);
-                var parent = d3.select(this.parentNode);
-                var e = d3.event;
-                var mouse = d3.mouse(this.parentElement);
-                var mosX = mouse[0];
-                var mosY = mouse[1];
-                if (mosX < -1 || mosX > (d.width + 40) || mosY < -1 || mosY > d.height - 2 ||
-                    (mosX < d.width && mosX > d.width / 2 && mosY > 0 && mosY < d.height) ||
-                    (mosX < d.width / 2 && mosX > 0 && mosY > 0 && mosY < d.height)) {
-                    parent.selectAll('.radial-menu').remove();
-                }
-                layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
+                deleteHoverMenu(d, this);
             }).on("click", function (d) {
                 let elem = d3.select(this);
                 setTimeout(() => {
@@ -475,7 +684,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                 }
                 try {
                     if (isIE())
-                        link.select("path").each(function (d) { this.parentNode.insertBefore(this, this); });
+                        link.select("path").each(function (d) {
+                            this.parentNode.insertBefore(this, this);
+                        });
                 }
                 catch (err) {
                     console.log(err);
@@ -520,7 +731,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                     return lineFunction([route.sourceIntersection, route.arrowStart]);
                 });
                 if (isIE())
-                    link.each(function (d) { this.parentNode.insertBefore(this, this); });
+                    link.each(function (d) {
+                        this.parentNode.insertBefore(this, this);
+                    });
                 link.select("text")
                     .attr("x", d => {
                     let route;
@@ -544,12 +757,22 @@ function networkVizJS(documentId, userLayoutOptions) {
                     }
                     return (route.sourceIntersection.y + route.targetIntersection.y) / 2;
                 });
-                group.attr("x", function (d) { return d.bounds.x; })
-                    .attr("y", function (d) { return d.bounds.y; })
-                    .attr("width", function (d) { return d.bounds.width(); })
-                    .attr("height", function (d) { return d.bounds.height(); });
+                group.attr("x", function (d) {
+                    return d.bounds.x;
+                })
+                    .attr("y", function (d) {
+                    return d.bounds.y;
+                })
+                    .attr("width", function (d) {
+                    return d.bounds.width();
+                })
+                    .attr("height", function (d) {
+                    return d.bounds.height();
+                });
             }).on("end", routeEdges);
-            function isIE() { return ((navigator.appName == "Microsoft Internet Explorer") || ((navigator.appName == "Netscape") && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined))); }
+            function isIE() {
+                return ((navigator.appName == "Microsoft Internet Explorer") || ((navigator.appName == "Netscape") && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined)));
+            }
             // After a tick make sure to add translation to the nodes.
             // Sometimes it wasn"t added in a single tick.
             node.attr("transform", d => d.innerBounds ?
@@ -671,9 +894,11 @@ function networkVizJS(documentId, userLayoutOptions) {
         // Node needs a unique hash associated with it.
         const subject = tripletObject.subject, predicate = tripletObject.predicate, object = tripletObject.object;
         // Check that predicate doesn't already exist
-        new Promise((resolve, reject) => tripletsDB.get({ subject: subject.hash,
+        new Promise((resolve, reject) => tripletsDB.get({
+            subject: subject.hash,
             predicate: predicate.type,
-            object: object.hash }, function (err, list) {
+            object: object.hash
+        }, function (err, list) {
             if (err)
                 reject(err);
             resolve(list.length === 0);
@@ -746,9 +971,11 @@ function networkVizJS(documentId, userLayoutOptions) {
         // Node needs a unique hash associated with it.
         const subject = tripletObject.subject, predicate = tripletObject.predicate, object = tripletObject.object;
         // Check that predicate doesn't already exist
-        new Promise((resolve, reject) => tripletsDB.del({ subject: subject.hash,
+        new Promise((resolve, reject) => tripletsDB.del({
+            subject: subject.hash,
             predicate: predicate.type,
-            object: object.hash }, function (err) {
+            object: object.hash
+        }, function (err) {
             if (err)
                 reject(err);
             resolve();
@@ -986,7 +1213,9 @@ function networkVizJS(documentId, userLayoutOptions) {
         },
         // Handler for clicking on the edge.
         edgeOptions: {
-            setClickEdge: (callback) => { layoutOptions.clickEdge = callback; }
+            setClickEdge: (callback) => {
+                layoutOptions.clickEdge = callback;
+            }
         },
         // Change layouts on the fly.
         // May be a webcola memory leak if you change the layout too many times.
