@@ -1,5 +1,5 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", {value: true});
+Object.defineProperty(exports, "__esModule", { value: true });
 const d3 = require("d3");
 const cola = require("webcola");
 const $ = require("jquery");
@@ -36,6 +36,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         mouseUpNode: undefined,
         // These are "live options"
         updateNodeColor: undefined,
+        updateNodeShape: undefined,
         nodeRemove: undefined,
         clickPin: undefined,
         nodeToPin: false,
@@ -108,8 +109,7 @@ function networkVizJS(documentId, userLayoutOptions) {
     let links = [];
     let groups = [];
     const groupByHashes = [];
-    const width = layoutOptions.width, height = layoutOptions.height, margin = layoutOptions.margin,
-        pad = layoutOptions.pad;
+    const width = layoutOptions.width, height = layoutOptions.height, margin = layoutOptions.margin, pad = layoutOptions.pad;
     /**
      * Create svg canvas that is responsive to the page.
      * This will try to fill the div that it's placed in.
@@ -177,9 +177,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         node.select("path")
             .attr("transform", function (d) {
                 // Scale appropriately using http://stackoverflow.com/a/9877871/6421793
-                const currentWidth = this.getBBox().width, w = d.width, currentHeight = this.getBBox().height,
-                    h = d.height,
-                    scaleW = w / currentWidth, scaleH = h / currentHeight;
+                const currentWidth = this.getBBox().width, w = d.width, currentHeight = this.getBBox().height, h = d.height, scaleW = w / currentWidth, scaleH = h / currentHeight;
                 if (isNaN(scaleW) || isNaN(scaleH) || isNaN(w) || isNaN(h)) {
                     return "";
                 }
@@ -264,7 +262,8 @@ function networkVizJS(documentId, userLayoutOptions) {
             parent.selectAll('.menu-action').remove();
             parent.selectAll('.menu-shape').remove();
             parent.selectAll('.menu-color').remove();
-        } else {
+        }
+        else {
             d3.selectAll('.menu-action').remove();
             d3.selectAll('.menu-shape').remove();
             d3.selectAll('.menu-color').remove();
@@ -283,34 +282,31 @@ function networkVizJS(documentId, userLayoutOptions) {
         var foHeight = d.height;
         var foX = d.width;
         var foY = 0;
-        let currentShape = d.nodeShape
-        let firstShape = true
-        let shapeY = 3
-        hoverMenuRemoveIcons()
-
+        let currentShape = d.nodeShape;
+        let firstShape = true;
+        let shapeY = 3;
+        hoverMenuRemoveIcons();
         //CREATE SHAPES MENU
-        var shapeMenu =
-            parent.append("g")
-                .attr('x', -30)
-                .attr('y', foY)
-                .attr('width', 30)
-                .attr('height', foHeight)
-                .attr('class', 'menu-shape')
-                .on("mouseout", function () {
-                    var e = d3.event;
-                    var element = d3.select(this);
-                    var mouse = d3.mouse(this);
-                    var mosX = mouse[0];
-                    var mosY = mouse[1];
-                    setTimeout(function () {
-                        if (mosX < -20 || (mosY > d.height - 4 || mosY < 2)) {
-                            hoverMenuRemoveIcons(parent)
-                        }
-                    }, 50)
-                })
-
+        var shapeMenu = parent.append("g")
+            .attr('x', -30)
+            .attr('y', foY)
+            .attr('width', 30)
+            .attr('height', foHeight)
+            .attr('class', 'menu-shape')
+            .on("mouseout", function () {
+                var e = d3.event;
+                var element = d3.select(this);
+                var mouse = d3.mouse(this);
+                var mosX = mouse[0];
+                var mosY = mouse[1];
+                setTimeout(function () {
+                    if (mosX < -20 || (mosY > d.height - 4 || mosY < 2)) {
+                        hoverMenuRemoveIcons(parent);
+                    }
+                }, 50);
+            });
         if (currentShape !== "capsule") {
-            firstShape = false
+            firstShape = false;
             shapeMenu.append("rect")
                 .attr("rx", 6)
                 .attr("ry", 6)
@@ -323,18 +319,19 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr('stroke', '#b8c6c6')
                 .attr('stroke-width', 2)
                 .on("click", function () {
-                    hoverMenuRemoveIcons(parent)
+                    hoverMenuRemoveIcons(parent);
                     parent.selectAll('path').remove();
                     parent.insert("path", "text")
-                        .attr("d", d2)
-                    d.nodeShape = "capsule"
-                    updateStyles()
-                })
+                        .attr("d", d2);
+                    d.nodeShape = "capsule";
+                    layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d);
+                    updateStyles();
+                });
         }
-
         if (currentShape !== "rect") {
-            if (!firstShape) shapeY = shapeY + 26
-            firstShape = false
+            if (!firstShape)
+                shapeY = shapeY + 26;
+            firstShape = false;
             shapeMenu.append("rect")
                 .attr("x", -27)
                 .attr("y", shapeY)
@@ -345,18 +342,19 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr('stroke', '#b8c6c6')
                 .attr('stroke-width', 2)
                 .on("click", function () {
-                    hoverMenuRemoveIcons(parent)
+                    hoverMenuRemoveIcons(parent);
                     parent.selectAll('path').remove();
                     parent.insert("path", "text")
-                        .attr("d", d0)
-                    updateStyles()
-                    d.nodeShape = "rect"
-                })
+                        .attr("d", d0);
+                    d.nodeShape = "rect";
+                    layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d);
+                    updateStyles();
+                });
         }
-
         if (currentShape !== "circle") {
-            if (!firstShape) shapeY = shapeY + 36
-            firstShape = false
+            if (!firstShape)
+                shapeY = shapeY + 36;
+            firstShape = false;
             shapeMenu.append("circle")
                 .attr("cx", -15)
                 .attr("cy", shapeY)
@@ -366,15 +364,15 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr('stroke', '#b8c6c6')
                 .attr('stroke-width', 2)
                 .on("click", function () {
-                    hoverMenuRemoveIcons(parent)
+                    hoverMenuRemoveIcons(parent);
                     parent.selectAll('path').remove();
                     parent.insert("path", "text")
-                        .attr("d", d1)
-                    d.nodeShape = "circle"
-                    updateStyles()
-                })
+                        .attr("d", d1);
+                    d.nodeShape = "circle";
+                    layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d);
+                    updateStyles();
+                });
         }
-
         //CREATE COLOR SELECTOR ICON
         var foColor = parent.append('foreignObject')
             .attr("x", (d.width / 2) - 12)
@@ -382,7 +380,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             .attr('class', 'menu-color');
         var colorPik = foColor.append('xhtml:div')
             .append('div');
-
         if (d.id.slice(0, 5) === 'note-') {
             colorPik.append('div')
                 .html('<div id="controls"><div><span data-type="color" id="bgpicker" /></span></div></div>');
@@ -405,20 +402,19 @@ function networkVizJS(documentId, userLayoutOptions) {
                     },
                     onSubmit: function (hsb, hex, rgb, el) {
                         $(el).colpickHide();
-                        hoverMenuRemoveIcons(parent)
+                        hoverMenuRemoveIcons(parent);
                     }
                 }).css('background-color', d.color);
             })
                 .on("mouseout", function () {
                     setTimeout(function () {
-                        hoverMenuRemoveIcons(parent)
-                    }, 50)
+                        hoverMenuRemoveIcons(parent);
+                    }, 50);
                 });
         }
-
         //CREATE RIGHT MENU
         var fo = parent.append('foreignObject')
-            .attr('x', foX)
+            .attr('x', foX + 5)
             .attr('y', foY)
             .attr('width', foWidth)
             .attr('height', foHeight)
@@ -431,17 +427,15 @@ function networkVizJS(documentId, userLayoutOptions) {
                 var mosY = mouse[1];
                 setTimeout(function () {
                     if (mosX > d.width + 21 || mosY > d.height - 4 || mosY < 2) {
-                        hoverMenuRemoveIcons(parent)
+                        hoverMenuRemoveIcons(parent);
                     }
-                }, 50)
+                }, 50);
             });
-
         var div = fo.append('xhtml:div')
             .append('div')
             .on("mouseover", function () {
                 layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
-            })
-
+            });
         //CREATE TRASH ICON
         div.append('div')
             .attr('class', 'icon-wrapper')
@@ -449,8 +443,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             .on("click", function () {
                 console.log("clicked");
                 layoutOptions.nodeRemove && layoutOptions.nodeRemove(d);
-            })
-
+            });
         //CREATE PIN ICON
         div.append('div')
             .html('<i class="fa fa-thumb-tack custom-icon"></i>')
@@ -462,7 +455,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     d.fixed = false; // eslint-disable-line no-param-reassign
                 }
                 layoutOptions.clickPin && layoutOptions.clickPin(d, element);
-                hoverMenuRemoveIcons(parent)
+                hoverMenuRemoveIcons(parent);
                 restart();
             });
         layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
@@ -476,14 +469,14 @@ function networkVizJS(documentId, userLayoutOptions) {
      */
     function deleteHoverMenu(d, me) {
         var e = d3.event;
-        e.preventDefault()
+        e.preventDefault();
         var element = d3.select(me);
         var parent = d3.select(me.parentNode);
         var mouse = d3.mouse(me.parentElement);
         var mosX = mouse[0];
         var mosY = mouse[1];
         if (mosY < -15 || mosY > d.height || mosX < -30 || mosX > d.width + 20) {
-            hoverMenuRemoveIcons(parent)
+            hoverMenuRemoveIcons(parent);
         }
         // if (mosX < -20 || mosX > (d.width + 40) || mosY < -15 || mosY > d.height + 10 ||
         //   (mosX < d.width && mosX > d.width / 2 && mosY > 0 && mosY < d.height) ||
@@ -513,10 +506,9 @@ function networkVizJS(documentId, userLayoutOptions) {
             node.exit().remove();
             const nodeEnter = node.enter()
                 .append("g")
-                .classed("node", true)
+                .classed("node", true);
             // Only allow dragging nodes if turned on.
             // if (layoutOptions.canDrag()) {
-
             nodeEnter.attr("cursor", "move").call(drag); // Drag controlled by filter.
             // } else {
             //     nodeEnter.attr("cursor", "default");
@@ -531,7 +523,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .style("font", "100 22px Helvetica Neue");
             // Choose the node shape and style.
             let nodeShape;
-
             nodeShape = nodeEnter.insert("path", "text");
             if (typeof layoutOptions.nodeShape == "string" && layoutOptions.nodeShape == "rect") {
                 // nodeShape = nodeEnter.insert("rect", "text")     // The second arg is what the rect will sit behind.
@@ -546,7 +537,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                 nodeShape.attr("d", layoutOptions.nodeShape);
             }
             nodeShape.attr("vector-effect", "non-scaling-stroke");
-
             nodeEnter.append("foreignObject")
                 .classed("node-status-icons", true)
                 .append('xhtml:div')
@@ -796,11 +786,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                             return d.bounds.height();
                         });
                 }).on("end", routeEdges);
-
                 function isIE() {
                     return ((navigator.appName == "Microsoft Internet Explorer") || ((navigator.appName == "Netscape") && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined)));
                 }
-
                 // After a tick make sure to add translation to the nodes.
                 // Sometimes it wasn"t added in a single tick.
                 node.attr("transform", d => d.innerBounds ?
@@ -809,7 +797,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             })
             .then(() => typeof callback === "function" && callback());
     }
-
     // Helper function for updating links after node mutations.
     // Calls a function after links added.
     function createNewLinks(callback) {
@@ -818,7 +805,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 console.error(err);
             }
             // Create edges based on LevelGraph triplets
-            links = l.map(({subject, object, edgeData}) => {
+            links = l.map(({ subject, object, edgeData }) => {
                 const source = nodeMap.get(subject);
                 const target = nodeMap.get(object);
                 predicateMap.set(edgeData.hash, edgeData); //TODO bandaid fix for predicatemap objects =/= links objects
@@ -1047,11 +1034,11 @@ function networkVizJS(documentId, userLayoutOptions) {
      * @param {String} nodeHash hash of the node to remove.
      */
     function removeNode(nodeHash, callback) {
-        tripletsDB.get({subject: nodeHash}, function (err, l1) {
+        tripletsDB.get({ subject: nodeHash }, function (err, l1) {
             if (err) {
                 return console.error(err);
             }
-            tripletsDB.get({object: nodeHash}, function (err, l2) {
+            tripletsDB.get({ object: nodeHash }, function (err, l2) {
                 if (err) {
                     return console.error(err);
                 }
@@ -1193,7 +1180,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 indexOfSet.push(nodeIndex);
             }
             // Create and push an object with the indexes of the nodes.
-            newGroupObject.push({leaves: indexOfSet});
+            newGroupObject.push({ leaves: indexOfSet });
         });
         groups = newGroupObject;
         restart(callback);
@@ -1208,8 +1195,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         d3.selectAll('.radial-menu').remove();
         tripletsDB.get({}, (err, l) => {
             const saved = JSON.stringify({
-                triplets: l.map(v => ({subject: v.subject, predicate: v.predicate, object: v.object})),
-                nodes: nodes.map(v => ({hash: v.hash, x: v.x, y: v.y}))
+                triplets: l.map(v => ({ subject: v.subject, predicate: v.predicate, object: v.object })),
+                nodes: nodes.map(v => ({ hash: v.hash, x: v.x, y: v.y }))
             });
             callback(saved);
         });
@@ -1313,7 +1300,5 @@ function networkVizJS(documentId, userLayoutOptions) {
         }
     };
 }
-
 exports.default = networkVizJS;
-
 //# sourceMappingURL=networkViz.js.map

@@ -35,6 +35,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         mouseUpNode: undefined,
         // These are "live options"
         updateNodeColor: undefined,
+        updateNodeShape: undefined,
         nodeRemove: undefined,
         clickPin: undefined,
         nodeToPin: false,
@@ -314,6 +315,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 parent.insert("path", "text")
                     .attr("d", d2);
                 d.nodeShape = "capsule";
+                layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d);
                 updateStyles();
             });
         }
@@ -335,8 +337,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                 parent.selectAll('path').remove();
                 parent.insert("path", "text")
                     .attr("d", d0);
-                updateStyles();
                 d.nodeShape = "rect";
+                layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d);
+                updateStyles();
             });
         }
         if (currentShape !== "circle") {
@@ -357,6 +360,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 parent.insert("path", "text")
                     .attr("d", d1);
                 d.nodeShape = "circle";
+                layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d);
                 updateStyles();
             });
         }
@@ -401,7 +405,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         }
         //CREATE RIGHT MENU
         var fo = parent.append('foreignObject')
-            .attr('x', foX)
+            .attr('x', foX + 5)
             .attr('y', foY)
             .attr('width', foWidth)
             .attr('height', foHeight)
