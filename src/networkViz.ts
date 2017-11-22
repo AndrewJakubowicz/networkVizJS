@@ -8,6 +8,7 @@ const level = require("level-browserify");
 const jscolor = require("./util/jscolor");
 const updateColaLayout_1 = require("./updateColaLayout");
 const createColorArrow_1 = require("./util/createColorArrow");
+
 function networkVizJS(documentId, userLayoutOptions) {
     /**
      * Default options for webcola and graph
@@ -27,7 +28,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         margin: 10,
         canDrag: () => true,
         nodeDragStart: undefined,
-        edgeLabelText: undefined,
+        edgeLabelText: (edgeData) => edgeData.text,
         // Both mouseout and mouseover take data AND the selection (arg1, arg2)
         mouseDownNode: undefined,
         mouseOverNode: undefined,
@@ -53,6 +54,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         },
         clickEdge: (d, element) => undefined,
     };
+
     const X = 37;
     const Y = -13;
     const p1x = 25 + X;
@@ -64,6 +66,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         d1 = "M20,40a20,20 0 1,0 40,0a20,20 0 1,0 -40,0", //CIRCLE
         // d2 = "M148.1,310.5h-13.4c-4.2,0-7.7-3.4-7.7-7.7v-7.4c0-4.2,3.4-7.7,7.7-7.7h13.4c4.2,0,7.7,3.4,7.7,7.7v7.4  C155.7,307.1,152.3,310.5,148.1,310.5z"; //CAPSULE
         d2 = `M ${p1x} ${p1y} L ${p2x} ${p1y} C ${p3x} ${p1y} ${p3x} ${p4y} ${p2x} ${p4y} L ${p1x} ${p4y} C ${X} ${p4y} ${X} ${p1y} ${p1x} ${p1y} `; //CAPSULE
+
     const internalOptions = {
         isDragging: false
     };
@@ -158,11 +161,14 @@ function networkVizJS(documentId, userLayoutOptions) {
         // Prevent zoom when mouse over node.
         return d3.event.target.tagName.toLowerCase() === "svg";
     });
+
     svg.call(zoom).on("dblclick.zoom", null);
+
     function zoomed() {
         layoutOptions.clickAway();
         g.attr("transform", d3.event.transform);
     }
+
     /**
      * Resets width or radius of nodes.
      * Allows dynamically changing node sizes based on text.
@@ -178,6 +184,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 return `translate(${-w / 2},${-h / 2}) scale(${scaleW},${scaleH})`;
             });
     }
+
     /**
      * This function re-centers the text.
      * This allows you to not change the text without restarting
@@ -244,6 +251,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 });
             });
     }
+
     /**
      * This function remove the icons from
      * the hover menu
@@ -261,6 +269,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             d3.selectAll('.menu-color').remove();
         }
     }
+
     /**
      * This function add a a menu to
      * Delete, Pin, Change color and Change shape of a node
@@ -451,6 +460,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             });
         layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
     }
+
     /**
      * This function delete the node hover menu.
      * It will calculate at which position to the node
@@ -475,6 +485,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         // }
         layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
     }
+
     /**
      * Update the d3 visuals without layout changes.
      */
@@ -614,6 +625,10 @@ function networkVizJS(documentId, userLayoutOptions) {
             const linkEnter = link.enter()
                 .append("g")
                 .classed("line", true);
+            linkEnter.append("path") // transparent clickable area behind line
+                .attr("stroke-width", layoutOptions.edgeStroke * 10)
+                .attr("stroke", 'rgba(0, 0, 0, 0)')
+                .attr("fill", "none");
             linkEnter.append("path")
                 .attr("stroke-width", layoutOptions.edgeStroke)
                 .attr("stroke", layoutOptions.edgeColor)
@@ -643,6 +658,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             return resolve();
         });
     }
+
     /**
      * restart function adds and removes nodes.
      * It also restarts the simulation.
@@ -676,7 +692,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         return;
                     }
                     try {
-                        link.select("path").attr("d", d => lineFunction(simulation.routeEdge(d, undefined)));
+                        link.selectAll("path").attr("d", d => lineFunction(simulation.routeEdge(d, undefined)));
                     }
                     catch (err) {
                         console.error(err);
@@ -684,7 +700,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     }
                     try {
                         if (isIE())
-                            link.select("path").each(function (d) {
+                            link.selectAll("path").each(function (d) {
                                 this.parentNode.insertBefore(this, this);
                             });
                     }
@@ -719,7 +735,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         `translate(${d.innerBounds.x},${d.innerBounds.y})`
                         : `translate(${d.x},${d.y})`);
                     updatePathDimensions();
-                    link.select("path").attr("d", d => {
+                    link.selectAll("path").attr("d", d => {
                         let route;
                         try {
                             route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
@@ -792,11 +808,13 @@ function networkVizJS(documentId, userLayoutOptions) {
             links = l.map(({ subject, object, edgeData }) => {
                 const source = nodeMap.get(subject);
                 const target = nodeMap.get(object);
-                return { source, target, edgeData };
+                predicateMap.set(edgeData.hash, edgeData); //TODO bandaid fix for predicatemap objects =/= links objects
+                return {source, target, edgeData};
             });
             restart(callback);
         });
     }
+
     /**
      * Take a node object or list of nodes and add them.
      * @param {object | object[]} nodeObject
@@ -811,6 +829,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         function isArray(obj) {
             return !!obj && obj.constructor === Array;
         }
+
         function addNodeObjectHelper(nodeObject) {
             // Check that hash exists
             if (!(nodeObject.hash)) {
@@ -831,6 +850,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 nodeMap.set(nodeObject.hash, nodeObject);
             }
         }
+
         /**
          * Check that the input is valid
          */
@@ -852,6 +872,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             typeof callback === "function" && callback();
         }
     }
+
     /**
      * Validates triplets.
      * @param {object} tripletObject
@@ -882,6 +903,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         }
         return true;
     }
+
     /**
      * Adds a triplet object. Adds the node if it's not already added.
      * Otherwise it just adds the edge
@@ -960,6 +982,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             });
         });
     }
+
     /**
      * Removes a triplet object. Silently fails if edge doesn't exist.
      * @param {object} tripletObject
@@ -985,6 +1008,27 @@ function networkVizJS(documentId, userLayoutOptions) {
             createNewLinks(callback);
         });
     }
+
+    /**
+     *  Update edge data. Fails silently if doesnt exist
+     * @param {object} tripletObject
+     */
+    function updateTriplet(tripletObject) {
+        // if (predicateMap.has(tripletObject.edgeData.hash)) {
+        // predicateMap.set(tripletObject.edgeData.hash, tripletObject.edgeData); // TODO not needed if fix in createNewLinks is kept
+        tripletsDB.del({subject: tripletObject.subject, object: tripletObject.object}, (err) => {
+            if (err) {
+                console.log(err)
+            }
+            tripletsDB.put(tripletObject, (err) => {
+                if (err) {
+                    console.log(err)
+                }
+            })
+        });
+        // }
+    }
+
     /**
      * Removes the node and all triplets associated with it.
      * @param {String} nodeHash hash of the node to remove.
@@ -1040,6 +1084,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             });
         });
     }
+
     /**
      * Function that fires when a node is clicked.
      * @param {function} selectNodeFunc
@@ -1047,6 +1092,7 @@ function networkVizJS(documentId, userLayoutOptions) {
     function setSelectNode(selectNodeFunc) {
         layoutOptions.clickNode = selectNodeFunc;
     }
+
     /**
      * Invoking this function will recenter the graph.
      */
@@ -1061,6 +1107,7 @@ function networkVizJS(documentId, userLayoutOptions) {
     function setMouseOver(mouseOverCallback) {
         layoutOptions.mouseOverNode = mouseOverCallback;
     }
+
     /**
      * Function to call when mouse out registers on a node.
      * It takes a d3 mouse over event.
@@ -1069,10 +1116,12 @@ function networkVizJS(documentId, userLayoutOptions) {
     function setMouseOut(mouseOutCallback) {
         layoutOptions.mouseOutNode = mouseOutCallback;
     }
+
     // Function called when mousedown on node.
     function setMouseDown(mouseDownCallback) {
         layoutOptions.mouseDownNode = mouseDownCallback;
     }
+
     /**
      * Merges a node into another group.
      * If this node was in another group previously it removes it from the prior group.
@@ -1136,6 +1185,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         groups = newGroupObject;
         restart(callback);
     }
+
     /**
      * Serialize the graph.
      * scheme: triplets: subj:hash-predicateType-obj:hash[]
@@ -1161,6 +1211,7 @@ function networkVizJS(documentId, userLayoutOptions) {
     window.onblur = function () {
         simulation.stop();
     };
+
     // Public api
     /**
      * TODO:
@@ -1181,6 +1232,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         addTriplet,
         // remove an edge
         removeTriplet,
+        // update edge data in database
+        updateTriplet,
         // EXPERIMENTAL - DONT USE YET.
         mergeNodeToGroup,
         // remove a node and all edges connected to it.
