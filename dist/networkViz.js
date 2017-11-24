@@ -37,6 +37,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         updateNodeColor: undefined,
         updateNodeShape: undefined,
         nodeRemove: undefined,
+        startArrow: undefined,
         clickPin: undefined,
         nodeToPin: false,
         nodeToColor: "white",
@@ -254,15 +255,17 @@ function networkVizJS(documentId, userLayoutOptions) {
             parent.selectAll('.menu-action').remove();
             parent.selectAll('.menu-shape').remove();
             parent.selectAll('.menu-color').remove();
+            parent.selectAll('.menu-arrow').remove();
         }
         else {
             d3.selectAll('.menu-action').remove();
             d3.selectAll('.menu-shape').remove();
             d3.selectAll('.menu-color').remove();
+            d3.selectAll('.menu-arrow').remove();
         }
     }
     /**
-     * This function add a a menu to
+     * This function adds a menu to
      * Delete, Pin, Change color and Change shape of a node
      * @param node data, node d3 element
      */
@@ -367,7 +370,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         //CREATE COLOR SELECTOR ICON
         var foColor = parent.append('foreignObject')
             .attr("x", (d.width / 2) - 12)
-            .attr("y", -25)
+            .attr("y", -28)
             .attr('class', 'menu-color');
         var colorPik = foColor.append('xhtml:div')
             .append('div');
@@ -403,6 +406,22 @@ function networkVizJS(documentId, userLayoutOptions) {
                 }, 50);
             });
         }
+        //CREATE DRAW ARROW ICON
+        var foArrow = parent.append('foreignObject')
+            .attr("x", (d.width / 2) - 12)
+            .attr("y", d.height + 2)
+            .attr('class', 'menu-arrow');
+        var drawArrow = foArrow.append('xhtml:div')
+            .append('div')
+            .html('<i class="fa fa-arrow-right custom-icon fa-rotate"></i>')
+            .on("mousedown", function () {
+            layoutOptions.startArrow && layoutOptions.startArrow(d, element);
+        })
+            .on("mouseout", function () {
+            setTimeout(function () {
+                hoverMenuRemoveIcons(parent);
+            }, 50);
+        });
         //CREATE RIGHT MENU
         var fo = parent.append('foreignObject')
             .attr('x', foX + 5)
@@ -465,10 +484,10 @@ function networkVizJS(documentId, userLayoutOptions) {
         var mouse = d3.mouse(me.parentElement);
         var mosX = mouse[0];
         var mosY = mouse[1];
-        if (mosY < -15 || mosY > d.height || mosX < -30 || mosX > d.width + 20) {
+        if (mosY < -15 || mosY > d.height + 2 || mosX < -30 || mosX > d.width + 20) {
             hoverMenuRemoveIcons(parent);
         }
-        // if (mosX < -20 || mosX > (d.width + 40) || mosY < -15 || mosY > d.height + 10 ||
+        //if (mosX < -20 || mosX > (d.width + 40) || mosY < -15 || mosY > d.height + 10 ||
         //   (mosX < d.width && mosX > d.width / 2 && mosY > 0 && mosY < d.height) ||
         //   (mosX < d.width / 2 && mosX > 0 && mosY > 0 && mosY < d.height)) {
         //   hoverMenuRemoveIcons(parent)
