@@ -1,5 +1,5 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
+Object.defineProperty(exports, "__esModule", {value: true});
 const d3 = require("d3");
 const cola = require("webcola");
 const $ = require("jquery");
@@ -109,7 +109,8 @@ function networkVizJS(documentId, userLayoutOptions) {
     let links = [];
     let groups = [];
     const groupByHashes = [];
-    const width = layoutOptions.width, height = layoutOptions.height, margin = layoutOptions.margin, pad = layoutOptions.pad;
+    const width = layoutOptions.width, height = layoutOptions.height, margin = layoutOptions.margin,
+        pad = layoutOptions.pad;
     /**
      * Create svg canvas that is responsive to the page.
      * This will try to fill the div that it's placed in.
@@ -177,7 +178,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         node.select("path")
             .attr("transform", function (d) {
                 // Scale appropriately using http://stackoverflow.com/a/9877871/6421793
-                const currentWidth = this.getBBox().width, w = d.width, currentHeight = this.getBBox().height, h = d.height, scaleW = w / currentWidth, scaleH = h / currentHeight;
+                const currentWidth = this.getBBox().width, w = d.width, currentHeight = this.getBBox().height,
+                    h = d.height, scaleW = w / currentWidth, scaleH = h / currentHeight;
                 if (isNaN(scaleW) || isNaN(scaleH) || isNaN(w) || isNaN(h)) {
                     return "";
                 }
@@ -786,9 +788,11 @@ function networkVizJS(documentId, userLayoutOptions) {
                             return d.bounds.height();
                         });
                 }).on("end", routeEdges);
+
                 function isIE() {
                     return ((navigator.appName == "Microsoft Internet Explorer") || ((navigator.appName == "Netscape") && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined)));
                 }
+
                 // After a tick make sure to add translation to the nodes.
                 // Sometimes it wasn"t added in a single tick.
                 node.attr("transform", d => d.innerBounds ?
@@ -797,6 +801,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             })
             .then(() => typeof callback === "function" && callback());
     }
+
     // Helper function for updating links after node mutations.
     // Calls a function after links added.
     function createNewLinks(callback) {
@@ -805,7 +810,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 console.error(err);
             }
             // Create edges based on LevelGraph triplets
-            links = l.map(({ subject, object, edgeData }) => {
+            links = l.map(({subject, object, edgeData}) => {
                 const source = nodeMap.get(subject);
                 const target = nodeMap.get(object);
                 predicateMap.set(edgeData.hash, edgeData); //TODO bandaid fix for predicatemap objects =/= links objects
@@ -835,13 +840,21 @@ function networkVizJS(documentId, userLayoutOptions) {
             if (!(nodeObject.hash)) {
                 throw new Error("Node requires a hash field.");
             }
-            // TODO: remove this hack
-            if (!(nodeObject.x)) {
-                nodeObject.x = layoutOptions.width / 2;
+
+            //TODO hack improved. doesnt work with window resizing. check resizing on SWARM end before implementing fix
+            if (!(nodeObject.x && nodeObject.y)) {
+                let point = transformCoordinates({
+                    x: layoutOptions.width / 2,
+                    y: layoutOptions.height / 2
+                });
+                if (!nodeObject.x) {
+                    nodeObject.x = point.x;
+                }
+                if (!nodeObject.y) {
+                    nodeObject.y = point.y;
+                }
             }
-            if (!(nodeObject.y)) {
-                nodeObject.y = layoutOptions.height / 2;
-            }
+
             // Add node to graph
             if (!nodeMap.has(nodeObject.hash)) {
                 simulation.stop();
@@ -1034,11 +1047,11 @@ function networkVizJS(documentId, userLayoutOptions) {
      * @param {String} nodeHash hash of the node to remove.
      */
     function removeNode(nodeHash, callback) {
-        tripletsDB.get({ subject: nodeHash }, function (err, l1) {
+        tripletsDB.get({subject: nodeHash}, function (err, l1) {
             if (err) {
                 return console.error(err);
             }
-            tripletsDB.get({ object: nodeHash }, function (err, l2) {
+            tripletsDB.get({object: nodeHash}, function (err, l2) {
                 if (err) {
                     return console.error(err);
                 }
@@ -1180,7 +1193,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 indexOfSet.push(nodeIndex);
             }
             // Create and push an object with the indexes of the nodes.
-            newGroupObject.push({ leaves: indexOfSet });
+            newGroupObject.push({leaves: indexOfSet});
         });
         groups = newGroupObject;
         restart(callback);
@@ -1195,8 +1208,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         d3.selectAll('.radial-menu').remove();
         tripletsDB.get({}, (err, l) => {
             const saved = JSON.stringify({
-                triplets: l.map(v => ({ subject: v.subject, predicate: v.predicate, object: v.object })),
-                nodes: nodes.map(v => ({ hash: v.hash, x: v.x, y: v.y }))
+                triplets: l.map(v => ({subject: v.subject, predicate: v.predicate, object: v.object})),
+                nodes: nodes.map(v => ({hash: v.hash, x: v.x, y: v.y}))
             });
             callback(saved);
         });
@@ -1210,6 +1223,24 @@ function networkVizJS(documentId, userLayoutOptions) {
     };
     window.onblur = function () {
         simulation.stop();
+    };
+
+    /**
+     * Transform client coordiantes to transformed SVG coordiantes
+     * @param {number} x clientX
+     * @param {number} y clientY
+     * @returns {{x: number; y: number}}
+     */
+    const transformCoordinates = ({x, y}) => {
+        let screenPoint = svg.node().createSVGPoint();
+        screenPoint.x = x;
+        screenPoint.y = y;
+        let CTM = g.node().getScreenCTM();
+        let point = screenPoint.matrixTransform(CTM.inverse());
+        return {
+            x: point.x,
+            y: point.y
+        }
     };
 
     // Public api
@@ -1228,6 +1259,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         saveGraph,
         // Get SVG element. If you want the node use `graph.getSVGElement().node();`
         getSVGElement: () => svg,
+        // Transform client coordinates into SVG coordinates
+        transformCoordinates,
         // add a directed edge
         addTriplet,
         // remove an edge
@@ -1300,5 +1333,6 @@ function networkVizJS(documentId, userLayoutOptions) {
         }
     };
 }
+
 exports.default = networkVizJS;
 //# sourceMappingURL=networkViz.js.map

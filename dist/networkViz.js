@@ -821,12 +821,18 @@ function networkVizJS(documentId, userLayoutOptions) {
             if (!(nodeObject.hash)) {
                 throw new Error("Node requires a hash field.");
             }
-            // TODO: remove this hack
-            if (!(nodeObject.x)) {
-                nodeObject.x = layoutOptions.width / 2;
-            }
-            if (!(nodeObject.y)) {
-                nodeObject.y = layoutOptions.height / 2;
+            //TODO hack improved. doesnt work with window resizing. check resizing on SWARM end before implementing fix
+            if (!(nodeObject.x && nodeObject.y)) {
+                let point = transformCoordinates({
+                    x: layoutOptions.width / 2,
+                    y: layoutOptions.height / 2
+                });
+                if (!nodeObject.x) {
+                    nodeObject.x = point.x;
+                }
+                if (!nodeObject.y) {
+                    nodeObject.y = point.y;
+                }
             }
             // Add node to graph
             if (!nodeMap.has(nodeObject.hash)) {
@@ -1185,6 +1191,23 @@ function networkVizJS(documentId, userLayoutOptions) {
     window.onblur = function () {
         simulation.stop();
     };
+    /**
+     * Transform client coordiantes to transformed SVG coordiantes
+     * @param {number} x clientX
+     * @param {number} y clientY
+     * @returns {{x: number; y: number}}
+     */
+    const transformCoordinates = ({ x, y }) => {
+        let screenPoint = svg.node().createSVGPoint();
+        screenPoint.x = x;
+        screenPoint.y = y;
+        let CTM = g.node().getScreenCTM();
+        let point = screenPoint.matrixTransform(CTM.inverse());
+        return {
+            x: point.x,
+            y: point.y
+        };
+    };
     // Public api
     /**
      * TODO:
@@ -1201,6 +1224,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         saveGraph,
         // Get SVG element. If you want the node use `graph.getSVGElement().node();`
         getSVGElement: () => svg,
+        // Transform client coordinates into SVG coordinates
+        transformCoordinates,
         // add a directed edge
         addTriplet,
         // remove an edge

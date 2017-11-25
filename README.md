@@ -185,10 +185,14 @@ getDB(): levelGraphDB
 saveGraph(): string
 // Get SVG element. If you want the node use `graph.getSVGElement().node();`
 getSVGElement(): d3SVGSelection
+// Transform client coordinates into SVG coordinates
+transformCoordinates({x,y})
 // add a directed edge
 addTriplet(tripletObject, preventLayout?: Boolean)
 // remove an edge
 removeTriplet(tripletObject),
+// update edge data in database
+updateTriplet(tripletObject),
 // EXPERIMENTAL - DON'T USE YET.
 mergeNodeToGroup,
 // remove a node and all edges connected to it.
