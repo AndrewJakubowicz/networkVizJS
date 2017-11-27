@@ -27,7 +27,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         margin: 10,
         canDrag: () => true,
         nodeDragStart: undefined,
-        edgeLabelText: undefined,
+        edgeLabelText: (edgeData) => edgeData.text,
         // Both mouseout and mouseover take data AND the selection (arg1, arg2)
         mouseDownNode: undefined,
         mouseOverNode: undefined,
@@ -615,6 +615,10 @@ function networkVizJS(documentId, userLayoutOptions) {
             const linkEnter = link.enter()
                 .append("g")
                 .classed("line", true);
+            linkEnter.append("path") // transparent clickable area behind line
+                .attr("stroke-width", layoutOptions.edgeStroke * 10)
+                .attr("stroke", 'rgba(0, 0, 0, 0)')
+                .attr("fill", "none");
             linkEnter.append("path")
                 .attr("stroke-width", layoutOptions.edgeStroke)
                 .attr("stroke", layoutOptions.edgeColor)
@@ -677,7 +681,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     return;
                 }
                 try {
-                    link.select("path").attr("d", d => lineFunction(simulation.routeEdge(d, undefined)));
+                    link.selectAll("path").attr("d", d => lineFunction(simulation.routeEdge(d, undefined)));
                 }
                 catch (err) {
                     console.error(err);
@@ -685,7 +689,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 }
                 try {
                     if (isIE())
-                        link.select("path").each(function (d) {
+                        link.selectAll("path").each(function (d) {
                             this.parentNode.insertBefore(this, this);
                         });
                 }
@@ -720,7 +724,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     `translate(${d.innerBounds.x},${d.innerBounds.y})`
                     : `translate(${d.x},${d.y})`);
                 updatePathDimensions();
-                link.select("path").attr("d", d => {
+                link.selectAll("path").attr("d", d => {
                     let route;
                     try {
                         route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
@@ -793,6 +797,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             links = l.map(({ subject, object, edgeData }) => {
                 const source = nodeMap.get(subject);
                 const target = nodeMap.get(object);
+                predicateMap.set(edgeData.hash, edgeData); //TODO bandaid fix for predicatemap objects =/= links objects
                 return { source, target, edgeData };
             });
             restart(callback);
@@ -985,6 +990,25 @@ function networkVizJS(documentId, userLayoutOptions) {
             simulation.stop();
             createNewLinks(callback);
         });
+    }
+    /**
+     *  Update edge data. Fails silently if doesnt exist
+     * @param {object} tripletObject
+     */
+    function updateTriplet(tripletObject) {
+        // if (predicateMap.has(tripletObject.edgeData.hash)) {
+        // predicateMap.set(tripletObject.edgeData.hash, tripletObject.edgeData); // TODO not needed if fix in createNewLinks is kept
+        tripletsDB.del({ subject: tripletObject.subject, object: tripletObject.object }, (err) => {
+            if (err) {
+                console.log(err);
+            }
+            tripletsDB.put(tripletObject, (err) => {
+                if (err) {
+                    console.log(err);
+                }
+            });
+        });
+        // }
     }
     /**
      * Removes the node and all triplets associated with it.
@@ -1182,6 +1206,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         addTriplet,
         // remove an edge
         removeTriplet,
+        // update edge data in database
+        updateTriplet,
         // EXPERIMENTAL - DONT USE YET.
         mergeNodeToGroup,
         // remove a node and all edges connected to it.
