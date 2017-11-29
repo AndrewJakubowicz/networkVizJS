@@ -841,18 +841,25 @@ function networkVizJS(documentId, userLayoutOptions) {
             if (!(nodeObject.hash)) {
                 throw new Error("Node requires a hash field.");
             }
-            //TODO hack improved. doesnt work with window resizing. check resizing on SWARM end before implementing fix
-            if (!(nodeObject.x && nodeObject.y)) {
-                let point = transformCoordinates({
-                    x: layoutOptions.width / 2,
-                    y: layoutOptions.height / 2
-                });
-                if (!nodeObject.x) {
-                    nodeObject.x = point.x;
-                }
-                if (!nodeObject.y) {
-                    nodeObject.y = point.y;
-                }
+            // //TODO hack improved. doesnt work with window resizing. check resizing on SWARM end before implementing fix
+            // if (!(nodeObject.x && nodeObject.y)) {
+            //     let point = transformCoordinates({
+            //         x: layoutOptions.width / 2,
+            //         y: layoutOptions.height / 2
+            //     });
+            //     if (!nodeObject.x) {
+            //         nodeObject.x = point.x;
+            //     }
+            //     if (!nodeObject.y) {
+            //         nodeObject.y = point.y;
+            //     }
+            // }
+            // TODO: remove this hack
+            if (!(nodeObject.x)) {
+                nodeObject.x = layoutOptions.width / 2;
+            }
+            if (!(nodeObject.y)) {
+                nodeObject.y = layoutOptions.height / 2;
             }
             // Add node to graph
             if (!nodeMap.has(nodeObject.hash)) {
