@@ -265,13 +265,13 @@ function networkVizJS(documentId, userLayoutOptions) {
             parent.selectAll('.menu-action').remove();
             parent.selectAll('.menu-shape').remove();
             parent.selectAll('.menu-color').remove();
-            parent.selectAll('.menu-arrow').remove();
+            parent.selectAll('.menu-trash').remove();
         }
         else {
             d3.selectAll('.menu-action').remove();
             d3.selectAll('.menu-shape').remove();
             d3.selectAll('.menu-color').remove();
-            d3.selectAll('.menu-arrow').remove();
+            d3.selectAll('.menu-trash').remove();
         }
     }
 
@@ -418,21 +418,33 @@ function networkVizJS(documentId, userLayoutOptions) {
                     }, 50);
                 });
         }
-        //CREATE DRAW ARROW ICON
-        var foArrow = parent.append('foreignObject')
+        //CREATE TRASH ICON
+        var foTrash = parent.append('foreignObject')
             .attr("x", (d.width / 2) - 12)
             .attr("y", d.height + 2 )
-            .attr('class', 'menu-arrow');
-        var drawArrow = foArrow.append('xhtml:div')
-            .append('div')
-            .html('<i class="fa fa-arrow-right custom-icon fa-rotate"></i>')
-            .on("mousedown", function () {
-                layoutOptions.startArrow && layoutOptions.startArrow(d, element);
-            })
+            .attr('class', 'menu-trash')
             .on("mouseout", function () {
+                var e = d3.event;
+                var element = d3.select(this);
+                var mouse = d3.mouse(this);
+                var mosX = mouse[0];
+                var mosY = mouse[1];
                 setTimeout(function () {
-                    hoverMenuRemoveIcons(parent);
-                  }, 50)
+                    if (mosX > d.width/2 + 11 || mosX < d.width/2 - 11 || mosY > d.height + 21 ) {
+                        hoverMenuRemoveIcons(parent);
+                    }
+                }, 50)
+              });
+        var trash = foTrash.append('xhtml:div')
+            .append('div')
+            .attr('class', 'icon-wrapper')
+            .html('<i class="fa fa-trash-o custom-icon"></i>')
+            .on("click", function () {
+                console.log("clicked");
+                layoutOptions.nodeRemove && layoutOptions.nodeRemove(d);
+            })
+            .on("mouseover", function () {
+                    layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
             });
         //CREATE RIGHT MENU
         var fo = parent.append('foreignObject')
@@ -458,18 +470,15 @@ function networkVizJS(documentId, userLayoutOptions) {
             .on("mouseover", function () {
                 layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
             });
-        //CREATE TRASH ICON
-        div.append('div')
-            .attr('class', 'icon-wrapper')
-            .html('<i class="fa fa-trash-o custom-icon"></i>')
-            .on("click", function () {
-                console.log("clicked");
-                layoutOptions.nodeRemove && layoutOptions.nodeRemove(d);
-            });
         //CREATE PIN ICON
-        div.append('div')
-            .html('<i class="fa fa-thumb-tack custom-icon"></i>')
-            .on("click", function () {
+        var pinIcon = div.append('div')
+        if (d.fixed) {
+          pinIcon.html('<i class="fa fa-thumb-tack pinned"></i>')
+        }
+        else {
+          pinIcon.html('<i class="fa fa-thumb-tack unpinned"></i>')
+        }
+        pinIcon.on("click", function () {
                 if (!d.fixed) {
                     d.fixed = true; // eslint-disable-line no-param-reassign
                 }
@@ -479,7 +488,13 @@ function networkVizJS(documentId, userLayoutOptions) {
                 layoutOptions.clickPin && layoutOptions.clickPin(d, element);
                 hoverMenuRemoveIcons(parent);
                 restart();
-            });
+          });
+          //CREATE DRAW ARROW icon
+          div.append('div')
+              .html('<i class="fa fa-arrow-right custom-icon"></i>')
+              .on("mousedown", function () {
+                  layoutOptions.startArrow && layoutOptions.startArrow(d, element);
+              });
         layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
     }
 
@@ -559,11 +574,11 @@ function networkVizJS(documentId, userLayoutOptions) {
                 nodeShape.attr("d", layoutOptions.nodeShape);
             }
             nodeShape.attr("vector-effect", "non-scaling-stroke");
-            nodeEnter.append("foreignObject")
-                .classed("node-status-icons", true)
-                .append('xhtml:div')
-                .append('div')
-                .html('<i class="fa fa-thumb-tack"></i>');
+            // nodeEnter.append("foreignObject")
+            //     .classed("node-status-icons", true)
+            //     .append('xhtml:div')
+            //     .append('div')
+            //     .html('<i class="fa fa-thumb-tack"></i>');
             // Merge the entered nodes to the update nodes.
             node = node.merge(nodeEnter)
                 .classed("fixed", d => d.fixed || false);
