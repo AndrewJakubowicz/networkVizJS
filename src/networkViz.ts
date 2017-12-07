@@ -388,17 +388,22 @@ function networkVizJS(documentId, userLayoutOptions) {
         if (d.id.slice(0, 5) === 'note-') {
             colorPik.append('div')
                 .html('<div id="controls"><div><span data-type="color" id="bgpicker" /></span></div></div>');
-            $("#bgpicker").css('background-color', d.color);
-            colorPik.on("click", function () {
+
+            let bgpicker = $(".menu-color")
+
+            bgpicker.css('background-color', d.color);
+            bgpicker.mouseover(function () {
                 layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
                 var current = {
                     'picker': "#bgpicker",
                     'color': d.color,
                     'graphic': "#brush"
                 };
-                $("#bgpicker").colpick({
+                let yy = $("#bgpicker").colpick({
                     color: d.color,
                     onChange: function (hsb, hex, rgb, el, bySetColor) {
+                        if (me.colorPickerEl)
+                            me.colorPickerEl = el
                         var newColor = '#' + hex;
                         $("#brush").css("fill", newColor);
                         $("#bgpicker").css('background-color', newColor);
@@ -410,7 +415,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                         $(el).colpickHide();
                         hoverMenuRemoveIcons(parent);
                     }
-                }).css('background-color', d.color);
+                });
+
             })
                 .on("mouseout", function () {
                     setTimeout(function () {
@@ -421,7 +427,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         //CREATE TRASH ICON
         var foTrash = parent.append('foreignObject')
             .attr("x", (d.width / 2) - 12)
-            .attr("y", d.height + 2 )
+            .attr("y", d.height + 2)
             .attr('class', 'menu-trash')
             .on("mouseout", function () {
                 var e = d3.event;
@@ -430,11 +436,11 @@ function networkVizJS(documentId, userLayoutOptions) {
                 var mosX = mouse[0];
                 var mosY = mouse[1];
                 setTimeout(function () {
-                    if (mosX > d.width/2 + 11 || mosX < d.width/2 - 11 || mosY > d.height + 21 ) {
+                    if (mosX > d.width / 2 + 11 || mosX < d.width / 2 - 11 || mosY > d.height + 21) {
                         hoverMenuRemoveIcons(parent);
                     }
-                }, 50)
-              });
+                }, 50);
+            });
         var trash = foTrash.append('xhtml:div')
             .append('div')
             .attr('class', 'icon-wrapper')
@@ -444,7 +450,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 layoutOptions.nodeRemove && layoutOptions.nodeRemove(d);
             })
             .on("mouseover", function () {
-                    layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
+                layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
             });
         //CREATE RIGHT MENU
         var fo = parent.append('foreignObject')
@@ -471,30 +477,30 @@ function networkVizJS(documentId, userLayoutOptions) {
                 layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
             });
         //CREATE PIN ICON
-        var pinIcon = div.append('div')
+        var pinIcon = div.append('div').attr('class', 'icon-wrapper');
         if (d.fixed) {
-          pinIcon.html('<i class="fa fa-thumb-tack pinned"></i>')
+            pinIcon.html('<i class="fa fa-thumb-tack pinned"></i>');
         }
         else {
-          pinIcon.html('<i class="fa fa-thumb-tack unpinned"></i>')
+            pinIcon.html('<i class="fa fa-thumb-tack unpinned"></i>');
         }
         pinIcon.on("click", function () {
-                if (!d.fixed) {
-                    d.fixed = true; // eslint-disable-line no-param-reassign
-                }
-                else {
-                    d.fixed = false; // eslint-disable-line no-param-reassign
-                }
-                layoutOptions.clickPin && layoutOptions.clickPin(d, element);
-                hoverMenuRemoveIcons(parent);
-                restart();
-          });
-          //CREATE DRAW ARROW icon
-          div.append('div')
-              .html('<i class="fa fa-arrow-right custom-icon"></i>')
-              .on("mousedown", function () {
-                  layoutOptions.startArrow && layoutOptions.startArrow(d, element);
-              });
+            if (!d.fixed) {
+                d.fixed = true; // eslint-disable-line no-param-reassign
+            }
+            else {
+                d.fixed = false; // eslint-disable-line no-param-reassign
+            }
+            layoutOptions.clickPin && layoutOptions.clickPin(d, element);
+            hoverMenuRemoveIcons(parent);
+            restart();
+        });
+        //CREATE DRAW ARROW icon
+        div.append('div').attr('class', 'icon-wrapper')
+            .html('<i class="fa fa-arrow-right custom-icon"></i>')
+            .on("mousedown", function () {
+                layoutOptions.startArrow && layoutOptions.startArrow(d, element);
+            });
         layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
     }
 

@@ -377,17 +377,20 @@ function networkVizJS(documentId, userLayoutOptions) {
         if (d.id.slice(0, 5) === 'note-') {
             colorPik.append('div')
                 .html('<div id="controls"><div><span data-type="color" id="bgpicker" /></span></div></div>');
-            $("#bgpicker").css('background-color', d.color);
-            colorPik.on("click", function () {
+            let bgpicker = $(".menu-color");
+            bgpicker.css('background-color', d.color);
+            bgpicker.mouseover(function () {
                 layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
                 var current = {
                     'picker': "#bgpicker",
                     'color': d.color,
                     'graphic': "#brush"
                 };
-                $("#bgpicker").colpick({
+                let yy = $("#bgpicker").colpick({
                     color: d.color,
                     onChange: function (hsb, hex, rgb, el, bySetColor) {
+                        if (me.colorPickerEl)
+                            me.colorPickerEl = el;
                         var newColor = '#' + hex;
                         $("#brush").css("fill", newColor);
                         $("#bgpicker").css('background-color', newColor);
@@ -399,7 +402,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         $(el).colpickHide();
                         hoverMenuRemoveIcons(parent);
                     }
-                }).css('background-color', d.color);
+                });
             })
                 .on("mouseout", function () {
                 setTimeout(function () {
@@ -460,7 +463,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
         });
         //CREATE PIN ICON
-        var pinIcon = div.append('div');
+        var pinIcon = div.append('div').attr('class', 'icon-wrapper');
         if (d.fixed) {
             pinIcon.html('<i class="fa fa-thumb-tack pinned"></i>');
         }
@@ -479,7 +482,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             restart();
         });
         //CREATE DRAW ARROW icon
-        div.append('div')
+        div.append('div').attr('class', 'icon-wrapper')
             .html('<i class="fa fa-arrow-right custom-icon"></i>')
             .on("mousedown", function () {
             layoutOptions.startArrow && layoutOptions.startArrow(d, element);
