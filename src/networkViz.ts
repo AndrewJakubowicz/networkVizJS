@@ -1,5 +1,5 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", {value: true});
+Object.defineProperty(exports, "__esModule", { value: true });
 const d3 = require("d3");
 const cola = require("webcola");
 const $ = require("jquery");
@@ -8,7 +8,6 @@ const level = require("level-browserify");
 const jscolor = require("./util/jscolor");
 const updateColaLayout_1 = require("./updateColaLayout");
 const createColorArrow_1 = require("./util/createColorArrow");
-
 function networkVizJS(documentId, userLayoutOptions) {
     /**
      * Default options for webcola and graph
@@ -55,7 +54,6 @@ function networkVizJS(documentId, userLayoutOptions) {
         },
         clickEdge: (d, element) => undefined,
     };
-
     const X = 37;
     const Y = -13;
     const p1x = 25 + X;
@@ -67,7 +65,6 @@ function networkVizJS(documentId, userLayoutOptions) {
         d1 = "M20,40a20,20 0 1,0 40,0a20,20 0 1,0 -40,0", //CIRCLE
         // d2 = "M148.1,310.5h-13.4c-4.2,0-7.7-3.4-7.7-7.7v-7.4c0-4.2,3.4-7.7,7.7-7.7h13.4c4.2,0,7.7,3.4,7.7,7.7v7.4  C155.7,307.1,152.3,310.5,148.1,310.5z"; //CAPSULE
         d2 = `M ${p1x} ${p1y} L ${p2x} ${p1y} C ${p3x} ${p1y} ${p3x} ${p4y} ${p2x} ${p4y} L ${p1x} ${p4y} C ${X} ${p4y} ${X} ${p1y} ${p1x} ${p1y} `; //CAPSULE
-
     const internalOptions = {
         isDragging: false
     };
@@ -110,8 +107,7 @@ function networkVizJS(documentId, userLayoutOptions) {
     let links = [];
     let groups = [];
     const groupByHashes = [];
-    const width = layoutOptions.width, height = layoutOptions.height, margin = layoutOptions.margin,
-        pad = layoutOptions.pad;
+    const width = layoutOptions.width, height = layoutOptions.height, margin = layoutOptions.margin, pad = layoutOptions.pad;
     /**
      * Create svg canvas that is responsive to the page.
      * This will try to fill the div that it's placed in.
@@ -163,14 +159,11 @@ function networkVizJS(documentId, userLayoutOptions) {
         // Prevent zoom when mouse over node.
         return d3.event.target.tagName.toLowerCase() === "svg";
     });
-
     svg.call(zoom).on("dblclick.zoom", null);
-
     function zoomed() {
         layoutOptions.clickAway();
         g.attr("transform", d3.event.transform);
     }
-
     /**
      * Resets width or radius of nodes.
      * Allows dynamically changing node sizes based on text.
@@ -179,15 +172,13 @@ function networkVizJS(documentId, userLayoutOptions) {
         node.select("path")
             .attr("transform", function (d) {
                 // Scale appropriately using http://stackoverflow.com/a/9877871/6421793
-                const currentWidth = this.getBBox().width, w = d.width, currentHeight = this.getBBox().height,
-                    h = d.height, scaleW = w / currentWidth, scaleH = h / currentHeight;
+                const currentWidth = this.getBBox().width, w = d.width, currentHeight = this.getBBox().height, h = d.height, scaleW = w / currentWidth, scaleH = h / currentHeight;
                 if (isNaN(scaleW) || isNaN(scaleH) || isNaN(w) || isNaN(h)) {
                     return "";
                 }
                 return `translate(${-w / 2},${-h / 2}) scale(${scaleW},${scaleH})`;
             });
     }
-
     /**
      * This function re-centers the text.
      * This allows you to not change the text without restarting
@@ -254,7 +245,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                 });
             });
     }
-
     /**
      * This function remove the icons from
      * the hover menu
@@ -274,7 +264,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             d3.selectAll('.menu-trash').remove();
         }
     }
-
     /**
      * This function adds a menu to
      * Delete, Pin, Change color and Change shape of a node
@@ -388,9 +377,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         if (d.id.slice(0, 5) === 'note-') {
             colorPik.append('div')
                 .html('<div id="controls"><div><span data-type="color" id="bgpicker" /></span></div></div>');
-
-            let bgpicker = $(".menu-color")
-
+            let bgpicker = $(".menu-color");
             bgpicker.css('background-color', d.color);
             bgpicker.mouseover(function () {
                 layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
@@ -403,7 +390,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     color: d.color,
                     onChange: function (hsb, hex, rgb, el, bySetColor) {
                         if (me.colorPickerEl)
-                            me.colorPickerEl = el
+                            me.colorPickerEl = el;
                         var newColor = '#' + hex;
                         $("#brush").css("fill", newColor);
                         $("#bgpicker").css('background-color', newColor);
@@ -416,7 +403,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                         hoverMenuRemoveIcons(parent);
                     }
                 });
-
             })
                 .on("mouseout", function () {
                     setTimeout(function () {
@@ -503,7 +489,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             });
         layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
     }
-
     /**
      * This function delete the node hover menu.
      * It will calculate at which position to the node
@@ -528,7 +513,6 @@ function networkVizJS(documentId, userLayoutOptions) {
         // }
         layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
     }
-
     /**
      * Update the d3 visuals without layout changes.
      */
@@ -692,16 +676,15 @@ function networkVizJS(documentId, userLayoutOptions) {
             /** Optional label text */
             if (typeof layoutOptions.edgeLabelText === "function") {
                 link.select("text").text((d) => {
-                    if (typeof d.edgeData.hash === "string") {
-                        return layoutOptions.edgeLabelText(predicateMap.get(d.edgeData.hash));
+                    if (typeof d.predicate.hash === "string") {
+                        return layoutOptions.edgeLabelText(predicateMap.get(d.predicate.hash));
                     }
-                    return layoutOptions.edgeLabelText(d.edgeData);
+                    return layoutOptions.edgeLabelText(d.predicate);
                 });
             }
             return resolve();
         });
     }
-
     /**
      * restart function adds and removes nodes.
      * It also restarts the simulation.
@@ -829,11 +812,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                             return d.bounds.height();
                         });
                 }).on("end", routeEdges);
-
                 function isIE() {
                     return ((navigator.appName == "Microsoft Internet Explorer") || ((navigator.appName == "Netscape") && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined)));
                 }
-
                 // After a tick make sure to add translation to the nodes.
                 // Sometimes it wasn"t added in a single tick.
                 node.attr("transform", d => d.innerBounds ?
@@ -842,7 +823,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             })
             .then(() => typeof callback === "function" && callback());
     }
-
     // Helper function for updating links after node mutations.
     // Calls a function after links added.
     function createNewLinks(callback) {
@@ -851,16 +831,15 @@ function networkVizJS(documentId, userLayoutOptions) {
                 console.error(err);
             }
             // Create edges based on LevelGraph triplets
-            links = l.map(({subject, object, edgeData}) => {
+            links = l.map(({ subject, object, predicate }) => {
                 const source = nodeMap.get(subject);
                 const target = nodeMap.get(object);
-                predicateMap.set(edgeData.hash, edgeData); //TODO bandaid fix for predicatemap objects =/= links objects
-                return {source, target, edgeData};
+                predicateMap.set(predicate.hash, predicate); //TODO bandaid fix for predicatemap objects =/= links objects
+                return { source, target, predicate };
             });
             restart(callback);
         });
     }
-
     /**
      * Take a node object or list of nodes and add them.
      * @param {object | object[]} nodeObject
@@ -875,13 +854,11 @@ function networkVizJS(documentId, userLayoutOptions) {
         function isArray(obj) {
             return !!obj && obj.constructor === Array;
         }
-
         function addNodeObjectHelper(nodeObject) {
             // Check that hash exists
             if (!(nodeObject.hash)) {
                 throw new Error("Node requires a hash field.");
             }
-
             // //TODO hack improved. doesnt work with window resizing. check resizing on SWARM end before implementing fix
             // if (!(nodeObject.x && nodeObject.y)) {
             //     let point = transformCoordinates({
@@ -895,7 +872,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             //         nodeObject.y = point.y;
             //     }
             // }
-
             // TODO: remove this hack
             if (!(nodeObject.x)) {
                 nodeObject.x = layoutOptions.width / 2;
@@ -903,7 +879,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             if (!(nodeObject.y)) {
                 nodeObject.y = layoutOptions.height / 2;
             }
-
             // Add node to graph
             if (!nodeMap.has(nodeObject.hash)) {
                 simulation.stop();
@@ -912,7 +887,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                 nodeMap.set(nodeObject.hash, nodeObject);
             }
         }
-
         /**
          * Check that the input is valid
          */
@@ -934,7 +908,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             typeof callback === "function" && callback();
         }
     }
-
     /**
      * Validates triplets.
      * @param {object} tripletObject
@@ -965,7 +938,6 @@ function networkVizJS(documentId, userLayoutOptions) {
         }
         return true;
     }
-
     /**
      * Adds a triplet object. Adds the node if it's not already added.
      * Otherwise it just adds the edge
@@ -980,7 +952,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         // Check that predicate doesn't already exist
         new Promise((resolve, reject) => tripletsDB.get({
             subject: subject.hash,
-            predicate: predicate.type,
+            predicate: predicate, //ghazal
             object: object.hash
         }, function (err, list) {
             if (err)
@@ -1020,9 +992,8 @@ function networkVizJS(documentId, userLayoutOptions) {
              */
             tripletsDB.put({
                 subject: subject.hash,
-                predicate: predicate.type,
-                object: object.hash,
-                edgeData: predicate
+                predicate: predicate,
+                object: object.hash
             }, (err) => {
                 if (err) {
                     console.error(err);
@@ -1044,7 +1015,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             });
         });
     }
-
     /**
      * Removes a triplet object. Silently fails if edge doesn't exist.
      * @param {object} tripletObject
@@ -1058,7 +1028,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         // Check that predicate doesn't already exist
         new Promise((resolve, reject) => tripletsDB.del({
             subject: subject.hash,
-            predicate: predicate.type,
+            predicate: predicate,
             object: object.hash
         }, function (err) {
             if (err)
@@ -1070,7 +1040,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             createNewLinks(callback);
         });
     }
-
     /**
      *  Update edge data. Fails silently if doesnt exist
      * @param {object} tripletObject
@@ -1078,29 +1047,28 @@ function networkVizJS(documentId, userLayoutOptions) {
     function updateTriplet(tripletObject) {
         // if (predicateMap.has(tripletObject.edgeData.hash)) {
         // predicateMap.set(tripletObject.edgeData.hash, tripletObject.edgeData); // TODO not needed if fix in createNewLinks is kept
-        tripletsDB.del({subject: tripletObject.subject, object: tripletObject.object}, (err) => {
+        tripletsDB.del({ subject: tripletObject.subject, object: tripletObject.object }, (err) => {
             if (err) {
-                console.log(err)
+                console.log(err);
             }
             tripletsDB.put(tripletObject, (err) => {
                 if (err) {
-                    console.log(err)
+                    console.log(err);
                 }
-            })
+            });
         });
         // }
     }
-
     /**
      * Removes the node and all triplets associated with it.
      * @param {String} nodeHash hash of the node to remove.
      */
     function removeNode(nodeHash, callback) {
-        tripletsDB.get({subject: nodeHash}, function (err, l1) {
+        tripletsDB.get({ subject: nodeHash }, function (err, l1) {
             if (err) {
                 return console.error(err);
             }
-            tripletsDB.get({object: nodeHash}, function (err, l2) {
+            tripletsDB.get({ object: nodeHash }, function (err, l2) {
                 if (err) {
                     return console.error(err);
                 }
@@ -1146,7 +1114,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             });
         });
     }
-
     /**
      * Function that fires when a node is clicked.
      * @param {function} selectNodeFunc
@@ -1154,7 +1121,6 @@ function networkVizJS(documentId, userLayoutOptions) {
     function setSelectNode(selectNodeFunc) {
         layoutOptions.clickNode = selectNodeFunc;
     }
-
     /**
      * Invoking this function will recenter the graph.
      */
@@ -1169,7 +1135,6 @@ function networkVizJS(documentId, userLayoutOptions) {
     function setMouseOver(mouseOverCallback) {
         layoutOptions.mouseOverNode = mouseOverCallback;
     }
-
     /**
      * Function to call when mouse out registers on a node.
      * It takes a d3 mouse over event.
@@ -1178,12 +1143,10 @@ function networkVizJS(documentId, userLayoutOptions) {
     function setMouseOut(mouseOutCallback) {
         layoutOptions.mouseOutNode = mouseOutCallback;
     }
-
     // Function called when mousedown on node.
     function setMouseDown(mouseDownCallback) {
         layoutOptions.mouseDownNode = mouseDownCallback;
     }
-
     /**
      * Merges a node into another group.
      * If this node was in another group previously it removes it from the prior group.
@@ -1242,12 +1205,11 @@ function networkVizJS(documentId, userLayoutOptions) {
                 indexOfSet.push(nodeIndex);
             }
             // Create and push an object with the indexes of the nodes.
-            newGroupObject.push({leaves: indexOfSet});
+            newGroupObject.push({ leaves: indexOfSet });
         });
         groups = newGroupObject;
         restart(callback);
     }
-
     /**
      * Serialize the graph.
      * scheme: triplets: subj:hash-predicateType-obj:hash[]
@@ -1257,8 +1219,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         d3.selectAll('.radial-menu').remove();
         tripletsDB.get({}, (err, l) => {
             const saved = JSON.stringify({
-                triplets: l.map(v => ({subject: v.subject, predicate: v.predicate, object: v.object})),
-                nodes: nodes.map(v => ({hash: v.hash, x: v.x, y: v.y}))
+                triplets: l.map(v => ({ subject: v.subject, predicate: v.predicate, object: v.object })),
+                nodes: nodes.map(v => ({ hash: v.hash, x: v.x, y: v.y }))
             });
             callback(saved);
         });
@@ -1273,14 +1235,13 @@ function networkVizJS(documentId, userLayoutOptions) {
     window.onblur = function () {
         simulation.stop();
     };
-
     /**
      * Transform client coordiantes to transformed SVG coordiantes
      * @param {number} x clientX
      * @param {number} y clientY
      * @returns {{x: number; y: number}}
      */
-    const transformCoordinates = ({x, y}) => {
+    const transformCoordinates = ({ x, y }) => {
         let screenPoint = svg.node().createSVGPoint();
         screenPoint.x = x;
         screenPoint.y = y;
@@ -1289,9 +1250,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         return {
             x: point.x,
             y: point.y
-        }
+        };
     };
-
     // Public api
     /**
      * TODO:
@@ -1382,6 +1342,5 @@ function networkVizJS(documentId, userLayoutOptions) {
         }
     };
 }
-
 exports.default = networkVizJS;
 //# sourceMappingURL=networkViz.js.map

@@ -676,10 +676,10 @@ function networkVizJS(documentId, userLayoutOptions) {
             /** Optional label text */
             if (typeof layoutOptions.edgeLabelText === "function") {
                 link.select("text").text((d) => {
-                    if (typeof d.edgeData.hash === "string") {
-                        return layoutOptions.edgeLabelText(predicateMap.get(d.edgeData.hash));
+                    if (typeof d.predicate.hash === "string") {
+                        return layoutOptions.edgeLabelText(predicateMap.get(d.predicate.hash));
                     }
-                    return layoutOptions.edgeLabelText(d.edgeData);
+                    return layoutOptions.edgeLabelText(d.predicate);
                 });
             }
             return resolve();
@@ -831,11 +831,11 @@ function networkVizJS(documentId, userLayoutOptions) {
                 console.error(err);
             }
             // Create edges based on LevelGraph triplets
-            links = l.map(({ subject, object, edgeData }) => {
+            links = l.map(({ subject, object, predicate }) => {
                 const source = nodeMap.get(subject);
                 const target = nodeMap.get(object);
-                predicateMap.set(edgeData.hash, edgeData); //TODO bandaid fix for predicatemap objects =/= links objects
-                return { source, target, edgeData };
+                predicateMap.set(predicate.hash, predicate); //TODO bandaid fix for predicatemap objects =/= links objects
+                return { source, target, predicate };
             });
             restart(callback);
         });
@@ -952,7 +952,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         // Check that predicate doesn't already exist
         new Promise((resolve, reject) => tripletsDB.get({
             subject: subject.hash,
-            predicate: predicate.type,
+            predicate: predicate,
             object: object.hash
         }, function (err, list) {
             if (err)
@@ -992,9 +992,8 @@ function networkVizJS(documentId, userLayoutOptions) {
              */
             tripletsDB.put({
                 subject: subject.hash,
-                predicate: predicate.type,
-                object: object.hash,
-                edgeData: predicate
+                predicate: predicate,
+                object: object.hash
             }, (err) => {
                 if (err) {
                     console.error(err);
@@ -1029,7 +1028,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         // Check that predicate doesn't already exist
         new Promise((resolve, reject) => tripletsDB.del({
             subject: subject.hash,
-            predicate: predicate.type,
+            predicate: predicate,
             object: object.hash
         }, function (err) {
             if (err)
