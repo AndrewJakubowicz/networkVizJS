@@ -206,7 +206,7 @@ import jQuery from 'jquery';
         },
         hidePicker: function () {
           return this.each(function () {
-            t(this).data("colpickId") && t("#" + t(this).data("colpickId")).hide()
+            t(this).data("colpickId") && t("#" + t(this).data("colpickId")).remove()
           })
         },
         setColor: function (a, e) {

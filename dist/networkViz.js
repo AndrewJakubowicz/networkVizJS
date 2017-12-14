@@ -255,13 +255,13 @@ function networkVizJS(documentId, userLayoutOptions) {
             parent.selectAll('.menu-action').remove();
             parent.selectAll('.menu-shape').remove();
             parent.selectAll('.menu-color').remove();
-            parent.selectAll('.menu-arrow').remove();
+            parent.selectAll('.menu-trash').remove();
         }
         else {
             d3.selectAll('.menu-action').remove();
             d3.selectAll('.menu-shape').remove();
             d3.selectAll('.menu-color').remove();
-            d3.selectAll('.menu-arrow').remove();
+            d3.selectAll('.menu-trash').remove();
         }
     }
     /**
@@ -377,17 +377,20 @@ function networkVizJS(documentId, userLayoutOptions) {
         if (d.id.slice(0, 5) === 'note-') {
             colorPik.append('div')
                 .html('<div id="controls"><div><span data-type="color" id="bgpicker" /></span></div></div>');
-            $("#bgpicker").css('background-color', d.color);
-            colorPik.on("click", function () {
+            let bgpicker = $(".menu-color");
+            bgpicker.css('background-color', d.color);
+            bgpicker.mouseover(function () {
                 layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
                 var current = {
                     'picker': "#bgpicker",
                     'color': d.color,
                     'graphic': "#brush"
                 };
-                $("#bgpicker").colpick({
+                let yy = $("#bgpicker").colpick({
                     color: d.color,
                     onChange: function (hsb, hex, rgb, el, bySetColor) {
+                        if (me.colorPickerEl)
+                            me.colorPickerEl = el;
                         var newColor = '#' + hex;
                         $("#brush").css("fill", newColor);
                         $("#bgpicker").css('background-color', newColor);
@@ -399,7 +402,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         $(el).colpickHide();
                         hoverMenuRemoveIcons(parent);
                     }
-                }).css('background-color', d.color);
+                });
             })
                 .on("mouseout", function () {
                 setTimeout(function () {
@@ -407,21 +410,33 @@ function networkVizJS(documentId, userLayoutOptions) {
                 }, 50);
             });
         }
-        //CREATE DRAW ARROW ICON
-        var foArrow = parent.append('foreignObject')
+        //CREATE TRASH ICON
+        var foTrash = parent.append('foreignObject')
             .attr("x", (d.width / 2) - 12)
             .attr("y", d.height + 2)
-            .attr('class', 'menu-arrow');
-        var drawArrow = foArrow.append('xhtml:div')
-            .append('div')
-            .html('<i class="fa fa-arrow-right custom-icon fa-rotate"></i>')
-            .on("mousedown", function () {
-            layoutOptions.startArrow && layoutOptions.startArrow(d, element);
-        })
+            .attr('class', 'menu-trash')
             .on("mouseout", function () {
+            var e = d3.event;
+            var element = d3.select(this);
+            var mouse = d3.mouse(this);
+            var mosX = mouse[0];
+            var mosY = mouse[1];
             setTimeout(function () {
-                hoverMenuRemoveIcons(parent);
+                if (mosX > d.width / 2 + 11 || mosX < d.width / 2 - 11 || mosY > d.height + 21) {
+                    hoverMenuRemoveIcons(parent);
+                }
             }, 50);
+        });
+        var trash = foTrash.append('xhtml:div')
+            .append('div')
+            .attr('class', 'icon-wrapper')
+            .html('<i class="fa fa-trash-o custom-icon"></i>')
+            .on("click", function () {
+            console.log("clicked");
+            layoutOptions.nodeRemove && layoutOptions.nodeRemove(d);
+        })
+            .on("mouseover", function () {
+            layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
         });
         //CREATE RIGHT MENU
         var fo = parent.append('foreignObject')
@@ -447,18 +462,15 @@ function networkVizJS(documentId, userLayoutOptions) {
             .on("mouseover", function () {
             layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
         });
-        //CREATE TRASH ICON
-        div.append('div')
-            .attr('class', 'icon-wrapper')
-            .html('<i class="fa fa-trash-o custom-icon"></i>')
-            .on("click", function () {
-            console.log("clicked");
-            layoutOptions.nodeRemove && layoutOptions.nodeRemove(d);
-        });
         //CREATE PIN ICON
-        div.append('div')
-            .html('<i class="fa fa-thumb-tack custom-icon"></i>')
-            .on("click", function () {
+        var pinIcon = div.append('div').attr('class', 'icon-wrapper');
+        if (d.fixed) {
+            pinIcon.html('<i class="fa fa-thumb-tack pinned"></i>');
+        }
+        else {
+            pinIcon.html('<i class="fa fa-thumb-tack unpinned"></i>');
+        }
+        pinIcon.on("click", function () {
             if (!d.fixed) {
                 d.fixed = true; // eslint-disable-line no-param-reassign
             }
@@ -468,6 +480,12 @@ function networkVizJS(documentId, userLayoutOptions) {
             layoutOptions.clickPin && layoutOptions.clickPin(d, element);
             hoverMenuRemoveIcons(parent);
             restart();
+        });
+        //CREATE DRAW ARROW icon
+        div.append('div').attr('class', 'icon-wrapper')
+            .html('<i class="fa fa-arrow-right custom-icon"></i>')
+            .on("mousedown", function () {
+            layoutOptions.startArrow && layoutOptions.startArrow(d, element);
         });
         layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
     }
@@ -546,11 +564,11 @@ function networkVizJS(documentId, userLayoutOptions) {
                 nodeShape.attr("d", layoutOptions.nodeShape);
             }
             nodeShape.attr("vector-effect", "non-scaling-stroke");
-            nodeEnter.append("foreignObject")
-                .classed("node-status-icons", true)
-                .append('xhtml:div')
-                .append('div')
-                .html('<i class="fa fa-thumb-tack"></i>');
+            // nodeEnter.append("foreignObject")
+            //     .classed("node-status-icons", true)
+            //     .append('xhtml:div')
+            //     .append('div')
+            //     .html('<i class="fa fa-thumb-tack"></i>');
             // Merge the entered nodes to the update nodes.
             node = node.merge(nodeEnter)
                 .classed("fixed", d => d.fixed || false);
@@ -658,10 +676,10 @@ function networkVizJS(documentId, userLayoutOptions) {
             /** Optional label text */
             if (typeof layoutOptions.edgeLabelText === "function") {
                 link.select("text").text((d) => {
-                    if (typeof d.edgeData.hash === "string") {
-                        return layoutOptions.edgeLabelText(predicateMap.get(d.edgeData.hash));
+                    if (typeof d.predicate.hash === "string") {
+                        return layoutOptions.edgeLabelText(predicateMap.get(d.predicate.hash));
                     }
-                    return layoutOptions.edgeLabelText(d.edgeData);
+                    return layoutOptions.edgeLabelText(d.predicate);
                 });
             }
             return resolve();
@@ -813,11 +831,11 @@ function networkVizJS(documentId, userLayoutOptions) {
                 console.error(err);
             }
             // Create edges based on LevelGraph triplets
-            links = l.map(({ subject, object, edgeData }) => {
+            links = l.map(({ subject, object, predicate }) => {
                 const source = nodeMap.get(subject);
                 const target = nodeMap.get(object);
-                predicateMap.set(edgeData.hash, edgeData); //TODO bandaid fix for predicatemap objects =/= links objects
-                return { source, target, edgeData };
+                predicateMap.set(predicate.hash, predicate); //TODO bandaid fix for predicatemap objects =/= links objects
+                return { source, target, predicate };
             });
             restart(callback);
         });
@@ -934,7 +952,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         // Check that predicate doesn't already exist
         new Promise((resolve, reject) => tripletsDB.get({
             subject: subject.hash,
-            predicate: predicate.type,
+            predicate: predicate,
             object: object.hash
         }, function (err, list) {
             if (err)
@@ -974,9 +992,8 @@ function networkVizJS(documentId, userLayoutOptions) {
              */
             tripletsDB.put({
                 subject: subject.hash,
-                predicate: predicate.type,
-                object: object.hash,
-                edgeData: predicate
+                predicate: predicate,
+                object: object.hash
             }, (err) => {
                 if (err) {
                     console.error(err);
@@ -1011,7 +1028,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         // Check that predicate doesn't already exist
         new Promise((resolve, reject) => tripletsDB.del({
             subject: subject.hash,
-            predicate: predicate.type,
+            predicate: predicate,
             object: object.hash
         }, function (err) {
             if (err)
