@@ -1037,6 +1037,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             resolve();
         })).then(() => {
             // Add nodes to graph
+            predicateMap.delete(predicate.hash);
             simulation.stop();
             createNewLinks(callback);
         });
@@ -1046,6 +1047,10 @@ function networkVizJS(documentId, userLayoutOptions) {
      * @param {object} tripletObject
      */
     function updateTriplet(tripletObject) {
+        // TODO FIX TO BE COMPLIANT WITH EXISTING CODE
+        // if (!tripletValidation(tripletObject)) {
+        //     return;
+        // }
         // if (predicateMap.has(tripletObject.edgeData.hash)) {
         // predicateMap.set(tripletObject.edgeData.hash, tripletObject.edgeData); // TODO not needed if fix in createNewLinks is kept
         tripletsDB.del({ subject: tripletObject.subject, object: tripletObject.object }, (err) => {
