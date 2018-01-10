@@ -1093,17 +1093,21 @@ function networkVizJS(documentId, userLayoutOptions) {
      * @param {object} tripletObject
      */
     function updateTriplet(tripletObject) {
-        // TODO FIX TO BE COMPLIANT WITH EXISTING CODE
-        // if (!tripletValidation(tripletObject)) {
-        //     return;
-        // }
+        if (!tripletValidation(tripletObject)) {
+            return;
+        }
         // if (predicateMap.has(tripletObject.edgeData.hash)) {
         // predicateMap.set(tripletObject.edgeData.hash, tripletObject.edgeData); // TODO not needed if fix in createNewLinks is kept
-        tripletsDB.del({ subject: tripletObject.subject, object: tripletObject.object }, (err) => {
+        const subject = tripletObject.subject, predicate = tripletObject.predicate, object = tripletObject.object;
+        tripletsDB.del({ subject: subject.hash, object: object.hash }, (err) => {
             if (err) {
                 console.log(err);
             }
-            tripletsDB.put(tripletObject, (err) => {
+            tripletsDB.put({
+                subject: subject.hash,
+                predicate: predicate,
+                object: object.hash
+            }, (err) => {
                 if (err) {
                     console.log(err);
                 }
