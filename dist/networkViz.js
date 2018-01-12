@@ -23,7 +23,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         nodeShape: "rect",
         width: 900,
         height: 600,
-        pad: 5,
+        pad: 15,
         margin: 10,
         canDrag: () => true,
         nodeDragStart: undefined,
@@ -52,7 +52,10 @@ function networkVizJS(documentId, userLayoutOptions) {
             console.log(`length`, d);
             return 150;
         },
+        edgeSmoothness: 0,
         clickEdge: (d, element) => undefined,
+        mouseOverRadial: undefined,
+        mouseOutRadial: undefined,
     };
     const X = 37;
     const Y = -13;
@@ -172,11 +175,11 @@ function networkVizJS(documentId, userLayoutOptions) {
         node.select("path")
             .attr("transform", function (d) {
             // Scale appropriately using http://stackoverflow.com/a/9877871/6421793
-            const currentWidth = this.getBBox().width, w = d.width, currentHeight = this.getBBox().height, h = d.height, scaleW = w / currentWidth, scaleH = h / currentHeight;
+            const currentWidth = this.getBBox().width, w = d.width, currentHeight = this.getBBox().height, h = d.height, scaleW = (w - layoutOptions.margin) / currentWidth, scaleH = (h - layoutOptions.margin) / currentHeight;
             if (isNaN(scaleW) || isNaN(scaleH) || isNaN(w) || isNaN(h)) {
                 return "";
             }
-            return `translate(${-w / 2},${-h / 2}) scale(${scaleW},${scaleH})`;
+            return `translate(${-w / 2 + layoutOptions.margin},${-h / 2 + layoutOptions.margin}) scale(${scaleW},${scaleH})`;
         });
     }
     /**
@@ -189,10 +192,11 @@ function networkVizJS(documentId, userLayoutOptions) {
     function repositionText() {
         return Promise.resolve()
             .then(_ => {
-            node.select("text").each(function (d) {
+            node.select("text")
+                .each(function (d) {
                 const text = d3.select(this);
                 const margin = layoutOptions.margin, pad = layoutOptions.pad;
-                const extra = 2 * margin + 2 * pad;
+                const extra = 2 * pad + margin;
                 // The width must reset to allow the box to get smaller.
                 // Later we will set width based on the widest tspan/line.
                 d.width = d.minWidth || 0;
@@ -206,11 +210,12 @@ function networkVizJS(documentId, userLayoutOptions) {
                         d.width = lineLength + extra;
                     }
                 });
-            }).each(function (d) {
+            })
+                .each(function (d) {
                 // Only update the height, the width is calculated
                 // by iterating over the tspans in the `wrap` function.
                 const b = this.getBBox();
-                const extra = 2 * margin + 2 * pad;
+                const extra = 2 * layoutOptions.pad + layoutOptions.margin;
                 d.height = b.height + extra;
             })
                 .attr("y", function (d) {
@@ -272,13 +277,13 @@ function networkVizJS(documentId, userLayoutOptions) {
     function addHoverMenu(d, me) {
         var element = d3.select(me); // The node
         var parent = d3.select(me.parentNode);
-        var foWidth = 40;
-        var foHeight = d.height;
-        var foX = d.width;
-        var foY = 0;
+        var foWidth = 30;
+        var foHeight = d.height - layoutOptions.margin / 2;
+        var foX = d.width - layoutOptions.margin / 2;
+        var foY = layoutOptions.margin / 2;
         let currentShape = d.nodeShape;
         let firstShape = true;
-        let shapeY = 3;
+        let shapeY = 3 + layoutOptions.margin / 2;
         hoverMenuRemoveIcons();
         //CREATE SHAPES MENU
         var shapeMenu = parent.append("g")
@@ -304,7 +309,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             shapeMenu.append("rect")
                 .attr("rx", 6)
                 .attr("ry", 6)
-                .attr("x", -27)
+                .attr("x", layoutOptions.margin / 2 - 27)
                 .attr("y", shapeY)
                 .attr("width", 24)
                 .attr("height", 21)
@@ -316,6 +321,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 hoverMenuRemoveIcons(parent);
                 parent.selectAll('path').remove();
                 parent.insert("path", "text")
+                    .attr("vector-effect", "non-scaling-stroke")
                     .attr("d", d2);
                 d.nodeShape = "capsule";
                 layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d);
@@ -327,7 +333,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 shapeY = shapeY + 26;
             firstShape = false;
             shapeMenu.append("rect")
-                .attr("x", -27)
+                .attr("x", layoutOptions.margin / 2 - 27)
                 .attr("y", shapeY)
                 .attr("width", 24)
                 .attr("height", 21)
@@ -339,6 +345,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 hoverMenuRemoveIcons(parent);
                 parent.selectAll('path').remove();
                 parent.insert("path", "text")
+                    .attr("vector-effect", "non-scaling-stroke")
                     .attr("d", d0);
                 d.nodeShape = "rect";
                 layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d);
@@ -350,7 +357,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 shapeY = shapeY + 36;
             firstShape = false;
             shapeMenu.append("circle")
-                .attr("cx", -15)
+                .attr("cx", layoutOptions.margin / 2 - 15)
                 .attr("cy", shapeY)
                 .attr("r", 12)
                 .attr('class', 'menu-shape-circle')
@@ -361,6 +368,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 hoverMenuRemoveIcons(parent);
                 parent.selectAll('path').remove();
                 parent.insert("path", "text")
+                    .attr("vector-effect", "non-scaling-stroke")
                     .attr("d", d1);
                 d.nodeShape = "circle";
                 layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d);
@@ -370,7 +378,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         //CREATE COLOR SELECTOR ICON
         var foColor = parent.append('foreignObject')
             .attr("x", (d.width / 2) - 12)
-            .attr("y", -28)
+            .attr("y", -28 + layoutOptions.margin / 2)
             .attr('class', 'menu-color');
         var colorPik = foColor.append('xhtml:div')
             .append('div');
@@ -405,6 +413,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 });
             })
                 .on("mouseout", function () {
+                layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
                 setTimeout(function () {
                     hoverMenuRemoveIcons(parent);
                 }, 50);
@@ -413,7 +422,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         //CREATE TRASH ICON
         var foTrash = parent.append('foreignObject')
             .attr("x", (d.width / 2) - 12)
-            .attr("y", d.height + 2)
+            .attr("y", d.height + 3 - layoutOptions.margin / 2)
             .attr('class', 'menu-trash')
             .on("mouseout", function () {
             var e = d3.event;
@@ -421,6 +430,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             var mouse = d3.mouse(this);
             var mosX = mouse[0];
             var mosY = mouse[1];
+            layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
             setTimeout(function () {
                 if (mosX > d.width / 2 + 11 || mosX < d.width / 2 - 11 || mosY > d.height + 21) {
                     hoverMenuRemoveIcons(parent);
@@ -432,8 +442,8 @@ function networkVizJS(documentId, userLayoutOptions) {
             .attr('class', 'icon-wrapper')
             .html('<i class="fa fa-trash-o custom-icon"></i>')
             .on("click", function () {
-            console.log("clicked");
             layoutOptions.nodeRemove && layoutOptions.nodeRemove(d);
+            layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
         })
             .on("mouseover", function () {
             layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
@@ -445,12 +455,16 @@ function networkVizJS(documentId, userLayoutOptions) {
             .attr('width', foWidth)
             .attr('height', foHeight)
             .attr('class', 'menu-action')
+            .on("mouseover", function () {
+            layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
+        })
             .on("mouseout", function () {
             var e = d3.event;
             var element = d3.select(this);
             var mouse = d3.mouse(this);
             var mosX = mouse[0];
             var mosY = mouse[1];
+            layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
             setTimeout(function () {
                 if (mosX > d.width + 21 || mosY > d.height - 4 || mosY < 2) {
                     hoverMenuRemoveIcons(parent);
@@ -458,10 +472,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             }, 50);
         });
         var div = fo.append('xhtml:div')
-            .append('div')
-            .on("mouseover", function () {
-            layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
-        });
+            .append('div');
         //CREATE PIN ICON
         var pinIcon = div.append('div').attr('class', 'icon-wrapper');
         if (d.fixed) {
@@ -479,6 +490,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             }
             layoutOptions.clickPin && layoutOptions.clickPin(d, element);
             hoverMenuRemoveIcons(parent);
+            layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
             restart();
         });
         //CREATE DRAW ARROW icon
@@ -585,8 +597,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                 // the tspan elements from the array of text
                 // in the data.
                 // Derived from https://bl.ocks.org/mbostock/7555321
-                const margin = layoutOptions.margin, pad = layoutOptions.pad;
-                const extra = 2 * margin + 2 * pad;
                 const text = d3.select(this);
                 /**
                  * If no shortname, then use hash.
@@ -698,10 +708,47 @@ function networkVizJS(documentId, userLayoutOptions) {
             .then(_ => {
             /**
              * Helper function for drawing the lines.
+             * Adds quadratic curve to smooth corners in line
              */
-            const lineFunction = d3.line()
-                .x(d => d.x)
-                .y(d => d.y);
+            const lineFunction = points => {
+                if (points.length <= 2 || layoutOptions.edgeSmoothness === 0 || layoutOptions.edgeSmoothness === undefined) {
+                    // fall back on old method if no need to curve edges
+                    return d3.line().x(d => d.x).y(d => d.y)(points);
+                }
+                let path = "M" + points[0].x + "," + points[0].y; // move to start point
+                let dy, dx;
+                for (let n = 1; n < points.length - 1; n++) {
+                    let p0 = points[n - 1];
+                    let p1 = points[n];
+                    let p2 = points[n + 1];
+                    let v01 = { x: p1.x - p0.x, y: p1.y - p0.y }; // vector from point 0 to 1
+                    let v01abs = Math.sqrt(Math.pow(v01.x, 2) + Math.pow(v01.y, 2)); // |v01|
+                    let uv01 = { x: v01.x / v01abs, y: v01.y / v01abs }; // unit vector v01
+                    if ((layoutOptions.edgeSmoothness * 2 > v01abs)) {
+                        dx = v01.x / 2;
+                        dy = v01.y / 2;
+                    }
+                    else {
+                        dx = layoutOptions.edgeSmoothness * uv01.x;
+                        dy = layoutOptions.edgeSmoothness * uv01.y;
+                    }
+                    path += " L" + (p1.x - dx) + "," + (p1.y - dy); // straight line to layoutOptions.edgeSmoothness px before vertex
+                    let v12 = { x: p2.x - p1.x, y: p2.y - p1.y }; // vector from point 1 to 2
+                    let v12abs = Math.sqrt(Math.pow(v12.x, 2) + Math.pow(v12.y, 2)); // |v12|
+                    let uv12 = { x: v12.x / v12abs, y: v12.y / v12abs }; // unit vector v12
+                    if ((layoutOptions.edgeSmoothness * 2 > v12abs)) {
+                        dx = v12.x / 2;
+                        dy = v12.y / 2;
+                    }
+                    else {
+                        dx = layoutOptions.edgeSmoothness * uv12.x;
+                        dy = layoutOptions.edgeSmoothness * uv12.y;
+                    }
+                    path += " Q" + p1.x + "," + p1.y + " " + (p1.x + dx) + "," + (p1.y + dy); // quadratic curve with vertex as control point
+                }
+                path += " L" + points[points.length - 1].x + "," + points[points.length - 1].y; // straight line to end
+                return path;
+            };
             /**
              * Causes the links to bend around the rectangles.
              * Source: https://github.com/tgdwyer/WebCola/blob/master/WebCola/examples/unix.html#L140
@@ -1036,6 +1083,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             resolve();
         })).then(() => {
             // Add nodes to graph
+            predicateMap.delete(predicate.hash);
             simulation.stop();
             createNewLinks(callback);
         });
@@ -1045,13 +1093,21 @@ function networkVizJS(documentId, userLayoutOptions) {
      * @param {object} tripletObject
      */
     function updateTriplet(tripletObject) {
+        if (!tripletValidation(tripletObject)) {
+            return;
+        }
         // if (predicateMap.has(tripletObject.edgeData.hash)) {
         // predicateMap.set(tripletObject.edgeData.hash, tripletObject.edgeData); // TODO not needed if fix in createNewLinks is kept
-        tripletsDB.del({ subject: tripletObject.subject, object: tripletObject.object }, (err) => {
+        const subject = tripletObject.subject, predicate = tripletObject.predicate, object = tripletObject.object;
+        tripletsDB.del({ subject: subject.hash, object: object.hash }, (err) => {
             if (err) {
                 console.log(err);
             }
-            tripletsDB.put(tripletObject, (err) => {
+            tripletsDB.put({
+                subject: subject.hash,
+                predicate: predicate,
+                object: object.hash
+            }, (err) => {
                 if (err) {
                     console.log(err);
                 }
