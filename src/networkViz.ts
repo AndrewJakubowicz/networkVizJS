@@ -384,6 +384,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     updateStyles();
                 });
         }
+
         //CREATE COLOR SELECTOR ICON
         var foColor = parent.append('foreignObject')
             .attr("x", (d.width / 2) - 12)
@@ -394,23 +395,21 @@ function networkVizJS(documentId, userLayoutOptions) {
         if (d.id.slice(0, 5) === 'note-') {
             colorPik.append('div')
                 .html('<div id="controls"><div><span data-type="color" id="bgpicker" /></span></div></div>');
-            let bgpicker = $(".menu-color");
-            bgpicker.css('background-color', d.color);
-            bgpicker.mouseover(function () {
+            let colorPickerEl = $("#bgpicker")
+            colorPickerEl.css('background-color', d.color)
+            colorPickerEl.mouseover(function () {
                 layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
                 var current = {
                     'picker': "#bgpicker",
                     'color': d.color,
                     'graphic': "#brush"
                 };
-                let yy = $("#bgpicker").colpick({
+                let yy = colorPickerEl.colpick({
                     color: d.color,
                     onChange: function (hsb, hex, rgb, el, bySetColor) {
-                        if (me.colorPickerEl)
-                            me.colorPickerEl = el;
                         var newColor = '#' + hex;
                         $("#brush").css("fill", newColor);
-                        $("#bgpicker").css('background-color', newColor);
+                        colorPickerEl.css('background-color', newColor);
                         d.color = newColor;
                         element.attr('fill', newColor);
                         layoutOptions.updateNodeColor && layoutOptions.updateNodeColor(d);
@@ -419,7 +418,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         $(el).colpickHide();
                         hoverMenuRemoveIcons(parent);
                     }
-                });
+                })
             })
                 .on("mouseout", function () {
                     layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
