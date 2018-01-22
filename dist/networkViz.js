@@ -379,6 +379,9 @@ function networkVizJS(documentId, userLayoutOptions) {
         var foColor = parent.append('foreignObject')
             .attr("x", (d.width / 2) - 12)
             .attr("y", -28 + layoutOptions.margin / 2)
+            .attr("width", 24)
+            .attr("height", 24)
+            .style("overflow", "visible")
             .attr('class', 'menu-color');
         var colorPik = foColor.append('xhtml:div')
             .append('div');
@@ -422,6 +425,9 @@ function networkVizJS(documentId, userLayoutOptions) {
             .attr("x", (d.width / 2) - 12)
             .attr("y", d.height + 3 - layoutOptions.margin / 2)
             .attr('class', 'menu-trash')
+            .attr("width", 22)
+            .attr("height", 37)
+            .style("overflow", "visible")
             .on("mouseout", function () {
             var e = d3.event;
             var element = d3.select(this);
@@ -453,6 +459,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             .attr('width', foWidth)
             .attr('height', foHeight)
             .attr('class', 'menu-action')
+            .style("overflow", "visible")
             .on("mouseover", function () {
             layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
         })
