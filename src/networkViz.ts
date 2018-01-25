@@ -28,6 +28,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         margin: 10,
         canDrag: () => true,
         nodeDragStart: undefined,
+        nodeDragEnd: undefined,
         edgeLabelText: (edgeData) => edgeData.text,
         // Both mouseout and mouseover take data AND the selection (arg1, arg2)
         mouseDownNode: undefined,
@@ -41,14 +42,15 @@ function networkVizJS(documentId, userLayoutOptions) {
         startArrow: undefined,
         clickPin: undefined,
         nodeToPin: false,
-        nodeToColor: "white",
+        nodeToColor: "#ffffff",
         nodeStrokeWidth: 1,
         nodeStrokeColor: "grey",
         // TODO: clickNode (node, element) => void
-        clickNode: (node) => console.log("clicked", node),
+        clickNode: (node) => console.log("clicked", node), //            elem.node().parentNode.children[1].children[0].children[0].focus()
         clickAway: () => undefined,
         edgeColor: "black",
         edgeStroke: 2,
+        edgeStrokePad: 20,
         edgeLength: d => {
             console.log(`length`, d);
             return 150;
@@ -140,10 +142,11 @@ function networkVizJS(documentId, userLayoutOptions) {
      */
     const drag = simulation.drag();
     drag.filter(() => (layoutOptions.canDrag === undefined) || (layoutOptions.canDrag()));
-    drag.on("start", () => {
-        layoutOptions.nodeDragStart && layoutOptions.nodeDragStart();
+    drag.on("start", (d, i, elements) => {
+        layoutOptions.nodeDragStart && layoutOptions.nodeDragStart(d, elements[i]);
         internalOptions.isDragging = true;
-    }).on("end", () => {
+    }).on("end", (d, i, elements) => {
+        layoutOptions.nodeDragEnd && layoutOptions.nodeDragEnd(d, elements[i]);
         internalOptions.isDragging = false;
     });
     /**
@@ -199,52 +202,45 @@ function networkVizJS(documentId, userLayoutOptions) {
     function repositionText() {
         return Promise.resolve()
             .then(_ => {
-                node.select("text")
+                node.selectAll("text")
                     .each(function (d) {
-                        const text = d3.select(this);
                         const margin = layoutOptions.margin, pad = layoutOptions.pad;
                         const extra = 2 * pad + margin;
                         // The width must reset to allow the box to get smaller.
-                        // Later we will set width based on the widest tspan/line.
+                        // Later we will set width based on the width of the line.
                         d.width = d.minWidth || 0;
                         if (!(d.width)) {
                             d.width = d.minWidth || 0;
                         }
-                        // Loop over the tspans and recalculate the width based on the longest text.
-                        text.selectAll("tspan").each(function (d) {
-                            const lineLength = this.getComputedTextLength();
-                            if (d.width < lineLength + extra) {
-                                d.width = lineLength + extra;
-                            }
-                        });
+                        let lineLength = this.offsetWidth;
+                        if (d.width < lineLength + extra) {//TODO-ya is this redundant now?
+                            d.width = lineLength + extra;
+                        }
                     })
                     .each(function (d) {
-                        // Only update the height, the width is calculated
-                        // by iterating over the tspans in the `wrap` function.
-                        const b = this.getBBox();
+                        // Only update the height, the width is calculated previously
+                        let height = this.offsetHeight;
                         const extra = 2 * layoutOptions.pad + layoutOptions.margin;
-                        d.height = b.height + extra;
-                    })
+                        d.height = height === 0 ? 28 + extra : height + extra;
+                    });
+                node.select(".node-HTML-content")
                     .attr("y", function (d) {
-                        const b = d3.select(this).node().getBBox();
-                        // Todo: Minus 2 is a hack to get the text feeling 'right'.
-                        return d.height / 2 - b.height / 2 - 2;
+                        const textHeight = d3.select(this).select("text").node().offsetHeight;
+                        //Minus 2 is a hack to get the text feeling 'right'.
+                        return d.height / 2 - textHeight / 2 - 2;
                     })
                     .attr("x", function (d) {
-                        // Apply the correct x value to the tspan.
-                        const b = this.getBBox();
-                        const x = d.width / 2 - b.width / 2;
-                        d.textPosition = x;
-                        // We don't set the tspans with an x attribute.
-                        d3.select(this).selectAll("tspan")
-                            .attr("x", d.textPosition);
-                        return d.textPosition;
+                        const textWidth = d3.select(this).select("text").node().offsetWidth;
+                        const x = d.width / 2 - textWidth / 2;
+                        d.textPosition = x; //TODO-ya is this redundant now?
+                        return x;
                     });
-                d3.selectAll("#graph .node").each(function (d) {
+
+                d3.selectAll("#graph .node").each(function (d) { //TODO-ya is this redundant now?
                     const node = d3.select(this);
                     const foOnNode = node.selectAll('.node-status-icons');
-                    var pined = layoutOptions.nodeToPin && layoutOptions.nodeToPin(d);
-                    if (pined) {
+                    const pinned = layoutOptions.nodeToPin && layoutOptions.nodeToPin(d);
+                    if (pinned) {
                         foOnNode
                             .attr('x', d => d.width / 2 || 0)
                             .attr('y', 0)
@@ -328,13 +324,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr('stroke-width', 2)
                 .on("click", function () {
                     hoverMenuRemoveIcons(parent);
-                    parent.selectAll('path').remove();
-                    parent.insert("path", "text")
-                        .attr("vector-effect", "non-scaling-stroke")
-                        .attr("d", d2);
-                    d.nodeShape = "capsule";
-                    layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d);
-                    updateStyles();
+                    layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d, "capsule");
                 });
         }
         if (currentShape !== "rect") {
@@ -352,13 +342,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr('stroke-width', 2)
                 .on("click", function () {
                     hoverMenuRemoveIcons(parent);
-                    parent.selectAll('path').remove();
-                    parent.insert("path", "text")
-                        .attr("vector-effect", "non-scaling-stroke")
-                        .attr("d", d0);
-                    d.nodeShape = "rect";
-                    layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d);
-                    updateStyles();
+                    layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d, "rect");
                 });
         }
         if (currentShape !== "circle") {
@@ -375,50 +359,46 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr('stroke-width', 2)
                 .on("click", function () {
                     hoverMenuRemoveIcons(parent);
-                    parent.selectAll('path').remove();
-                    parent.insert("path", "text")
-                        .attr("vector-effect", "non-scaling-stroke")
-                        .attr("d", d1);
-                    d.nodeShape = "circle";
-                    layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d);
-                    updateStyles();
+                    layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d, "circle");
                 });
         }
 
         //CREATE COLOR SELECTOR ICON
-        var foColor = parent.append('foreignObject')
+        let foColor = parent.append('foreignObject')
             .attr("x", (d.width / 2) - 12)
             .attr("y", -28 + layoutOptions.margin / 2)
             .attr("width", 24)
             .attr("height", 24)
             .style("overflow", "visible")
             .attr('class', 'menu-color');
-        var colorPik = foColor.append('xhtml:div')
+        let colorPik = foColor.append('xhtml:div')
             .append('div');
         if (d.id.slice(0, 5) === 'note-') {
             colorPik.append('div')
                 .html('<div id="controls"><div><span data-type="color" id="bgpicker" /></span></div></div>');
-            let colorPickerEl = $("#bgpicker")
-            colorPickerEl.css('background-color', d.color)
+            let colorPickerEl = $("#bgpicker");
+            colorPickerEl.css('background-color', d.color);
             colorPickerEl.mouseover(function () {
                 layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
-                var current = {
+                let current = {
                     'picker': "#bgpicker",
                     'color': d.color,
                     'graphic': "#brush"
                 };
                 let yy = colorPickerEl.colpick({
-                    color: d.color,
+                    color: d.color ? d.color : "#ffffff",
                     onChange: function (hsb, hex, rgb, el, bySetColor) {
-                        var newColor = '#' + hex;
+                        let newColor = '#' + hex;
                         $("#brush").css("fill", newColor);
                         colorPickerEl.css('background-color', newColor);
-                        d.color = newColor;
                         element.attr('fill', newColor);
-                        layoutOptions.updateNodeColor && layoutOptions.updateNodeColor(d);
                     },
                     onSubmit: function (hsb, hex, rgb, el) {
                         $(el).colpickHide();
+                        let newColor = '#' + hex;
+                        if (newColor !== d.color) {
+                            layoutOptions.updateNodeColor && layoutOptions.updateNodeColor(d, newColor);
+                        }
                         hoverMenuRemoveIcons(parent);
                     }
                 })
@@ -437,7 +417,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             .attr('class', 'menu-trash')
             .attr("width", 22)
             .attr("height", 37)
-            .style("overflow","visible")
+            .style("overflow", "visible")
             .on("mouseout", function () {
                 var e = d3.event;
                 var element = d3.select(this);
@@ -497,12 +477,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             pinIcon.html('<i class="fa fa-thumb-tack unpinned"></i>');
         }
         pinIcon.on("click", function () {
-            if (!d.fixed) {
-                d.fixed = true; // eslint-disable-line no-param-reassign
-            }
-            else {
-                d.fixed = false; // eslint-disable-line no-param-reassign
-            }
             layoutOptions.clickPin && layoutOptions.clickPin(d, element);
             hoverMenuRemoveIcons(parent);
             layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
@@ -572,14 +546,37 @@ function networkVizJS(documentId, userLayoutOptions) {
             // Here we add node beauty.
             // To fit nodes to the short-name calculate BBox
             // from https://bl.ocks.org/mbostock/1160929
-            nodeEnter.append("text")
-                .attr("dx", 0)
-                .attr("dy", 0)
-                .attr("text-anchor", "left")
-                .style("font", "100 22px Helvetica Neue");
+            let textBox = nodeEnter.append("foreignObject")
+                .attr("pointer-events", "none")
+                .classed("node-HTML-content", true)
+                //required for firefox support
+                .attr("width", 1)
+                .attr("height", 1)
+                .style("overflow", "visible")
+
+                .append("xhtml:div")
+                .append("text");
+
+            textBox
+                .attr("contenteditable", "true")
+                .attr("tabindex", "-1")
+                .attr("class", d => d.class)
+                .attr("pointer-events", "none")
+                .attr("text-align", "center")
+                .style("font", "100 22px Helvetica Neue")
+                .style("white-space", "pre");
+            // .html(function (d) {
+            //     return d.shortname || d.hash;
+            // });
+
+            // nodeEnter.append("text")
+            //     .attr("dx", 0)
+            //     .attr("dy", 0)
+            //     .attr("text-anchor", "left")
+            //     .style("font", "100 22px Helvetica Neue");
             // Choose the node shape and style.
             let nodeShape;
-            nodeShape = nodeEnter.insert("path", "text");
+            nodeShape = nodeEnter.insert("path", "foreignObject");
             if (typeof layoutOptions.nodeShape == "string" && layoutOptions.nodeShape == "rect") {
                 // nodeShape = nodeEnter.insert("rect", "text")     // The second arg is what the rect will sit behind.
                 nodeShape.attr("d", "M16 48 L48 48 L48 16 L16 16 Z");
@@ -603,38 +600,41 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .classed("fixed", d => d.fixed || false);
             /**
              * Update the text property (allowing dynamically changing text)
-             * Check if the d.shortname is a list.
              */
             const textSelect = node.select("text")
-                .text(undefined)
-                .attr("class", d => d.class)
-                .each(function (d) {
-                    // This function takes the text element.
-                    // We can call .each on it and build up
-                    // the tspan elements from the array of text
-                    // in the data.
-                    // Derived from https://bl.ocks.org/mbostock/7555321
-                    const text = d3.select(this);
-                    /**
-                     * If no shortname, then use hash.
-                     */
+            // .text(undefined)
+                .text(function (d) {
                     let tempText = d.shortname || d.hash;
-                    if (!Array.isArray(tempText)) {
-                        tempText = [tempText];
-                    }
-                    const textCopy = tempText.slice(), words = textCopy.reverse(), lineheight = 1.1, // em
-                        lineNumber = 0, dy = parseFloat(text.attr("dy")) || 0;
-                    let word,
-                        // TODO: I don't know why there needs to be a undefined tspan at the start?
-                        tspan = text.text(undefined).append("tspan").attr("dy", dy + "em");
-                    while (word = words.pop()) {
-                        tspan = text.append("tspan")
-                            .attr("dy", lineheight + "em")
-                            .attr("x", d.textPosition || (d.width / 2) || 0)
-                            .text(word);
-                    }
+                    return tempText
                 })
-                .attr("pointer-events", "none");
+                .attr("class", d => d.class);
+            // .each(function (d) {
+            //     // This function takes the text element.
+            //     // We can call .each on it and build up
+            //     // the tspan elements from the array of text
+            //     // in the data.
+            //     // Derived from https://bl.ocks.org/mbostock/7555321
+            //     const text = d3.select(this);
+            //     /**
+            //      * If no shortname, then use hash.
+            //      */
+            //     let tempText = d.shortname || d.hash;
+            //     if (!Array.isArray(tempText)) {
+            //         tempText = [tempText];
+            //     }
+            //     const textCopy = tempText.slice(), words = textCopy.reverse(), lineheight = 1.1, // em
+            //         lineNumber = 0, dy = parseFloat(text.attr("dy")) || 0;
+            //     let word,
+            //         // TODO: I don't know why there needs to be a undefined tspan at the start?
+            //         tspan = text.text(undefined).append("tspan").attr("dy", dy + "em");
+            //     while (word = words.pop()) {
+            //         tspan = text.append("tspan")
+            //             .attr("dy", lineheight + "em")
+            //             .attr("x", d.textPosition || (d.width / 2) || 0)
+            //             .text(word);
+            //     }
+            // })
+            // .attr("pointer-events", "none");
             /**
              * Here we can update node properties that have already been attached.
              * When restart() is called, these are the properties that will be affected
@@ -680,7 +680,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .append("g")
                 .classed("line", true);
             linkEnter.append("path") // transparent clickable area behind line
-                .attr("stroke-width", layoutOptions.edgeStroke * 10)
+                .attr("stroke-width", layoutOptions.edgeStrokePad)
                 .attr("stroke", 'rgba(0, 0, 0, 0)')
                 .attr("fill", "none");
             linkEnter.append("path")
@@ -721,7 +721,13 @@ function networkVizJS(documentId, userLayoutOptions) {
     function restart(callback) {
         // Todo: Promise chain.
         return Promise.resolve()
-            .then(updateStyles)
+            .then(() => {
+                if (callback === "NOUPDATE") {
+                    return
+                } else {
+                    return updateStyles()
+                }
+            })
             .then(repositionText)
             .then(_ => {
                 /**
@@ -1210,6 +1216,20 @@ function networkVizJS(documentId, userLayoutOptions) {
         layoutOptions.clickNode = selectNodeFunc;
     }
 
+    function updateNodeColor(nodeId, color) {
+        const d = nodeMap.get(nodeId);
+        d.color = color;
+        node.filter(d => d.id === nodeId).select("path").attr("fill", color);
+    }
+
+    function updateNodeShape(nodeId, shape) {
+        const d = nodeMap.get(nodeId);
+        const shapePath = layoutOptions.nodeShape({nodeShape: shape});
+        d.nodeShape = shape;
+        node.filter(d => d.id === nodeId).select("path").attr("d", shapePath);
+        updateStyles()
+    }
+
     /**
      * Invoking this function will recenter the graph.
      */
@@ -1357,6 +1377,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         hasNode: (nodeHash) => nodes.filter(v => v.hash == nodeHash).length === 1,
         // Public access to the levelgraph db.
         getDB: () => tripletsDB,
+        //Get node from map
+        getNode: (hash) => nodeMap.get(hash),
         // Get Stringified representation of the graph.
         saveGraph,
         // Get SVG element. If you want the node use `graph.getSVGElement().node();`
@@ -1375,6 +1397,10 @@ function networkVizJS(documentId, userLayoutOptions) {
         removeNode,
         // add a node or array of nodes.
         addNode,
+        // change color of a node or array of nodes
+        updateNodeColor,
+        //change shape of a node or array of nodes
+        updateNodeShape,
         // Restart styles or layout.
         restart: {
             styles: updateStyles,
