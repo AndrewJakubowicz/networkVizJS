@@ -39,6 +39,6 @@
     "d3": "4.9.1",
     "level-browserify": "~1.1.1",
     "levelgraph": "~2.0.1",
-    "webcola": "3.3.7"
+    "webcola": "3.3.5"
   }
 }
