@@ -389,7 +389,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             let brushColor = d.color ? d.color : '#ffffff';
             colorPickerEl.css('color', brushColor);
             colorPickerEl.css('font-size', '19px !important');
-            colorPickerEl.css('text-shadow', '0px 1px 5px #171414');
+            colorPickerEl.css('text-shadow', 'rgb(18, 17, 17) 0px 0px 4px');
             colorPickerEl.mouseover(function () {
                 layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
                 var current = {
