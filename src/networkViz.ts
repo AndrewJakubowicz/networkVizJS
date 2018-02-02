@@ -388,15 +388,16 @@ function networkVizJS(documentId, userLayoutOptions) {
         //CREATE COLOR SELECTOR ICON
         var foColor = parent.append('foreignObject')
             .attr("x", (d.width / 2) - 12)
-            .attr("y", -28 + layoutOptions.margin / 2)
+            .attr("y", -23 + layoutOptions.margin / 2)
             .attr('class', 'menu-color');
         var colorPik = foColor.append('xhtml:div')
             .append('div');
         if (d.id.slice(0, 5) === 'note-') {
             colorPik.append('div')
-                .html('<div id="controls"><div><span data-type="color" id="bgpicker" /></span></div></div>');
-            let colorPickerEl = $("#bgpicker")
-            colorPickerEl.css('background-color', d.color)
+                .html('<div id="controls"><div><i class="fa fa-paint-brush fa-2x" id="bgpicker"></div></div>');
+            let colorPickerEl = $("#bgpicker");
+            colorPickerEl.css('color', d.color);
+            colorPickerEl.css('font-size', '19px !important');
             colorPickerEl.mouseover(function () {
                 layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
                 var current = {
@@ -409,7 +410,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     onChange: function (hsb, hex, rgb, el, bySetColor) {
                         var newColor = '#' + hex;
                         $("#brush").css("fill", newColor);
-                        colorPickerEl.css('background-color', newColor);
+                        colorPickerEl.css('color', newColor);
                         d.color = newColor;
                         element.attr('fill', newColor);
                         layoutOptions.updateNodeColor && layoutOptions.updateNodeColor(d);
@@ -418,7 +419,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         $(el).colpickHide();
                         hoverMenuRemoveIcons(parent);
                     }
-                })
+                });
             })
                 .on("mouseout", function () {
                     layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
