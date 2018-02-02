@@ -373,7 +373,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         //CREATE COLOR SELECTOR ICON
         let foColor = parent.append('foreignObject')
             .attr("x", (d.width / 2) - 12)
-            .attr("y", -28 + layoutOptions.margin / 2)
+            .attr("y", -22 + layoutOptions.margin / 2)
             .attr("width", 24)
             .attr("height", 24)
             .style("overflow", "visible")
@@ -382,9 +382,10 @@ function networkVizJS(documentId, userLayoutOptions) {
             .append('div');
         if (d.id.slice(0, 5) === 'note-') {
             colorPik.append('div')
-                .html('<div id="controls"><div><span data-type="color" id="bgpicker" /></span></div></div>');
+                .html('<div id="controls"><div><i class="fa fa-paint-brush" id="bgpicker"></i></div></div>');
             let colorPickerEl = $("#bgpicker");
-            colorPickerEl.css('background-color', d.color);
+            colorPickerEl.css('color', d.color);
+            colorPickerEl.css('text-shadow', '1px 0px 6px #1f2d3d');
             colorPickerEl.mouseover(function () {
                 layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
                 let current = {
