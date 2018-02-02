@@ -396,8 +396,10 @@ function networkVizJS(documentId, userLayoutOptions) {
             colorPik.append('div')
                 .html('<div id="controls"><div><i class="fa fa-paint-brush fa-2x" id="bgpicker"></div></div>');
             let colorPickerEl = $("#bgpicker");
-            colorPickerEl.css('color', d.color);
+            let brushColor = d.color ? d.color : '#ffffff'
+            colorPickerEl.css('color', brushColor);
             colorPickerEl.css('font-size', '19px !important');
+            colorPickerEl.css('text-shadow', '0px 1px 5px #171414');
             colorPickerEl.mouseover(function () {
                 layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
                 var current = {
