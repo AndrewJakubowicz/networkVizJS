@@ -28,6 +28,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         margin: 10,
         canDrag: () => true,
         nodeDragStart: undefined,
+        nodeDragEnd: undefined,
         edgeLabelText: (edgeData) => edgeData.text,
         // Both mouseout and mouseover take data AND the selection (arg1, arg2)
         mouseDownNode: undefined,
@@ -41,14 +42,15 @@ function networkVizJS(documentId, userLayoutOptions) {
         startArrow: undefined,
         clickPin: undefined,
         nodeToPin: false,
-        nodeToColor: "white",
+        nodeToColor: "#ffffff",
         nodeStrokeWidth: 1,
         nodeStrokeColor: "grey",
         // TODO: clickNode (node, element) => void
-        clickNode: (node) => console.log("clicked", node),
+        clickNode: (node) => console.log("clicked", node), //            elem.node().parentNode.children[1].children[0].children[0].focus()
         clickAway: () => undefined,
         edgeColor: "black",
         edgeStroke: 2,
+        edgeStrokePad: 20,
         edgeLength: d => {
             console.log(`length`, d);
             return 150;
@@ -140,10 +142,11 @@ function networkVizJS(documentId, userLayoutOptions) {
      */
     const drag = simulation.drag();
     drag.filter(() => (layoutOptions.canDrag === undefined) || (layoutOptions.canDrag()));
-    drag.on("start", () => {
-        layoutOptions.nodeDragStart && layoutOptions.nodeDragStart();
+    drag.on("start", (d, i, elements) => {
+        layoutOptions.nodeDragStart && layoutOptions.nodeDragStart(d, elements[i]);
         internalOptions.isDragging = true;
-    }).on("end", () => {
+    }).on("end", (d, i, elements) => {
+        layoutOptions.nodeDragEnd && layoutOptions.nodeDragEnd(d, elements[i]);
         internalOptions.isDragging = false;
     });
     /**
@@ -269,12 +272,14 @@ function networkVizJS(documentId, userLayoutOptions) {
             parent.selectAll('.menu-shape').remove();
             parent.selectAll('.menu-color').remove();
             parent.selectAll('.menu-trash').remove();
+            parent.selectAll('.menu-hover-box').remove();
         }
         else {
             d3.selectAll('.menu-action').remove();
             d3.selectAll('.menu-shape').remove();
             d3.selectAll('.menu-color').remove();
             d3.selectAll('.menu-trash').remove();
+            d3.selectAll('.menu-hover-box').remove();
         }
     }
 
@@ -328,13 +333,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr('stroke-width', 2)
                 .on("click", function () {
                     hoverMenuRemoveIcons(parent);
-                    parent.selectAll('path').remove();
-                    parent.insert("path", "text")
-                        .attr("vector-effect", "non-scaling-stroke")
-                        .attr("d", d2);
-                    d.nodeShape = "capsule";
-                    layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d);
-                    updateStyles();
+                    layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d, "capsule");
                 });
         }
         if (currentShape !== "rect") {
@@ -352,13 +351,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr('stroke-width', 2)
                 .on("click", function () {
                     hoverMenuRemoveIcons(parent);
-                    parent.selectAll('path').remove();
-                    parent.insert("path", "text")
-                        .attr("vector-effect", "non-scaling-stroke")
-                        .attr("d", d0);
-                    d.nodeShape = "rect";
-                    layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d);
-                    updateStyles();
+                    layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d, "rect");
                 });
         }
         if (currentShape !== "circle") {
@@ -375,22 +368,19 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr('stroke-width', 2)
                 .on("click", function () {
                     hoverMenuRemoveIcons(parent);
-                    parent.selectAll('path').remove();
-                    parent.insert("path", "text")
-                        .attr("vector-effect", "non-scaling-stroke")
-                        .attr("d", d1);
-                    d.nodeShape = "circle";
-                    layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d);
-                    updateStyles();
+                    layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d, "circle");
                 });
         }
 
         //CREATE COLOR SELECTOR ICON
-        var foColor = parent.append('foreignObject')
+        let foColor = parent.append('foreignObject')
             .attr("x", (d.width / 2) - 12)
-            .attr("y", -23 + layoutOptions.margin / 2)
+            .attr("y", -22 + layoutOptions.margin / 2)
+            .attr("width", 24)
+            .attr("height", 24)
+            .style("overflow", "visible")
             .attr('class', 'menu-color');
-        var colorPik = foColor.append('xhtml:div')
+        let colorPik = foColor.append('xhtml:div')
             .append('div');
         if (d.id.slice(0, 5) === 'note-') {
             colorPik.append('div')
@@ -435,6 +425,9 @@ function networkVizJS(documentId, userLayoutOptions) {
             .attr("x", (d.width / 2) - 12)
             .attr("y", d.height + 3 - layoutOptions.margin / 2)
             .attr('class', 'menu-trash')
+            .attr("width", 22)
+            .attr("height", 27)
+            .style("overflow", "visible")
             .on("mouseout", function () {
                 var e = d3.event;
                 var element = d3.select(this);
@@ -464,8 +457,9 @@ function networkVizJS(documentId, userLayoutOptions) {
             .attr('x', foX + 5)
             .attr('y', foY)
             .attr('width', foWidth)
-            .attr('height', foHeight)
+            .attr('height', 30)
             .attr('class', 'menu-action')
+            .style("overflow", "visible")
             .on("mouseover", function () {
                 layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
             })
@@ -493,12 +487,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             pinIcon.html('<i class="fa fa-thumb-tack unpinned"></i>');
         }
         pinIcon.on("click", function () {
-            if (!d.fixed) {
-                d.fixed = true; // eslint-disable-line no-param-reassign
-            }
-            else {
-                d.fixed = false; // eslint-disable-line no-param-reassign
-            }
             layoutOptions.clickPin && layoutOptions.clickPin(d, element);
             hoverMenuRemoveIcons(parent);
             layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
@@ -509,6 +497,27 @@ function networkVizJS(documentId, userLayoutOptions) {
             .html('<i class="fa fa-arrow-right custom-icon"></i>')
             .on("mousedown", function () {
                 layoutOptions.startArrow && layoutOptions.startArrow(d, element);
+            });
+        const parentBBox = parent.node().getBBox();
+        parent.insert("rect", "path")
+            .attr("x", parentBBox.x)
+            .attr("y", parentBBox.y)
+            .attr("width", parentBBox.width)
+            .attr("height", parentBBox.height)
+            .attr("fill", "rgba(0,0,0,0)")
+            .attr("class", "menu-hover-box")
+            .on("mouseout", (d, i, n) => {
+                const elem = n[i];
+                const e = d3.event;
+                e.preventDefault();
+                const mouse = d3.mouse(elem);
+                const bbox = elem.getBBox();
+                const mosX = mouse[0];
+                const mosY = mouse[1];
+                if (mosX < bbox.x || mosX > (bbox.width + bbox.x) || mosY > (bbox.height + bbox.y) || mosY < bbox.y) {
+                    hoverMenuRemoveIcons();
+                    layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
+                }
             });
         layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
     }
@@ -535,7 +544,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         //   (mosX < d.width / 2 && mosX > 0 && mosY > 0 && mosY < d.height)) {
         //   hoverMenuRemoveIcons(parent)
         // }
-        layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
+        // layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
     }
 
     /**
@@ -676,7 +685,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .append("g")
                 .classed("line", true);
             linkEnter.append("path") // transparent clickable area behind line
-                .attr("stroke-width", layoutOptions.edgeStroke * 10)
+                .attr("stroke-width", layoutOptions.edgeStrokePad)
                 .attr("stroke", 'rgba(0, 0, 0, 0)')
                 .attr("fill", "none");
             linkEnter.append("path")
@@ -717,7 +726,13 @@ function networkVizJS(documentId, userLayoutOptions) {
     function restart(callback) {
         // Todo: Promise chain.
         return Promise.resolve()
-            .then(updateStyles)
+            .then(() => {
+                if (callback === "NOUPDATE") {
+                    return
+                } else {
+                    return updateStyles()
+                }
+            })
             .then(repositionText)
             .then(_ => {
                 /**
@@ -1206,6 +1221,41 @@ function networkVizJS(documentId, userLayoutOptions) {
         layoutOptions.clickNode = selectNodeFunc;
     }
 
+    function editEdge(action) { // incomplete dont judge code
+        const predicate = predicateMap.get(action.hash);
+        predicate.text = action.value;
+        const subject = action.subjectHash, object = action.objectHash;
+        tripletsDB.del({subject: subject, object: object}, (err) => {
+            if (err) {
+                console.log(err);
+            }
+            tripletsDB.put({
+                subject: subject,
+                predicate: predicate,
+                object: object
+            }, (err) => {
+                if (err) {
+                    console.log(err);
+                }
+            });
+        });
+        updateStyles();
+    }
+
+    function updateNodeColor(nodeId, color) {
+        const d = nodeMap.get(nodeId);
+        d.color = color;
+        node.filter(d => d.id === nodeId).select("path").attr("fill", color);
+    }
+
+    function updateNodeShape(nodeId, shape) {
+        const d = nodeMap.get(nodeId);
+        const shapePath = layoutOptions.nodeShape({nodeShape: shape});
+        d.nodeShape = shape;
+        node.filter(d => d.id === nodeId).select("path").attr("d", shapePath);
+        updateStyles()
+    }
+
     /**
      * Invoking this function will recenter the graph.
      */
@@ -1353,6 +1403,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         hasNode: (nodeHash) => nodes.filter(v => v.hash == nodeHash).length === 1,
         // Public access to the levelgraph db.
         getDB: () => tripletsDB,
+        //Get node from map
+        getNode: (hash) => nodeMap.get(hash),
         // Get Stringified representation of the graph.
         saveGraph,
         // Get SVG element. If you want the node use `graph.getSVGElement().node();`
@@ -1366,11 +1418,16 @@ function networkVizJS(documentId, userLayoutOptions) {
         // update edge data in database
         updateTriplet,
         // EXPERIMENTAL - DONT USE YET.
+        editEdge, // incomplete
         mergeNodeToGroup,
         // remove a node and all edges connected to it.
         removeNode,
         // add a node or array of nodes.
         addNode,
+        // change color of a node or array of nodes
+        updateNodeColor,
+        //change shape of a node or array of nodes
+        updateNodeShape,
         // Restart styles or layout.
         restart: {
             styles: updateStyles,
