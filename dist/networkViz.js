@@ -1171,6 +1171,26 @@ function networkVizJS(documentId, userLayoutOptions) {
     function setSelectNode(selectNodeFunc) {
         layoutOptions.clickNode = selectNodeFunc;
     }
+    function editEdge(action) {
+        const predicate = predicateMap.get(action.hash);
+        predicate.text = action.value;
+        const subject = action.subjectHash, object = action.objectHash;
+        tripletsDB.del({ subject: subject, object: object }, (err) => {
+            if (err) {
+                console.log(err);
+            }
+            tripletsDB.put({
+                subject: subject,
+                predicate: predicate,
+                object: object
+            }, (err) => {
+                if (err) {
+                    console.log(err);
+                }
+            });
+        });
+        updateStyles();
+    }
     function updateNodeColor(nodeId, color) {
         const d = nodeMap.get(nodeId);
         d.color = color;
@@ -1341,6 +1361,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         // update edge data in database
         updateTriplet,
         // EXPERIMENTAL - DONT USE YET.
+        editEdge,
         mergeNodeToGroup,
         // remove a node and all edges connected to it.
         removeNode,
