@@ -374,31 +374,31 @@ function networkVizJS(documentId, userLayoutOptions) {
             .append('div');
         if (d.id.slice(0, 5) === 'note-') {
             colorPik.append('div')
-                .html('<div id="controls"><div><i class="fa fa-paint-brush fa-2x" id="bgpicker"></div></div>');
+                .html('<div id="controls"><div><i class="fa fa-paint-brush" id="bgpicker"></i></div></div>');
             let colorPickerEl = $("#bgpicker");
-            let brushColor = d.color ? d.color : '#ffffff';
-            colorPickerEl.css('color', brushColor);
-            colorPickerEl.css('font-size', '19px !important');
-            colorPickerEl.css('text-shadow', 'rgb(18, 17, 17) 0px 0px 4px');
+            colorPickerEl.css('color', d.color);
+            colorPickerEl.css('text-shadow', '1px 0px 6px #1f2d3d');
             colorPickerEl.mouseover(function () {
                 layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
-                var current = {
+                let current = {
                     'picker': "#bgpicker",
                     'color': d.color,
                     'graphic': "#brush"
                 };
                 let yy = colorPickerEl.colpick({
-                    color: d.color,
+                    color: d.color ? d.color : "#ffffff",
                     onChange: function (hsb, hex, rgb, el, bySetColor) {
-                        var newColor = '#' + hex;
+                        let newColor = '#' + hex;
                         $("#brush").css("fill", newColor);
-                        colorPickerEl.css('color', newColor);
-                        d.color = newColor;
+                        colorPickerEl.css('background-color', newColor);
                         element.attr('fill', newColor);
-                        layoutOptions.updateNodeColor && layoutOptions.updateNodeColor(d);
                     },
                     onSubmit: function (hsb, hex, rgb, el) {
                         $(el).colpickHide();
+                        let newColor = '#' + hex;
+                        if (newColor !== d.color) {
+                            layoutOptions.updateNodeColor && layoutOptions.updateNodeColor(d, newColor);
+                        }
                         hoverMenuRemoveIcons(parent);
                     }
                 });
