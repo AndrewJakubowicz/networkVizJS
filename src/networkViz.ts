@@ -59,6 +59,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         clickEdge: (d, element) => undefined,
         mouseOverRadial: undefined,
         mouseOutRadial: undefined,
+        colorPickerOpen: undefined,
+        colorPickerClose: undefined,
     };
     const X = 37;
     const Y = -13;
@@ -397,6 +399,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                 };
                 let yy = colorPickerEl.colpick({
                     color: d.color ? d.color : "#ffffff",
+                    onShow: function () {
+                        layoutOptions.colorPickerOpen && layoutOptions.colorPickerOpen(d);
+                    },
                     onChange: function (hsb, hex, rgb, el, bySetColor) {
                         let newColor = '#' + hex;
                         $("#brush").css("fill", newColor);
@@ -410,6 +415,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                             layoutOptions.updateNodeColor && layoutOptions.updateNodeColor(d, newColor);
                         }
                         hoverMenuRemoveIcons(parent);
+                        layoutOptions.colorPickerClose && layoutOptions.colorPickerClose(d);
                     }
                 });
             })
@@ -516,7 +522,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                 const mosY = mouse[1];
                 if (mosX < bbox.x || mosX > (bbox.width + bbox.x) || mosY > (bbox.height + bbox.y) || mosY < bbox.y) {
                     hoverMenuRemoveIcons();
-                    layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
                 }
             });
         layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
@@ -544,7 +549,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         //   (mosX < d.width / 2 && mosX > 0 && mosY > 0 && mosY < d.height)) {
         //   hoverMenuRemoveIcons(parent)
         // }
-        // layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
+        layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
     }
 
     /**
