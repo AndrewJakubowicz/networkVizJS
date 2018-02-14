@@ -56,6 +56,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         },
         edgeSmoothness: 0,
         clickEdge: (d, element) => undefined,
+        edgeRemove: undefined,
         mouseOverRadial: undefined,
         mouseOutRadial: undefined,
     };
@@ -66,10 +67,10 @@ function networkVizJS(documentId, userLayoutOptions) {
     const p2x = 75 + X;
     const p3x = 100 + X;
     const p4y = 50 + Y;
-    var d0 = "M16 48 L48 48 L48 16 L16 16 Z", //RECT
-    d1 = "M20,40a20,20 0 1,0 40,0a20,20 0 1,0 -40,0", //CIRCLE
-    // d2 = "M148.1,310.5h-13.4c-4.2,0-7.7-3.4-7.7-7.7v-7.4c0-4.2,3.4-7.7,7.7-7.7h13.4c4.2,0,7.7,3.4,7.7,7.7v7.4  C155.7,307.1,152.3,310.5,148.1,310.5z"; //CAPSULE
-    d2 = `M ${p1x} ${p1y} L ${p2x} ${p1y} C ${p3x} ${p1y} ${p3x} ${p4y} ${p2x} ${p4y} L ${p1x} ${p4y} C ${X} ${p4y} ${X} ${p1y} ${p1x} ${p1y} `; //CAPSULE
+    const d0 = "M16 48 L48 48 L48 16 L16 16 Z", // RECT
+    d1 = "M20,40a20,20 0 1,0 40,0a20,20 0 1,0 -40,0", // CIRCLE
+    // d2 = "M148.1,310.5h-13.4c-4.2,0-7.7-3.4-7.7-7.7v-7.4c0-4.2,3.4-7.7,7.7-7.7h13.4c4.2,0,7.7,3.4,7.7,7.7v7.4  C155.7,307.1,152.3,310.5,148.1,310.5z"; // CAPSULE
+    d2 = `M ${p1x} ${p1y} L ${p2x} ${p1y} C ${p3x} ${p1y} ${p3x} ${p4y} ${p2x} ${p4y} L ${p1x} ${p4y} C ${X} ${p4y} ${X} ${p1y} ${p1x} ${p1y} `; // CAPSULE
     const internalOptions = {
         isDragging: false
     };
@@ -205,37 +206,37 @@ function networkVizJS(documentId, userLayoutOptions) {
                 if (!(d.width)) {
                     d.width = d.minWidth || 0;
                 }
-                let lineLength = this.offsetWidth;
+                const lineLength = this.offsetWidth;
                 if (d.width < lineLength + extra) {
                     d.width = lineLength + extra;
                 }
             })
                 .each(function (d) {
                 // Only update the height, the width is calculated previously
-                let height = this.offsetHeight;
+                const height = this.offsetHeight;
                 const extra = 2 * layoutOptions.pad + layoutOptions.margin;
                 d.height = height === 0 ? 28 + extra : height + extra;
             });
             node.select(".node-HTML-content")
                 .attr("y", function (d) {
                 const textHeight = d3.select(this).select("text").node().offsetHeight;
-                //Minus 2 is a hack to get the text feeling 'right'.
+                // Minus 2 is a hack to get the text feeling 'right'.
                 return d.height / 2 - textHeight / 2 - 2;
             })
                 .attr("x", function (d) {
                 const textWidth = d3.select(this).select("text").node().offsetWidth;
                 const x = d.width / 2 - textWidth / 2;
-                d.textPosition = x; //TODO-ya is this redundant now?
+                d.textPosition = x; // TODO-ya is this redundant now?
                 return x;
             });
             d3.selectAll("#graph .node").each(function (d) {
                 const node = d3.select(this);
-                const foOnNode = node.selectAll('.node-status-icons');
+                const foOnNode = node.selectAll(".node-status-icons");
                 const pinned = layoutOptions.nodeToPin && layoutOptions.nodeToPin(d);
                 if (pinned) {
                     foOnNode
-                        .attr('x', d => d.width / 2 || 0)
-                        .attr('y', 0)
+                        .attr("x", d => d.width / 2 || 0)
+                        .attr("y", 0)
                         .style("opacity", 1);
                 }
                 else {
@@ -252,16 +253,16 @@ function networkVizJS(documentId, userLayoutOptions) {
      */
     function hoverMenuRemoveIcons(parent) {
         if (parent) {
-            parent.selectAll('.menu-action').remove();
-            parent.selectAll('.menu-shape').remove();
-            parent.selectAll('.menu-color').remove();
-            parent.selectAll('.menu-trash').remove();
+            parent.selectAll(".menu-action").remove();
+            parent.selectAll(".menu-shape").remove();
+            parent.selectAll(".menu-color").remove();
+            parent.selectAll(".menu-trash").remove();
         }
         else {
-            d3.selectAll('.menu-action').remove();
-            d3.selectAll('.menu-shape').remove();
-            d3.selectAll('.menu-color').remove();
-            d3.selectAll('.menu-trash').remove();
+            d3.selectAll(".menu-action").remove();
+            d3.selectAll(".menu-shape").remove();
+            d3.selectAll(".menu-color").remove();
+            d3.selectAll(".menu-trash").remove();
         }
     }
     /**
@@ -534,7 +535,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             // Here we add node beauty.
             // To fit nodes to the short-name calculate BBox
             // from https://bl.ocks.org/mbostock/1160929
-            let textBox = nodeEnter.append("foreignObject")
+            const textBox = nodeEnter.append("foreignObject")
                 .attr("pointer-events", "none")
                 .classed("node-HTML-content", true)
                 .attr("width", 1)
@@ -586,9 +587,8 @@ function networkVizJS(documentId, userLayoutOptions) {
              * Update the text property (allowing dynamically changing text)
              */
             const textSelect = node.select("text")
-                .text(function (d) {
-                let tempText = d.shortname || d.hash;
-                return tempText;
+                .html(function (d) {
+                return d.shortname || d.hash;
             })
                 .attr("class", d => d.class);
             // .each(function (d) {
@@ -644,7 +644,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 }
                 deleteHoverMenu(d, this);
             }).on("click", function (d) {
-                let elem = d3.select(this);
+                const elem = d3.select(this);
                 setTimeout(() => {
                     layoutOptions.clickNode(d, elem);
                 }, 50);
@@ -664,28 +664,42 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .classed("line", true);
             linkEnter.append("path") // transparent clickable area behind line
                 .attr("stroke-width", layoutOptions.edgeStrokePad)
-                .attr("stroke", 'rgba(0, 0, 0, 0)')
+                .attr("stroke", "rgba(0, 0, 0, 0)")
                 .attr("fill", "none");
             linkEnter.append("path")
                 .attr("stroke-width", layoutOptions.edgeStroke)
                 .attr("stroke", layoutOptions.edgeColor)
                 .attr("fill", "none")
                 .attr("marker-end", d => `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.edgeData)})`);
-            linkEnter.on("click", function (d) {
+            linkEnter.on("mouseenter", function (d) {
+                addEdgeHoverMenu(d, this);
+            }).on("mouseleave", function (d) {
+                deleteEdgeHoverMenu(d, this);
+            }).on("click", function (d) {
                 const elem = d3.select(this);
                 setTimeout(() => {
                     layoutOptions.clickEdge(d, elem);
                 }, 50);
             });
             // Add an empty text field.
-            linkEnter.append("text")
-                .attr("text-anchor", "middle")
+            linkEnter
+                .append("foreignObject")
+                .attr("width", 1)
+                .attr("height", 1)
+                .style("overflow", "visible")
+                .append("xhtml:div")
+                .append("text")
+                .attr("contenteditable", "true")
+                .attr("tabindex", "-1")
+                .attr("text-align", "middle")
                 .style("font", "100 22px Helvetica Neue")
-                .text(undefined);
+                .style("white-space", "pre")
+                .style("background-color", "white")
+                .html(d => layoutOptions.edgeLabelText(d.predicate));
             link = link.merge(linkEnter);
             /** Optional label text */
             if (typeof layoutOptions.edgeLabelText === "function") {
-                link.select("text").text((d) => {
+                link.select("text").html((d) => {
                     if (typeof d.predicate.hash === "string") {
                         return layoutOptions.edgeLabelText(predicateMap.get(d.predicate.hash));
                     }
@@ -718,19 +732,19 @@ function networkVizJS(documentId, userLayoutOptions) {
              * Adds quadratic curve to smooth corners in line
              */
             const lineFunction = points => {
-                if (points.length <= 2 || layoutOptions.edgeSmoothness === 0 || layoutOptions.edgeSmoothness === undefined) {
+                if (points.length <= 2 || !layoutOptions.edgeSmoothness || layoutOptions.edgeSmoothness === 0) {
                     // fall back on old method if no need to curve edges
                     return d3.line().x(d => d.x).y(d => d.y)(points);
                 }
                 let path = "M" + points[0].x + "," + points[0].y; // move to start point
                 let dy, dx;
                 for (let n = 1; n < points.length - 1; n++) {
-                    let p0 = points[n - 1];
-                    let p1 = points[n];
-                    let p2 = points[n + 1];
-                    let v01 = { x: p1.x - p0.x, y: p1.y - p0.y }; // vector from point 0 to 1
-                    let v01abs = Math.sqrt(Math.pow(v01.x, 2) + Math.pow(v01.y, 2)); // |v01|
-                    let uv01 = { x: v01.x / v01abs, y: v01.y / v01abs }; // unit vector v01
+                    const p0 = points[n - 1];
+                    const p1 = points[n];
+                    const p2 = points[n + 1];
+                    const v01 = { x: p1.x - p0.x, y: p1.y - p0.y }; // vector from point 0 to 1
+                    const v01abs = Math.sqrt(Math.pow(v01.x, 2) + Math.pow(v01.y, 2)); // |v01|
+                    const uv01 = { x: v01.x / v01abs, y: v01.y / v01abs }; // unit vector v01
                     if ((layoutOptions.edgeSmoothness * 2 > v01abs)) {
                         dx = v01.x / 2;
                         dy = v01.y / 2;
@@ -740,9 +754,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                         dy = layoutOptions.edgeSmoothness * uv01.y;
                     }
                     path += " L" + (p1.x - dx) + "," + (p1.y - dy); // straight line to layoutOptions.edgeSmoothness px before vertex
-                    let v12 = { x: p2.x - p1.x, y: p2.y - p1.y }; // vector from point 1 to 2
-                    let v12abs = Math.sqrt(Math.pow(v12.x, 2) + Math.pow(v12.y, 2)); // |v12|
-                    let uv12 = { x: v12.x / v12abs, y: v12.y / v12abs }; // unit vector v12
+                    const v12 = { x: p2.x - p1.x, y: p2.y - p1.y }; // vector from point 1 to 2
+                    const v12abs = Math.sqrt(Math.pow(v12.x, 2) + Math.pow(v12.y, 2)); // |v12|
+                    const uv12 = { x: v12.x / v12abs, y: v12.y / v12abs }; // unit vector v12
                     if ((layoutOptions.edgeSmoothness * 2 > v12abs)) {
                         dx = v12.x / 2;
                         dy = v12.y / 2;
@@ -830,8 +844,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                     link.each(function (d) {
                         this.parentNode.insertBefore(this, this);
                     });
-                link.select("text")
-                    .attr("x", d => {
+                link.select("foreignObject")
+                    .attr("x", (d, i, n) => {
+                    const textWidth = d3.select(n[i]).select("text").node().offsetWidth;
                     let route;
                     try {
                         route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
@@ -840,9 +855,10 @@ function networkVizJS(documentId, userLayoutOptions) {
                         console.error(err);
                         return 0;
                     }
-                    return (route.sourceIntersection.x + route.targetIntersection.x) / 2;
+                    return (route.sourceIntersection.x + route.targetIntersection.x - textWidth) / 2;
                 })
-                    .attr("y", d => {
+                    .attr("y", (d, i, n) => {
+                    const textHeight = d3.select(n[i]).select("text").node().offsetHeight;
                     let route;
                     try {
                         route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
@@ -851,7 +867,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         console.error(err);
                         return 0;
                     }
-                    return (route.sourceIntersection.y + route.targetIntersection.y) / 2;
+                    return (route.sourceIntersection.y + route.targetIntersection.y - textHeight) / 2;
                 });
                 group.attr("x", function (d) {
                     return d.bounds.x;
@@ -888,7 +904,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             links = l.map(({ subject, object, predicate }) => {
                 const source = nodeMap.get(subject);
                 const target = nodeMap.get(object);
-                predicateMap.set(predicate.hash, predicate); //TODO bandaid fix for predicatemap objects =/= links objects
+                predicateMap.set(predicate.hash, predicate); // TODO bandaid fix for predicatemap objects =/= links objects
                 return { source, target, predicate };
             });
             restart(callback);
@@ -1184,17 +1200,136 @@ function networkVizJS(documentId, userLayoutOptions) {
     function setSelectNode(selectNodeFunc) {
         layoutOptions.clickNode = selectNodeFunc;
     }
-    function updateNodeColor(nodeId, color) {
-        const d = nodeMap.get(nodeId);
-        d.color = color;
-        node.filter(d => d.id === nodeId).select("path").attr("fill", color);
+    /**
+     * Public function to mutate edge objects
+     * can mutate single edges or multiple edges at once
+     * can mutate multiple edges to have 1 value, or multiple edges to each have their own value
+     * for multiple values, value array length==id array length, first value will be mapped to first id in array etc...
+     * @param action {Object} action - action to be performed
+     * @param action.property {string}: property to be mutated - string
+     * @param action.id {(string|string[])}: hash(es) of edges to be mutated
+     * @param action.value {(any|any[])}: new value to set property, single value or array of values.
+     */
+    function editEdge(action) {
+        if (action === undefined || action.property === undefined || action.id === undefined) {
+            return;
+        }
+        const prop = action.property;
+        const idArray = Array.isArray(action.id) ? action.id : [action.id];
+        const values = Array.isArray(action.value) ? action.value : [action.value];
+        const multipleValues = (values.length > 1) && (idArray.length === values.length);
+        const predicateArray = idArray.map(x => predicateMap.get(x));
+        const editEdgeHelper = prop => {
+            if (multipleValues) {
+                predicateArray.forEach((d, i) => {
+                    d[prop] = values[i];
+                });
+            }
+            else {
+                predicateArray.forEach(d => {
+                    d[prop] = values[0];
+                });
+                updateStyles();
+            }
+        };
+        switch (prop) {
+            case "text": {
+                editEdgeHelper("text");
+                restart();
+                break;
+            }
+            default: {
+                editEdgeHelper(prop);
+                console.warn("Caution. You are modifying a new or unknown property: %s.", prop);
+            }
+        }
+        // Update triplets DB with new predicate(s)
+        const subObjArray = predicateArray.map(p => ({ subject: p.subject, object: p.object }));
+        const newTripletsArray = predicateArray.map(p => ({ subject: p.subject, predicate: p, object: p.object }));
+        tripletsDB.del(subObjArray, (err) => {
+            if (err) {
+                console.log(err);
+            }
+            tripletsDB.put(newTripletsArray, (err) => {
+                if (err) {
+                    console.log(err);
+                }
+            });
+        });
     }
-    function updateNodeShape(nodeId, shape) {
-        const d = nodeMap.get(nodeId);
-        const shapePath = layoutOptions.nodeShape({ nodeShape: shape });
-        d.nodeShape = shape;
-        node.filter(d => d.id === nodeId).select("path").attr("d", shapePath);
-        updateStyles();
+    /**
+     * Public function to mutate node objects
+     * can mutate single nodes or multiple nodes at once
+     * can mutate multiple nodes to have 1 value, or multiple nodes to each have their own value
+     * for multiple values, value array length==id Array length, first value will be mapped to first id in array etc...
+     * @param action {Object} action - action to be performed
+     * @param action.property {string}: property to be mutated - string
+     * @param action.id {(string|string[])}: id(s) of nodes to be mutated
+     * @param action.value {(any|any[])}: new value to set property, single value or array of values.
+     */
+    function editNode(action) {
+        if (action === undefined || action.property === undefined || action.id === undefined) {
+            return;
+        }
+        const prop = action.property;
+        const idArray = Array.isArray(action.id) ? action.id : [action.id];
+        const values = Array.isArray(action.value) ? action.value : [action.value];
+        const multipleValues = (values.length > 1) && (idArray.length === values.length);
+        const nodeArray = idArray.map(x => nodeMap.get(x));
+        const editNodeHelper = (prop) => {
+            if (multipleValues) {
+                nodeArray.forEach((d, i) => {
+                    d[prop] = values[i];
+                });
+            }
+            else {
+                nodeArray.forEach(d => {
+                    d[prop] = values[0];
+                });
+            }
+        };
+        switch (prop) {
+            case "color": {
+                editNodeHelper(prop);
+                idArray.forEach((id, i) => {
+                    if (multipleValues) {
+                        node.filter(d => d.id === id).select("path").attr("fill", values[i]);
+                    }
+                    else {
+                        node.filter(d => d.id === id).select("path").attr("fill", values[0]);
+                    }
+                });
+                break;
+            }
+            case "nodeShape": {
+                const shapePaths = values.map(v => layoutOptions.nodeShape({ nodeShape: v }));
+                editNodeHelper(prop);
+                idArray.forEach((id, i) => {
+                    if (multipleValues) {
+                        node.filter(d => d.id === id).select("path").attr("d", shapePaths[i]);
+                    }
+                    else {
+                        node.filter(d => d.id === id).select("path").attr("d", shapePaths[0]);
+                    }
+                });
+                updateStyles();
+                break;
+            }
+            case "fixed": {
+                editNodeHelper(prop);
+                restart();
+                break;
+            }
+            case "shortname": {
+                editNodeHelper(prop);
+                restart();
+                break;
+            }
+            default: {
+                editNodeHelper(prop);
+                console.warn("Caution. You are modifying a new or unknown property: %s.", action.property);
+            }
+        }
     }
     /**
      * Invoking this function will recenter the graph.
@@ -1285,13 +1420,82 @@ function networkVizJS(documentId, userLayoutOptions) {
         groups = newGroupObject;
         restart(callback);
     }
+    // function deleteEdgeHoverMenu(d, me) { // incomplete
+    //     const e = d3.event;
+    //     e.preventDefault();
+    //     const element = d3.select(me);
+    //     const parent = d3.select(me.parentNode);
+    //     const mouse = d3.mouse(me);
+    //     // console.log(me)
+    //     const mosX = mouse[0];
+    //     var mosY = mouse[1];
+    //     // console.log(mosX, mouse)
+    //     if (mosY < -15) {
+    //         hoverMenuRemoveIcons(parent);
+    //     }
+    // }
+    // function addEdgeHoverMenu(d, me) { // incomplete
+    //     hoverMenuRemoveIcons();
+    //     let element = d3.select(me);
+    //     let parent = d3.select(me.parentNode);
+    //     const array = simulation.routeEdge(d, undefined);
+    //     const middleIndex = Math.floor(array.length / 2) - 1;
+    //     const Xmid = (array[middleIndex].x + array[middleIndex + 1].x) / 2;
+    //     const Ymid = (array[middleIndex].y + array[middleIndex + 1].y) / 2;
+    //     //CREATE TRASH ICON
+    //     var foTrash = element.append('foreignObject')
+    //         .attr("x", Xmid)
+    //         .attr("y", Ymid + 15)
+    //         .attr('class', 'menu-trash')
+    //         .attr("width", 22)
+    //         .attr("height", 37)
+    //         .style("overflow", "visible")
+    //         .on("click", function () {
+    //             console.log("cc")
+    //             const edge = {
+    //                 subject: d.source,
+    //                 predicate: d.predicate,
+    //                 object: d.target
+    //             };
+    //             layoutOptions.edgeRemove && layoutOptions.edgeRemove(edge);
+    //             // layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
+    //         })
+    //     // .on("mouseout", function () {
+    //     //     var e = d3.event;
+    //     //     var element = d3.select(this);
+    //     //     var mouse = d3.mouse(this);
+    //     //     var mosX = mouse[0];
+    //     //     var mosY = mouse[1];
+    //     //     layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
+    //     //     setTimeout(function () {
+    //     //         if (mosX > d.width / 2 + 11 || mosX < d.width / 2 - 11 || mosY > d.height + 21) {
+    //     //             hoverMenuRemoveIcons(element);
+    //     //         }
+    //     //     }, 50);
+    //     // });
+    //     var trash = foTrash.append('xhtml:div')
+    //         .append('div')
+    //         .attr('class', 'icon-wrapper')
+    //         .html('<i class="fa fa-trash-o custom-icon"></i>')
+    //
+    //     // .on("mouseover", function () {
+    //     //     layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
+    //     // });
+    //
+    // }
+    function addEdgeHoverMenu(d, me) {
+        return;
+    }
+    function deleteEdgeHoverMenu(d, me) {
+        return;
+    }
     /**
      * Serialize the graph.
      * scheme: triplets: subj:hash-predicateType-obj:hash[]
      *         nodes: hash[]
      */
     const saveGraph = (callback) => {
-        d3.selectAll('.radial-menu').remove();
+        d3.selectAll(".radial-menu").remove();
         tripletsDB.get({}, (err, l) => {
             const saved = JSON.stringify({
                 triplets: l.map(v => ({ subject: v.subject, predicate: v.predicate, object: v.object })),
@@ -1316,17 +1520,6 @@ function networkVizJS(documentId, userLayoutOptions) {
      * @param {number} y clientY
      * @returns {{x: number; y: number}}
      */
-    const transformCoordinates = ({ x, y }) => {
-        let screenPoint = svg.node().createSVGPoint();
-        screenPoint.x = x;
-        screenPoint.y = y;
-        let CTM = g.node().getScreenCTM();
-        let point = screenPoint.matrixTransform(CTM.inverse());
-        return {
-            x: point.x,
-            y: point.y
-        };
-    };
     // Public api
     /**
      * TODO:
@@ -1339,14 +1532,14 @@ function networkVizJS(documentId, userLayoutOptions) {
         hasNode: (nodeHash) => nodes.filter(v => v.hash == nodeHash).length === 1,
         // Public access to the levelgraph db.
         getDB: () => tripletsDB,
-        //Get node from map
+        // Get node from nodeMap
         getNode: (hash) => nodeMap.get(hash),
+        // Get edge from predicateMap
+        getPredicate: (hash) => predicateMap.get(hash),
         // Get Stringified representation of the graph.
         saveGraph,
         // Get SVG element. If you want the node use `graph.getSVGElement().node();`
         getSVGElement: () => svg,
-        // Transform client coordinates into SVG coordinates
-        transformCoordinates,
         // add a directed edge
         addTriplet,
         // remove an edge
@@ -1359,10 +1552,10 @@ function networkVizJS(documentId, userLayoutOptions) {
         removeNode,
         // add a node or array of nodes.
         addNode,
-        // change color of a node or array of nodes
-        updateNodeColor,
-        //change shape of a node or array of nodes
-        updateNodeShape,
+        // edit node property
+        editNode,
+        // edit edge property
+        editEdge,
         // Restart styles or layout.
         restart: {
             styles: updateStyles,
