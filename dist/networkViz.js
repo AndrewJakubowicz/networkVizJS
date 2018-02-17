@@ -59,6 +59,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         edgeRemove: undefined,
         mouseOverRadial: undefined,
         mouseOutRadial: undefined,
+        colorPickerOpen: undefined,
+        colorPickerClose: undefined,
     };
     const X = 37;
     const Y = -13;
@@ -257,12 +259,14 @@ function networkVizJS(documentId, userLayoutOptions) {
             parent.selectAll(".menu-shape").remove();
             parent.selectAll(".menu-color").remove();
             parent.selectAll(".menu-trash").remove();
+            parent.selectAll(".menu-hover-box").remove();
         }
         else {
             d3.selectAll(".menu-action").remove();
             d3.selectAll(".menu-shape").remove();
             d3.selectAll(".menu-color").remove();
             d3.selectAll(".menu-trash").remove();
+            d3.selectAll(".menu-hover-box").remove();
         }
     }
     /**
@@ -378,6 +382,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                 };
                 let yy = colorPickerEl.colpick({
                     color: d.color ? d.color : "#ffffff",
+                    onShow: function () {
+                        layoutOptions.colorPickerOpen && layoutOptions.colorPickerOpen(d);
+                    },
                     onChange: function (hsb, hex, rgb, el, bySetColor) {
                         let newColor = '#' + hex;
                         $("#brush").css("fill", newColor);
@@ -391,6 +398,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                             layoutOptions.updateNodeColor && layoutOptions.updateNodeColor(d, newColor);
                         }
                         hoverMenuRemoveIcons(parent);
+                        layoutOptions.colorPickerClose && layoutOptions.colorPickerClose(d);
                     }
                 });
             })
@@ -407,7 +415,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             .attr("y", d.height + 3 - layoutOptions.margin / 2)
             .attr('class', 'menu-trash')
             .attr("width", 22)
-            .attr("height", 37)
+            .attr("height", 27)
             .style("overflow", "visible")
             .on("mouseout", function () {
             var e = d3.event;
@@ -438,7 +446,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             .attr('x', foX + 5)
             .attr('y', foY)
             .attr('width', foWidth)
-            .attr('height', foHeight)
+            .attr('height', 30)
             .attr('class', 'menu-action')
             .style("overflow", "visible")
             .on("mouseover", function () {
@@ -478,6 +486,26 @@ function networkVizJS(documentId, userLayoutOptions) {
             .html('<i class="fa fa-arrow-right custom-icon"></i>')
             .on("mousedown", function () {
             layoutOptions.startArrow && layoutOptions.startArrow(d, element);
+        });
+        const parentBBox = parent.node().getBBox();
+        parent.insert("rect", "path")
+            .attr("x", parentBBox.x)
+            .attr("y", parentBBox.y)
+            .attr("width", parentBBox.width)
+            .attr("height", parentBBox.height)
+            .attr("fill", "rgba(0,0,0,0)")
+            .attr("class", "menu-hover-box")
+            .on("mouseout", (d, i, n) => {
+            const elem = n[i];
+            const e = d3.event;
+            e.preventDefault();
+            const mouse = d3.mouse(elem);
+            const bbox = elem.getBBox();
+            const mosX = mouse[0];
+            const mosY = mouse[1];
+            if (mosX < bbox.x || mosX > (bbox.width + bbox.x) || mosY > (bbox.height + bbox.y) || mosY < bbox.y) {
+                hoverMenuRemoveIcons();
+            }
         });
         layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
     }

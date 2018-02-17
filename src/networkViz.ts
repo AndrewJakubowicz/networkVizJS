@@ -606,7 +606,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             //     .style("font", "100 22px Helvetica Neue");
             // Choose the node shape and style.
             let nodeShape;
-            nodeShape = nodeEnter.insert("path", "text");
+            nodeShape = nodeEnter.insert("path", "foreignObject");
             if (typeof layoutOptions.nodeShape == "string" && layoutOptions.nodeShape == "rect") {
                 // nodeShape = nodeEnter.insert("rect", "text")     // The second arg is what the rect will sit behind.
                 nodeShape.attr("d", "M16 48 L48 48 L48 16 L16 16 Z");
