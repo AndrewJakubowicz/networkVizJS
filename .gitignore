@@ -19,3 +19,4 @@ src/**/*.map
 src/**/*.js
 !src/util/*.js
 
+/dist/

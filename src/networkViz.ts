@@ -45,8 +45,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         nodeToColor: "#ffffff",
         nodeStrokeWidth: 1,
         nodeStrokeColor: "grey",
-        // TODO: clickNode (node, element) => void
-        clickNode: (node) => console.log("clicked", node), //            elem.node().parentNode.children[1].children[0].children[0].focus()
+        clickNode: (node, element) => undefined,
         clickAway: () => undefined,
         edgeColor: "black",
         edgeStroke: 2,
@@ -583,8 +582,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr("width", 1)
                 .attr("height", 1)
                 .style("overflow", "visible")
-
                 .append("xhtml:div")
+                .attr("xmlns", "http://www.w3.org/1999/xhtml")
                 .append("text");
 
             textBox
@@ -598,12 +597,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             // .html(function (d) {
             //     return d.shortname || d.hash;
             // });
-
-            // nodeEnter.append("text")
-            //     .attr("dx", 0)
-            //     .attr("dy", 0)
-            //     .attr("text-anchor", "left")
-            //     .style("font", "100 22px Helvetica Neue");
             // Choose the node shape and style.
             let nodeShape;
             nodeShape = nodeEnter.insert("path", "foreignObject");
@@ -632,38 +625,10 @@ function networkVizJS(documentId, userLayoutOptions) {
              * Update the text property (allowing dynamically changing text)
              */
             const textSelect = node.select("text")
-            // .text(undefined)
                 .html(function (d) {
                     return d.shortname || d.hash;
                 })
                 .attr("class", d => d.class);
-            // .each(function (d) {
-            //     // This function takes the text element.
-            //     // We can call .each on it and build up
-            //     // the tspan elements from the array of text
-            //     // in the data.
-            //     // Derived from https://bl.ocks.org/mbostock/7555321
-            //     const text = d3.select(this);
-            //     /**
-            //      * If no shortname, then use hash.
-            //      */
-            //     let tempText = d.shortname || d.hash;
-            //     if (!Array.isArray(tempText)) {
-            //         tempText = [tempText];
-            //     }
-            //     const textCopy = tempText.slice(), words = textCopy.reverse(), lineheight = 1.1, // em
-            //         lineNumber = 0, dy = parseFloat(text.attr("dy")) || 0;
-            //     let word,
-            //         // TODO: I don't know why there needs to be a undefined tspan at the start?
-            //         tspan = text.text(undefined).append("tspan").attr("dy", dy + "em");
-            //     while (word = words.pop()) {
-            //         tspan = text.append("tspan")
-            //             .attr("dy", lineheight + "em")
-            //             .attr("x", d.textPosition || (d.width / 2) || 0)
-            //             .text(word);
-            //     }
-            // })
-            // .attr("pointer-events", "none");
             /**
              * Here we can update node properties that have already been attached.
              * When restart() is called, these are the properties that will be affected
@@ -731,11 +696,11 @@ function networkVizJS(documentId, userLayoutOptions) {
             // Add an empty text field.
             linkEnter
                 .append("foreignObject")
-                // .attr("pointer-events", "none")
                 .attr("width", 1)
                 .attr("height", 1)
                 .style("overflow", "visible")
                 .append("xhtml:div")
+                .attr("xmlns", "http://www.w3.org/1999/xhtml")
                 .append("text")
                 .attr("contenteditable", "true")
                 .attr("tabindex", "-1")
@@ -957,7 +922,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             links = l.map(({subject, object, predicate}) => {
                 const source = nodeMap.get(subject);
                 const target = nodeMap.get(object);
-                predicateMap.set(predicate.hash, predicate); // TODO bandaid fix for predicatemap objects =/= links objects
+                predicateMap.set(predicate.hash, predicate); // update predicateMap to match new link object
                 return {source, target, predicate};
             });
             restart(callback);
@@ -1179,8 +1144,6 @@ function networkVizJS(documentId, userLayoutOptions) {
         if (!tripletValidation(tripletObject)) {
             return;
         }
-        // if (predicateMap.has(tripletObject.edgeData.hash)) {
-        // predicateMap.set(tripletObject.edgeData.hash, tripletObject.edgeData); // TODO not needed if fix in createNewLinks is kept
         const subject = tripletObject.subject, predicate = tripletObject.predicate, object = tripletObject.object;
         tripletsDB.del({subject: subject.hash, object: object.hash}, (err) => {
             if (err) {
@@ -1196,7 +1159,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                 }
             });
         });
-        // }
     }
 
     /**
