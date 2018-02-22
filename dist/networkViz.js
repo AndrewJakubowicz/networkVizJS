@@ -177,6 +177,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Allows dynamically changing node sizes based on text.
      */
     function updatePathDimensions() {
+        hoverMenuRemoveIcons(); // hover menu does not automatically change size with node
         node.select("path")
             .attr("transform", function (d) {
             // Scale appropriately using http://stackoverflow.com/a/9877871/6421793
@@ -219,6 +220,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                 d.height = height === 0 ? 28 + extra : height + extra;
             });
             node.select(".node-HTML-content")
+                .attr("width", function (d) {
+                return d3.select(this).select("text").node().offsetWidth;
+            })
                 .attr("y", function (d) {
                 const textHeight = d3.select(this).select("text").node().offsetHeight;
                 // Minus 2 is a hack to get the text feeling 'right'.
@@ -229,6 +233,10 @@ function networkVizJS(documentId, userLayoutOptions) {
                 const x = d.width / 2 - textWidth / 2;
                 d.textPosition = x; // TODO-ya is this redundant now?
                 return x;
+            });
+            link.select("foreignObject")
+                .attr("width", function (d) {
+                return d3.select(this).select("text").node().offsetWidth;
             });
             d3.selectAll("#graph .node").each(function (d) {
                 const node = d3.select(this);
@@ -576,7 +584,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr("tabindex", "-1")
                 .attr("class", d => d.class)
                 .attr("pointer-events", "none")
-                .attr("text-align", "center")
+                .style("cursor", "text")
+                .style("text-align", "center")
+                .style("display", "inline-block")
                 .style("font", "100 22px Helvetica Neue")
                 .style("white-space", "pre");
             // .html(function (d) {
@@ -688,7 +698,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .append("text")
                 .attr("contenteditable", "true")
                 .attr("tabindex", "-1")
-                .attr("text-align", "middle")
+                .style("display", "inline-block")
+                .style("text-align", "center")
                 .style("font", "100 22px Helvetica Neue")
                 .style("white-space", "pre")
                 .style("background-color", "white")
