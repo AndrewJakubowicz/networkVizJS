@@ -277,6 +277,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             parent.selectAll(".menu-color").remove();
             parent.selectAll(".menu-trash").remove();
             parent.selectAll(".menu-hover-box").remove();
+            // parent.selectAll(".edge-hover-menu").remove();
         }
         else {
             d3.selectAll(".menu-action").remove();
@@ -284,6 +285,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             d3.selectAll(".menu-color").remove();
             d3.selectAll(".menu-trash").remove();
             d3.selectAll(".menu-hover-box").remove();
+            // d3.selectAll(".edge-hover-menu").remove();
         }
     }
 
@@ -298,10 +300,10 @@ function networkVizJS(documentId, userLayoutOptions) {
         var foWidth = 30;
         var foHeight = d.height - layoutOptions.margin / 2;
         var foX = d.width - layoutOptions.margin / 2;
-        var foY = layoutOptions.margin / 2;
+        var foY = d.height / 2;
         let currentShape = d.nodeShape;
         let firstShape = true;
-        let shapeY = 3 + layoutOptions.margin / 2;
+        let shapeY = 3 + d.height / 2 - 26;
         hoverMenuRemoveIcons();
         //CREATE SHAPES MENU
         var shapeMenu = parent.append("g")
@@ -463,7 +465,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         //CREATE RIGHT MENU
         var fo = parent.append('foreignObject')
             .attr('x', foX + 5)
-            .attr('y', foY)
+            .attr('y', foY - 26)
             .attr('width', foWidth)
             .attr('height', 30)
             .attr('class', 'menu-action')
@@ -508,8 +510,8 @@ function networkVizJS(documentId, userLayoutOptions) {
             });
         const parentBBox = parent.node().getBBox();
         parent.insert("rect", "path")
-            .attr("x", parentBBox.x)
-            .attr("y", parentBBox.y)
+            .attr("x", parentBBox.x - 4)
+            .attr("y", parentBBox.y - 2)
             .attr("width", parentBBox.width)
             .attr("height", parentBBox.height)
             .attr("fill", "rgba(0,0,0,0)")
@@ -523,7 +525,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 const mosX = mouse[0];
                 const mosY = mouse[1];
                 if (mosX < bbox.x || mosX > (bbox.width + bbox.x) || mosY > (bbox.height + bbox.y) || mosY < bbox.y) {
-                    hoverMenuRemoveIcons();
+                    hoverMenuRemoveIcons(parent);
                 }
             });
         layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
@@ -1050,12 +1052,12 @@ function networkVizJS(documentId, userLayoutOptions) {
      */
     function addTriplet(tripletObject, callback, preventLayout) {
         if (!tripletValidation(tripletObject)) {
-            return;
+            return Promise.reject("Invalid triplet");
         }
         // Node needs a unique hash associated with it.
         const subject = tripletObject.subject, predicate = tripletObject.predicate, object = tripletObject.object;
         // Check that predicate doesn't already exist
-        new Promise((resolve, reject) => tripletsDB.get({
+        return new Promise((resolve, reject) => tripletsDB.get({
             subject: subject.hash,
             predicate: predicate, // ghazal
             object: object.hash
@@ -1063,45 +1065,49 @@ function networkVizJS(documentId, userLayoutOptions) {
             if (err)
                 reject(err);
             resolve(list.length === 0);
-        })).then(doesntExist => {
-            if (!doesntExist) {
-                console.warn("That edge already exists. Hash's and predicate type needs to be unique!");
-                return;
-            }
-            /**
-             * If a predicate type already has a color,
-             * it is not redefined.
-             */
-            const edgeColor = typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(predicate);
-            if (!predicateTypeToColorMap.has(edgeColor)) {
-                predicateTypeToColorMap.set(edgeColor, true);
-                // Create an arrow head for the new color
-                createColorArrow_1.default(defs, edgeColor);
-            }
-            /**
-             * If the predicate has a hash, it is added to a Map.
-             * This way we can mutate the predicate to manipulate its
-             * properties.
-             * Basically we are saving a reference to the predicate object.
-             */
-            if (predicate.hash) {
-                if (predicateMap.has(predicate.hash)) {
-                    console.warn("Edge hash must be unique. There already exists a predicate with the hash: ", predicate.hash);
+        }))
+            .then(doesntExist => {
+                if (!doesntExist) {
+                    return Promise.reject("Edge already exists");
                 }
-                predicateMap.set(predicate.hash, predicate);
-            }
-            /**
-             * Put the triplet into the LevelGraph database
-             * and mutates the d3 nodes and links list to
-             * visually pop on the node/s.
-             */
-            tripletsDB.put({
-                subject: subject.hash,
-                predicate: predicate,
-                object: object.hash
-            }, (err) => {
-                if (err) {
-                    console.error(err);
+                /**
+                 * If a predicate type already has a color,
+                 * it is not redefined.
+                 */
+                const edgeColor = typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(predicate);
+                if (!predicateTypeToColorMap.has(edgeColor)) {
+                    predicateTypeToColorMap.set(edgeColor, true);
+                    // Create an arrow head for the new color
+                    createColorArrow_1.default(defs, edgeColor);
+                }
+                /**
+                 * Put the triplet into the LevelGraph database
+                 * and mutates the d3 nodes and links list to
+                 * visually pop on the node/s.
+                 */
+                const newTriplet = {
+                    subject: subject.hash,
+                    predicate: predicate,
+                    object: object.hash
+                };
+                return new Promise((resolve, reject) => {
+                    tripletsDB.put(newTriplet, (err) => {
+                        err ? reject(err) : resolve();
+                    });
+                });
+            })
+            .then(() => {
+                /**
+                 * If the predicate has a hash, it is added to a Map.
+                 * This way we can mutate the predicate to manipulate its
+                 * properties.
+                 * Basically we are saving a reference to the predicate object.
+                 */
+                if (predicate.hash) {
+                    if (predicateMap.has(predicate.hash)) {
+                        console.warn("Edge hash must be unique. There already exists a predicate with the hash: ", predicate.hash);
+                    }
+                    predicateMap.set(predicate.hash, predicate);
                 }
                 // Add nodes to graph
                 simulation.stop();
@@ -1117,8 +1123,12 @@ function networkVizJS(documentId, userLayoutOptions) {
                 if (!preventLayout) {
                     createNewLinks(callback);
                 }
+                return Promise.resolve();
+            })
+            .catch((err) => {
+                console.error(err);
+                return Promise.reject(err);
             });
-        });
     }
 
     /**
@@ -1482,28 +1492,34 @@ function networkVizJS(documentId, userLayoutOptions) {
     //     hoverMenuRemoveIcons();
     //     let element = d3.select(me);
     //     let parent = d3.select(me.parentNode);
+    //     let textBox = element.select("text");
     //     const array = simulation.routeEdge(d, undefined);
     //     const middleIndex = Math.floor(array.length / 2) - 1;
     //     const Xmid = (array[middleIndex].x + array[middleIndex + 1].x) / 2;
     //     const Ymid = (array[middleIndex].y + array[middleIndex + 1].y) / 2;
-    //     //CREATE TRASH ICON
-    //     var foTrash = element.append('foreignObject')
-    //         .attr("x", Xmid)
-    //         .attr("y", Ymid + 15)
-    //         .attr('class', 'menu-trash')
-    //         .attr("width", 22)
-    //         .attr("height", 37)
-    //         .style("overflow", "visible")
-    //         .on("click", function () {
-    //             console.log("cc")
-    //             const edge = {
-    //                 subject: d.source,
-    //                 predicate: d.predicate,
-    //                 object: d.target
-    //             };
-    //             layoutOptions.edgeRemove && layoutOptions.edgeRemove(edge);
-    //             // layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
-    //         })
+    //     const menuGroup = element.insert("g", "path")
+    //         .attr("class", "edge-hover-menu");
+    //
+    //     // //CREATE TRASH ICON
+    //     // var foTrash = element
+    //     //     .append('foreignObject')
+    //     //     .attr("x", Xmid)
+    //     //     .attr("y", Ymid + 15)
+    //     //     .attr('class', 'menu-trash')
+    //     //     .attr("width", 22)
+    //     //     .attr("height", 27)
+    //     //     .style("overflow", "visible")
+    //     //     .on("click", function () {
+    //     //         console.log("cc")
+    //     //         const edge = {
+    //     //             subject: d.source,
+    //     //             predicate: d.predicate,
+    //     //             object: d.target
+    //     //         };
+    //     //         layoutOptions.edgeRemove && layoutOptions.edgeRemove(edge);
+    //     //         // layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
+    //     //     })
+    //
     //     // .on("mouseout", function () {
     //     //     var e = d3.event;
     //     //     var element = d3.select(this);
@@ -1513,18 +1529,19 @@ function networkVizJS(documentId, userLayoutOptions) {
     //     //     layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
     //     //     setTimeout(function () {
     //     //         if (mosX > d.width / 2 + 11 || mosX < d.width / 2 - 11 || mosY > d.height + 21) {
-    //     //             hoverMenuRemoveIcons(element);
+    //     //             hoverMenuRemoveIcons(menuGroup);
     //     //         }
     //     //     }, 50);
     //     // });
-    //     var trash = foTrash.append('xhtml:div')
-    //         .append('div')
-    //         .attr('class', 'icon-wrapper')
-    //         .html('<i class="fa fa-trash-o custom-icon"></i>')
-    //
-    //     // .on("mouseover", function () {
-    //     //     layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
-    //     // });
+    //     // var trash = foTrash.append('xhtml:div')
+    //     //     .append('div')
+    //     //     .attr('class', 'icon-wrapper')
+    //     //     .html('<i class="fa fa-trash-o custom-icon"></i>')
+    //     //
+    //     //
+    //     // // .on("mouseover", function () {
+    //     // //     layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
+    //     // // });
     //
     // }
 
