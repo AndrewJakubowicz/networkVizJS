@@ -234,7 +234,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 d.textPosition = x; // TODO-ya is this redundant now?
                 return x;
             });
-            link.select("foreignObject")
+            link.select(".edge-foreign-object")
                 .attr("width", function (d) {
                 return d3.select(this).select("text").node().offsetWidth;
             });
@@ -267,6 +267,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             parent.selectAll(".menu-color").remove();
             parent.selectAll(".menu-trash").remove();
             parent.selectAll(".menu-hover-box").remove();
+            parent.selectAll(".edge-hover-menu").remove();
         }
         else {
             d3.selectAll(".menu-action").remove();
@@ -274,6 +275,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             d3.selectAll(".menu-color").remove();
             d3.selectAll(".menu-trash").remove();
             d3.selectAll(".menu-hover-box").remove();
+            d3.selectAll(".edge-hover-menu").remove();
         }
     }
     /**
@@ -287,18 +289,18 @@ function networkVizJS(documentId, userLayoutOptions) {
         var foWidth = 30;
         var foHeight = d.height - layoutOptions.margin / 2;
         var foX = d.width - layoutOptions.margin / 2;
-        var foY = layoutOptions.margin / 2;
+        var foY = d.height / 2;
         let currentShape = d.nodeShape;
         let firstShape = true;
-        let shapeY = 3 + layoutOptions.margin / 2;
+        let shapeY = 3 + d.height / 2 - 26;
         hoverMenuRemoveIcons();
         //CREATE SHAPES MENU
         var shapeMenu = parent.append("g")
-            .attr('x', -30)
-            .attr('y', foY)
-            .attr('width', 30)
-            .attr('height', foHeight)
-            .attr('class', 'menu-shape')
+            .attr("x", -30)
+            .attr("y", foY)
+            .attr("width", 30)
+            .attr("height", foHeight)
+            .attr("class", "menu-shape")
             .on("mouseout", function () {
             var e = d3.event;
             var element = d3.select(this);
@@ -320,10 +322,10 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr("y", shapeY)
                 .attr("width", 24)
                 .attr("height", 21)
-                .attr('class', 'menu-shape-rect')
-                .attr('fill', '#edfdfd')
-                .attr('stroke', '#b8c6c6')
-                .attr('stroke-width', 2)
+                .attr("class", "menu-shape-rect")
+                .attr("fill", "#edfdfd")
+                .attr("stroke", "#b8c6c6")
+                .attr("stroke-width", 2)
                 .on("click", function () {
                 hoverMenuRemoveIcons(parent);
                 layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d, "capsule");
@@ -338,10 +340,10 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr("y", shapeY)
                 .attr("width", 24)
                 .attr("height", 21)
-                .attr('class', 'menu-shape-rect')
-                .attr('fill', '#edfdfd')
-                .attr('stroke', '#b8c6c6')
-                .attr('stroke-width', 2)
+                .attr("class", "menu-shape-rect")
+                .attr("fill", "#edfdfd")
+                .attr("stroke", "#b8c6c6")
+                .attr("stroke-width", 2)
                 .on("click", function () {
                 hoverMenuRemoveIcons(parent);
                 layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d, "rect");
@@ -355,37 +357,37 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr("cx", layoutOptions.margin / 2 - 15)
                 .attr("cy", shapeY)
                 .attr("r", 12)
-                .attr('class', 'menu-shape-circle')
-                .attr('fill', '#edfdfd')
-                .attr('stroke', '#b8c6c6')
-                .attr('stroke-width', 2)
+                .attr("class", "menu-shape-circle")
+                .attr("fill", "#edfdfd")
+                .attr("stroke", "#b8c6c6")
+                .attr("stroke-width", 2)
                 .on("click", function () {
                 hoverMenuRemoveIcons(parent);
                 layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d, "circle");
             });
         }
         //CREATE COLOR SELECTOR ICON
-        let foColor = parent.append('foreignObject')
+        let foColor = parent.append("foreignObject")
             .attr("x", (d.width / 2) - 12)
             .attr("y", -22 + layoutOptions.margin / 2)
             .attr("width", 24)
             .attr("height", 24)
             .style("overflow", "visible")
-            .attr('class', 'menu-color');
-        let colorPik = foColor.append('xhtml:div')
-            .append('div');
-        if (d.id.slice(0, 5) === 'note-') {
-            colorPik.append('div')
-                .html('<div id="controls"><div><i class="fa fa-paint-brush" id="bgpicker"></i></div></div>');
+            .attr("class", "menu-color");
+        let colorPik = foColor.append("xhtml:div")
+            .append("div");
+        if (d.id.slice(0, 5) === "note-") {
+            colorPik.append("div")
+                .html("<div id=\"controls\"><div><i class=\"fa fa-paint-brush\" id=\"bgpicker\"></i></div></div>");
             let colorPickerEl = $("#bgpicker");
-            colorPickerEl.css('color', d.color);
-            colorPickerEl.css('text-shadow', '1px 0px 6px #1f2d3d');
+            colorPickerEl.css("color", d.color);
+            colorPickerEl.css("text-shadow", "1px 0px 6px #1f2d3d");
             colorPickerEl.mouseover(function () {
                 layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
                 let current = {
-                    'picker': "#bgpicker",
-                    'color': d.color,
-                    'graphic': "#brush"
+                    "picker": "#bgpicker",
+                    "color": d.color,
+                    "graphic": "#brush"
                 };
                 let yy = colorPickerEl.colpick({
                     color: d.color ? d.color : "#ffffff",
@@ -393,14 +395,14 @@ function networkVizJS(documentId, userLayoutOptions) {
                         layoutOptions.colorPickerOpen && layoutOptions.colorPickerOpen(d);
                     },
                     onChange: function (hsb, hex, rgb, el, bySetColor) {
-                        let newColor = '#' + hex;
+                        let newColor = "#" + hex;
                         $("#brush").css("fill", newColor);
-                        colorPickerEl.css('background-color', newColor);
-                        element.attr('fill', newColor);
+                        colorPickerEl.css("background-color", newColor);
+                        element.attr("fill", newColor);
                     },
                     onSubmit: function (hsb, hex, rgb, el) {
                         $(el).colpickHide();
-                        let newColor = '#' + hex;
+                        let newColor = "#" + hex;
                         if (newColor !== d.color) {
                             layoutOptions.updateNodeColor && layoutOptions.updateNodeColor(d, newColor);
                         }
@@ -417,10 +419,10 @@ function networkVizJS(documentId, userLayoutOptions) {
             });
         }
         //CREATE TRASH ICON
-        var foTrash = parent.append('foreignObject')
+        var foTrash = parent.append("foreignObject")
             .attr("x", (d.width / 2) - 12)
             .attr("y", d.height + 3 - layoutOptions.margin / 2)
-            .attr('class', 'menu-trash')
+            .attr("class", "menu-trash")
             .attr("width", 22)
             .attr("height", 27)
             .style("overflow", "visible")
@@ -437,10 +439,10 @@ function networkVizJS(documentId, userLayoutOptions) {
                 }
             }, 50);
         });
-        var trash = foTrash.append('xhtml:div')
-            .append('div')
-            .attr('class', 'icon-wrapper')
-            .html('<i class="fa fa-trash-o custom-icon"></i>')
+        var trash = foTrash.append("xhtml:div")
+            .append("div")
+            .attr("class", "icon-wrapper")
+            .html("<i class=\"fa fa-trash-o custom-icon\"></i>")
             .on("click", function () {
             layoutOptions.nodeRemove && layoutOptions.nodeRemove(d);
             layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
@@ -449,12 +451,12 @@ function networkVizJS(documentId, userLayoutOptions) {
             layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
         });
         //CREATE RIGHT MENU
-        var fo = parent.append('foreignObject')
-            .attr('x', foX + 5)
-            .attr('y', foY)
-            .attr('width', foWidth)
-            .attr('height', 30)
-            .attr('class', 'menu-action')
+        var fo = parent.append("foreignObject")
+            .attr("x", foX + 5)
+            .attr("y", foY - 26)
+            .attr("width", foWidth)
+            .attr("height", 30)
+            .attr("class", "menu-action")
             .style("overflow", "visible")
             .on("mouseover", function () {
             layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
@@ -472,15 +474,15 @@ function networkVizJS(documentId, userLayoutOptions) {
                 }
             }, 50);
         });
-        var div = fo.append('xhtml:div')
-            .append('div');
+        var div = fo.append("xhtml:div")
+            .append("div");
         //CREATE PIN ICON
-        var pinIcon = div.append('div').attr('class', 'icon-wrapper');
+        var pinIcon = div.append("div").attr("class", "icon-wrapper");
         if (d.fixed) {
-            pinIcon.html('<i class="fa fa-thumb-tack pinned"></i>');
+            pinIcon.html("<i class=\"fa fa-thumb-tack pinned\"></i>");
         }
         else {
-            pinIcon.html('<i class="fa fa-thumb-tack unpinned"></i>');
+            pinIcon.html("<i class=\"fa fa-thumb-tack unpinned\"></i>");
         }
         pinIcon.on("click", function () {
             layoutOptions.clickPin && layoutOptions.clickPin(d, element);
@@ -489,15 +491,15 @@ function networkVizJS(documentId, userLayoutOptions) {
             restart();
         });
         //CREATE DRAW ARROW icon
-        div.append('div').attr('class', 'icon-wrapper')
-            .html('<i class="fa fa-arrow-right custom-icon"></i>')
+        div.append("div").attr("class", "icon-wrapper")
+            .html("<i class=\"fa fa-arrow-right custom-icon\"></i>")
             .on("mousedown", function () {
             layoutOptions.startArrow && layoutOptions.startArrow(d, element);
         });
         const parentBBox = parent.node().getBBox();
         parent.insert("rect", "path")
-            .attr("x", parentBBox.x)
-            .attr("y", parentBBox.y)
+            .attr("x", parentBBox.x - 4)
+            .attr("y", parentBBox.y - 2)
             .attr("width", parentBBox.width)
             .attr("height", parentBBox.height)
             .attr("fill", "rgba(0,0,0,0)")
@@ -511,7 +513,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             const mosX = mouse[0];
             const mosY = mouse[1];
             if (mosX < bbox.x || mosX > (bbox.width + bbox.x) || mosY > (bbox.height + bbox.y) || mosY < bbox.y) {
-                hoverMenuRemoveIcons();
+                hoverMenuRemoveIcons(parent);
             }
         });
         layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
@@ -690,6 +692,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             // Add an empty text field.
             linkEnter
                 .append("foreignObject")
+                .classed("edge-foreign-object", true)
                 .attr("width", 1)
                 .attr("height", 1)
                 .style("overflow", "visible")
@@ -702,7 +705,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .style("text-align", "center")
                 .style("font", "100 22px Helvetica Neue")
                 .style("white-space", "pre")
-                .style("background-color", "white")
+                .style("background-color", "rgba(255,255,255,0.85")
                 .html(d => layoutOptions.edgeLabelText(d.predicate));
             link = link.merge(linkEnter);
             /** Optional label text */
@@ -794,7 +797,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                     return;
                 }
                 try {
-                    link.selectAll("path").attr("d", d => lineFunction(simulation.routeEdge(d, undefined)));
+                    link.selectAll("path")
+                        .attr("d", d => lineFunction(simulation.routeEdge(d, undefined)));
                 }
                 catch (err) {
                     console.error(err);
@@ -810,14 +814,18 @@ function networkVizJS(documentId, userLayoutOptions) {
                     console.log(err);
                     return;
                 }
-                link.select("text").attr("x", d => {
+                link.select(".edge-foreign-object")
+                    .attr("x", (d, i, n) => {
+                    const textWidth = d3.select(n[i]).select("text").node().offsetWidth;
                     const arrayX = simulation.routeEdge(d, undefined);
                     const middleIndex = Math.floor(arrayX.length / 2) - 1;
-                    return (arrayX[middleIndex].x + arrayX[middleIndex + 1].x) / 2;
-                }).attr("y", d => {
+                    return (arrayX[middleIndex].x + arrayX[middleIndex + 1].x - textWidth) / 2;
+                })
+                    .attr("y", (d, i, n) => {
+                    const textHeight = d3.select(n[i]).select("text").node().offsetHeight;
                     const arrayY = simulation.routeEdge(d, undefined);
                     const middleIndex = Math.floor(arrayY.length / 2) - 1;
-                    return (arrayY[middleIndex].y + arrayY[middleIndex + 1].y) / 2;
+                    return (arrayY[middleIndex].y + arrayY[middleIndex + 1].y - textHeight) / 2;
                 });
             };
             // Restart the simulation.
@@ -852,31 +860,34 @@ function networkVizJS(documentId, userLayoutOptions) {
                     link.each(function (d) {
                         this.parentNode.insertBefore(this, this);
                     });
-                link.select("foreignObject")
-                    .attr("x", (d, i, n) => {
-                    const textWidth = d3.select(n[i]).select("text").node().offsetWidth;
-                    let route;
-                    try {
-                        route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
-                    }
-                    catch (err) {
-                        console.error(err);
-                        return 0;
-                    }
-                    return (route.sourceIntersection.x + route.targetIntersection.x - textWidth) / 2;
-                })
-                    .attr("y", (d, i, n) => {
-                    const textHeight = d3.select(n[i]).select("text").node().offsetHeight;
-                    let route;
-                    try {
-                        route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
-                    }
-                    catch (err) {
-                        console.error(err);
-                        return 0;
-                    }
-                    return (route.sourceIntersection.y + route.targetIntersection.y - textHeight) / 2;
-                });
+                if (callback !== "NOUPDATE") {
+                    // TODO temporary hack to reduce occurrence of text jitter whilst editing text
+                    link.select(".edge-foreign-object")
+                        .attr("x", (d, i, n) => {
+                        const textWidth = d3.select(n[i]).select("text").node().offsetWidth;
+                        let route;
+                        try {
+                            route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                        }
+                        catch (err) {
+                            console.error(err);
+                            return 0;
+                        }
+                        return (route.sourceIntersection.x + route.targetIntersection.x - textWidth) / 2;
+                    })
+                        .attr("y", (d, i, n) => {
+                        const textHeight = d3.select(n[i]).select("text").node().offsetHeight;
+                        let route;
+                        try {
+                            route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                        }
+                        catch (err) {
+                            console.error(err);
+                            return 0;
+                        }
+                        return (route.sourceIntersection.y + route.targetIntersection.y - textHeight) / 2;
+                    });
+                }
                 group.attr("x", function (d) {
                     return d.bounds.x;
                 })
@@ -1023,12 +1034,12 @@ function networkVizJS(documentId, userLayoutOptions) {
      */
     function addTriplet(tripletObject, callback, preventLayout) {
         if (!tripletValidation(tripletObject)) {
-            return;
+            return Promise.reject("Invalid triplet");
         }
         // Node needs a unique hash associated with it.
         const subject = tripletObject.subject, predicate = tripletObject.predicate, object = tripletObject.object;
         // Check that predicate doesn't already exist
-        new Promise((resolve, reject) => tripletsDB.get({
+        return new Promise((resolve, reject) => tripletsDB.get({
             subject: subject.hash,
             predicate: predicate,
             object: object.hash
@@ -1036,10 +1047,10 @@ function networkVizJS(documentId, userLayoutOptions) {
             if (err)
                 reject(err);
             resolve(list.length === 0);
-        })).then(doesntExist => {
+        }))
+            .then(doesntExist => {
             if (!doesntExist) {
-                console.warn("That edge already exists. Hash's and predicate type needs to be unique!");
-                return;
+                return Promise.reject("Edge already exists");
             }
             /**
              * If a predicate type already has a color,
@@ -1052,6 +1063,23 @@ function networkVizJS(documentId, userLayoutOptions) {
                 createColorArrow_1.default(defs, edgeColor);
             }
             /**
+             * Put the triplet into the LevelGraph database
+             * and mutates the d3 nodes and links list to
+             * visually pop on the node/s.
+             */
+            const newTriplet = {
+                subject: subject.hash,
+                predicate: predicate,
+                object: object.hash
+            };
+            return new Promise((resolve, reject) => {
+                tripletsDB.put(newTriplet, (err) => {
+                    err ? reject(err) : resolve();
+                });
+            });
+        })
+            .then(() => {
+            /**
              * If the predicate has a hash, it is added to a Map.
              * This way we can mutate the predicate to manipulate its
              * properties.
@@ -1063,34 +1091,25 @@ function networkVizJS(documentId, userLayoutOptions) {
                 }
                 predicateMap.set(predicate.hash, predicate);
             }
-            /**
-             * Put the triplet into the LevelGraph database
-             * and mutates the d3 nodes and links list to
-             * visually pop on the node/s.
-             */
-            tripletsDB.put({
-                subject: subject.hash,
-                predicate: predicate,
-                object: object.hash
-            }, (err) => {
-                if (err) {
-                    console.error(err);
-                }
-                // Add nodes to graph
-                simulation.stop();
-                if (!nodeMap.has(subject.hash)) {
-                    // Set the node
-                    nodes.push(subject);
-                    nodeMap.set(subject.hash, subject);
-                }
-                if (!nodeMap.has(object.hash)) {
-                    nodes.push(object);
-                    nodeMap.set(object.hash, object);
-                }
-                if (!preventLayout) {
-                    createNewLinks(callback);
-                }
-            });
+            // Add nodes to graph
+            simulation.stop();
+            if (!nodeMap.has(subject.hash)) {
+                // Set the node
+                nodes.push(subject);
+                nodeMap.set(subject.hash, subject);
+            }
+            if (!nodeMap.has(object.hash)) {
+                nodes.push(object);
+                nodeMap.set(object.hash, object);
+            }
+            if (!preventLayout) {
+                createNewLinks(callback);
+            }
+            return Promise.resolve();
+        })
+            .catch((err) => {
+            console.error(err);
+            return Promise.reject(err);
         });
     }
     /**
@@ -1425,74 +1444,92 @@ function networkVizJS(documentId, userLayoutOptions) {
         groups = newGroupObject;
         restart(callback);
     }
-    // function deleteEdgeHoverMenu(d, me) { // incomplete
-    //     const e = d3.event;
-    //     e.preventDefault();
-    //     const element = d3.select(me);
-    //     const parent = d3.select(me.parentNode);
-    //     const mouse = d3.mouse(me);
-    //     // console.log(me)
-    //     const mosX = mouse[0];
-    //     var mosY = mouse[1];
-    //     // console.log(mosX, mouse)
-    //     if (mosY < -15) {
-    //         hoverMenuRemoveIcons(parent);
-    //     }
-    // }
-    // function addEdgeHoverMenu(d, me) { // incomplete
-    //     hoverMenuRemoveIcons();
-    //     let element = d3.select(me);
-    //     let parent = d3.select(me.parentNode);
-    //     const array = simulation.routeEdge(d, undefined);
-    //     const middleIndex = Math.floor(array.length / 2) - 1;
-    //     const Xmid = (array[middleIndex].x + array[middleIndex + 1].x) / 2;
-    //     const Ymid = (array[middleIndex].y + array[middleIndex + 1].y) / 2;
-    //     //CREATE TRASH ICON
-    //     var foTrash = element.append('foreignObject')
-    //         .attr("x", Xmid)
-    //         .attr("y", Ymid + 15)
-    //         .attr('class', 'menu-trash')
-    //         .attr("width", 22)
-    //         .attr("height", 37)
-    //         .style("overflow", "visible")
-    //         .on("click", function () {
-    //             console.log("cc")
-    //             const edge = {
-    //                 subject: d.source,
-    //                 predicate: d.predicate,
-    //                 object: d.target
-    //             };
-    //             layoutOptions.edgeRemove && layoutOptions.edgeRemove(edge);
-    //             // layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
-    //         })
-    //     // .on("mouseout", function () {
-    //     //     var e = d3.event;
-    //     //     var element = d3.select(this);
-    //     //     var mouse = d3.mouse(this);
-    //     //     var mosX = mouse[0];
-    //     //     var mosY = mouse[1];
-    //     //     layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
-    //     //     setTimeout(function () {
-    //     //         if (mosX > d.width / 2 + 11 || mosX < d.width / 2 - 11 || mosY > d.height + 21) {
-    //     //             hoverMenuRemoveIcons(element);
-    //     //         }
-    //     //     }, 50);
-    //     // });
-    //     var trash = foTrash.append('xhtml:div')
-    //         .append('div')
-    //         .attr('class', 'icon-wrapper')
-    //         .html('<i class="fa fa-trash-o custom-icon"></i>')
-    //
-    //     // .on("mouseover", function () {
-    //     //     layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
-    //     // });
-    //
-    // }
-    function addEdgeHoverMenu(d, me) {
-        return;
-    }
     function deleteEdgeHoverMenu(d, me) {
-        return;
+        const e = d3.event;
+        e.preventDefault();
+        // const element = d3.select(me);
+        const parent = d3.select(me.parentNode);
+        // const mouse = d3.mouse(me);
+        // console.log(me)
+        // const mosX = mouse[0];
+        // var mosY = mouse[1];
+        // console.log(mosX, mouse)
+        // if (mosY < -15) {
+        hoverMenuRemoveIcons(parent);
+        // }
+    }
+    function addEdgeHoverMenu(d, me) {
+        hoverMenuRemoveIcons();
+        const element = d3.select(me);
+        const parent = d3.select(me.parentNode);
+        const textBox = element.select("text");
+        const textFo = element.select(".edge-foreign-object");
+        const array = simulation.routeEdge(d, undefined);
+        const middleIndex = Math.floor(array.length / 2) - 1;
+        const xMid = (array[middleIndex].x + array[middleIndex + 1].x) / 2;
+        const yMid = (array[middleIndex].y + array[middleIndex + 1].y) / 2;
+        const textWidth = textBox.node().offsetWidth;
+        const textHeight = textBox.node().offsetHeight; // NB when text is empty = 26 i.e. 1 line height
+        const menuGroup = element.append("g")
+            .attr("class", "edge-hover-menu");
+        menuGroup.append("rect")
+            .classed("menu-hover-box", true)
+            .attr("width", () => {
+            const minWidth = 30;
+            return textWidth < minWidth ? minWidth : textWidth;
+        })
+            .attr("height", () => {
+            const minHeight = 30;
+            return textHeight === 0 ? 10 + minHeight : textHeight + minHeight;
+        })
+            .attr("x", function () {
+            const width = d3.select(this).attr("width");
+            return xMid - width / 2;
+        })
+            .attr("y", yMid - textHeight / 2)
+            .attr("fill", "rgba(0,0,0,0)")
+            .attr("stroke", "none")
+            .on("mouseover", function () {
+            layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
+        });
+        // .on("mouseout", function () {
+        //     console.log("mo");
+        //     const e = d3.event;
+        //     var element = d3.select(this);
+        //     var mouse = d3.mouse(this);
+        //     var mosX = mouse[0];
+        //     var mosY = mouse[1];
+        //     layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
+        //     setTimeout(function () {
+        //         if (mosX > d.width / 2 + 11 || mosX < d.width / 2 - 11 || mosY > d.height + 21) {
+        //             // hoverMenuRemoveIcons(menuGroup);
+        //         }
+        //     }, 50);
+        // });
+        // CREATE TRASH ICON
+        const foTrash = menuGroup
+            .append("foreignObject")
+            .attr("x", xMid - 11)
+            .attr("y", yMid + textHeight / 2 + 5)
+            .attr("class", "menu-trash")
+            .attr("width", 22)
+            .attr("height", 27)
+            .style("overflow", "visible")
+            .on("click", function () {
+            const e = d3.event;
+            e.stopPropagation();
+            const edge = {
+                subject: d.source,
+                predicate: d.predicate,
+                object: d.target
+            };
+            layoutOptions.edgeRemove && layoutOptions.edgeRemove(edge);
+            layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
+        });
+        const trash = foTrash.append("xhtml:div")
+            .append("div")
+            .attr("class", "icon-wrapper")
+            .html("<i class=\"fa fa-trash-o custom-icon\"></i>");
     }
     /**
      * Serialize the graph.
