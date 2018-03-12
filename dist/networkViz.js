@@ -625,7 +625,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .html(function (d) {
                 return d.shortname || d.hash;
             })
-                .attr("class", d => d.class);
+                .attr("class", d => d.class)
+                .classed("editable", true);
             /**
              * Here we can update node properties that have already been attached.
              * When restart() is called, these are the properties that will be affected
@@ -699,6 +700,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .append("xhtml:div")
                 .attr("xmlns", "http://www.w3.org/1999/xhtml")
                 .append("text")
+                .classed("editable", true)
                 .attr("contenteditable", "true")
                 .attr("tabindex", "-1")
                 .style("display", "inline-block")
@@ -1470,7 +1472,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         const yMid = (array[middleIndex].y + array[middleIndex + 1].y) / 2;
         const textWidth = textBox.node().offsetWidth;
         const textHeight = textBox.node().offsetHeight; // NB when text is empty = 26 i.e. 1 line height
-        const menuGroup = element.append("g")
+        const menuGroup = element.insert("g", "foreignObject")
             .attr("class", "edge-hover-menu");
         menuGroup.append("rect")
             .classed("menu-hover-box", true)
