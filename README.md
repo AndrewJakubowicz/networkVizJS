@@ -135,7 +135,6 @@ Just pass in the ones you want.
 
 ```javascript
 interface OptionsObject {
-    canDrag: boolean;           // True: You can drag nodes, False: You can't
     databaseName: string;       // Force the database name
     layoutType: string;         // "linkDistance" | "flowLayout" | "jaccardLinkLengths"
     jaccardModifier: number;    // Modifier for jaccardLinkLengths, number between 0 and 1
@@ -146,10 +145,12 @@ interface OptionsObject {
     nodeShape: string;          // Set node shape: "rect" | "circle"
     width: number;              // SVG width
     height: number;             // SVG height
-    pad: number;
-    margin: number;
+    pad: number;                // Padding outside of nodes 
+    margin: number;             // Margin inside of nodes
+    canDrag: boolean;           // True: You can drag nodes, False: You can't
     nodeDragStart(): void;      // Called when drag event triggers
-    edgeLabelText: string | {(d?: any, i?: number): string};    // Todo: EdgeLabels in predicate.
+    nodeDragEnd(): void;      // Called when drag event ends
+    edgeLabelText: string | {(d?: any, i?: number): string};
 
     // mouse handlers on nodes.
     mouseDownNode(nodeObject?: any, d3Selection?: Selection): void;
@@ -161,16 +162,30 @@ interface OptionsObject {
     clickEdge(edgeObject?: any, d3Selection?: Selection): void;
     
     clickAway(): void;          // Triggers on zooming or clicking on the svg canvas.
+    
+    updateNodeColor()
+    updateNodeShape()
+    nodeRemove()
+    startArrow()
+    clickPin()
+
 
     // These options allow you to define a selector to create dynamic attributes
     // based on the nodes properties.
+    nodeToPin: (d?: any): boolean;
     nodeToColor: string | {(d?: any, i?: number): string};     // Return a valid css colour.
     nodeStrokeWidth: number | {(d?: any, i?: number): number};
     nodeStrokeColor: string | {(d?: any, i?: number): string};
 
+
     edgeColor: string | {(d?: any, i?: number): string};
     edgeStroke: number | {(d?: any, i?: number): number};
+    edgeStrokePad: number | {(d?: any, i?: number): number}; // size of clickable area behind edge
     edgeLength: number | {(d?: any, i?: number): number};
+    edgeSmoothness: number | {(d?: any, i?: number): number}; // amount of smoothing applied to vertices in edges
+    
+    mouseOverRadial()
+    mouseOutRadial()
 }
 ```
 
@@ -181,12 +196,14 @@ interface OptionsObject {
 hasNode(nodeHash: string): Boolean
 // Public access to the levelgraph db.
 getDB(): levelGraphDB
+// Get node from nodeMap
+getNode(nodeHash): Object
+// Get edge predicate from predicateMap
+getPredicate(edgeHash): Object
 // Get Stringified representation of the graph.
 saveGraph(): string
 // Get SVG element. If you want the node use `graph.getSVGElement().node();`
 getSVGElement(): d3SVGSelection
-// Transform client coordinates into SVG coordinates
-transformCoordinates({x,y})
 // add a directed edge
 addTriplet(tripletObject, preventLayout?: Boolean)
 // remove an edge
@@ -198,7 +215,11 @@ mergeNodeToGroup,
 // remove a node and all edges connected to it.
 removeNode(node),
 // add a node or array of nodes.
-addNode(node | nodeArray, preventLayout?: Boolean),
+addNode(node | nodeArray, preventLayout?: Boolean);
+// edit node property
+editNode({ property: string, id:(string|string[]), value: (any|any[]) });
+// edit edge property
+editEdge({ property: string, id:(string|string[]), value: (any|any[]) });
 // Restart styles or layout.
 restart.styles()
 restart.layout()
