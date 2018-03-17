@@ -1532,7 +1532,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             .attr("fill", "rgba(0,0,0,0)")
             .attr("stroke", "none")
             .on("mouseover", function () {
-                layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
+                // layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
             });
         // .on("mouseout", function () {
         //     console.log("mo");
