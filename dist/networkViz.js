@@ -60,6 +60,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         mouseOutRadial: undefined,
         colorPickerOpen: undefined,
         colorPickerClose: undefined,
+        resizeDrag: undefined,
     };
     const X = 37;
     const Y = -13;
@@ -200,6 +201,10 @@ function networkVizJS(documentId, userLayoutOptions) {
             .then(_ => {
             node.selectAll("text")
                 .each(function (d) {
+                if (d.fixedWidth) {
+                    d.width = d.fixedWidth;
+                    return;
+                }
                 const margin = layoutOptions.margin, pad = layoutOptions.pad;
                 const extra = 2 * pad + margin;
                 // The width must reset to allow the box to get smaller.
@@ -221,6 +226,9 @@ function networkVizJS(documentId, userLayoutOptions) {
             });
             node.select(".node-HTML-content")
                 .attr("width", function (d) {
+                if (d.fixedWidth) {
+                    return d.fixedWidth;
+                }
                 return d3.select(this).select("text").node().offsetWidth;
             })
                 .attr("y", function (d) {
@@ -268,6 +276,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             parent.selectAll(".menu-trash").remove();
             parent.selectAll(".menu-hover-box").remove();
             parent.selectAll(".edge-hover-menu").remove();
+            parent.selectAll(".menu-resize").remove();
         }
         else {
             d3.selectAll(".menu-action").remove();
@@ -276,6 +285,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             d3.selectAll(".menu-trash").remove();
             d3.selectAll(".menu-hover-box").remove();
             d3.selectAll(".edge-hover-menu").remove();
+            d3.selectAll(".menu-resize").remove();
         }
     }
     /**
@@ -496,6 +506,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             .on("mousedown", function () {
             layoutOptions.startArrow && layoutOptions.startArrow(d, element);
         });
+        // Rectangle to detect mouse leave
         const parentBBox = parent.node().getBBox();
         parent.insert("rect", "path")
             .attr("x", parentBBox.x - 4)
@@ -515,6 +526,18 @@ function networkVizJS(documentId, userLayoutOptions) {
             if (mosX < bbox.x || mosX > (bbox.width + bbox.x) || mosY > (bbox.height + bbox.y) || mosY < bbox.y) {
                 hoverMenuRemoveIcons(parent);
             }
+        });
+        const xresize = parent.append("rect")
+            .classed("menu-resize", true)
+            .attr("width", 8).attr("height", 8)
+            .attr("x", (d.width) - layoutOptions.margin / 2 - 4)
+            .attr("y", d.height - layoutOptions.margin / 2 - 4)
+            .attr("fill", "white")
+            .attr("stroke", "black")
+            .attr("cursor", "e-resize")
+            .on("mousedown", (d) => {
+            const e = d3.event;
+            layoutOptions.resizeDrag && layoutOptions.resizeDrag(d, e);
         });
         layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
     }
@@ -589,8 +612,10 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .style("cursor", "text")
                 .style("text-align", "center")
                 .style("display", "inline-block")
-                .style("font", "100 22px Helvetica Neue")
-                .style("white-space", "pre");
+                .style("font", "100 22px Source Sans Pro sans-serif")
+                .style("max-width", d => d.fixedWidth ? d.width - layoutOptions.pad * 2 + layoutOptions.margin + "px" : "none")
+                .style("word-wrap", d => d.fixedWidth ? "break-word" : "normal")
+                .style("white-space", d => d.fixedWidth ? "pre-wrap" : "pre");
             // .html(function (d) {
             //     return d.shortname || d.hash;
             // });
@@ -626,6 +651,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                 return d.shortname || d.hash;
             })
                 .attr("class", d => d.class)
+                .style("max-width", d => d.fixedWidth ? d.width - layoutOptions.pad * 2 + layoutOptions.margin + "px" : "none")
+                .style("word-wrap", d => d.fixedWidth ? "break-word" : "normal")
+                .style("white-space", d => d.fixedWidth ? "pre-wrap" : "pre")
                 .classed("editable", true);
             /**
              * Here we can update node properties that have already been attached.
@@ -705,7 +733,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr("tabindex", "-1")
                 .style("display", "inline-block")
                 .style("text-align", "center")
-                .style("font", "100 22px Helvetica Neue")
+                .style("font", "100 22px Source Sans Pro sans-serif")
                 .style("white-space", "pre")
                 .style("background-color", "rgba(255,255,255,0.85")
                 .html(d => layoutOptions.edgeLabelText(d.predicate));
@@ -1346,6 +1374,11 @@ function networkVizJS(documentId, userLayoutOptions) {
                 restart();
                 break;
             }
+            case "fixedWidth": {
+                editNodeHelper(prop);
+                restart();
+                break;
+            }
             case "shortname": {
                 editNodeHelper(prop);
                 restart();
@@ -1492,7 +1525,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             .attr("fill", "rgba(0,0,0,0)")
             .attr("stroke", "none")
             .on("mouseover", function () {
-            // layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
+            layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
         });
         // .on("mouseout", function () {
         //     console.log("mo");
@@ -1558,12 +1591,6 @@ function networkVizJS(documentId, userLayoutOptions) {
     window.onblur = function () {
         simulation.stop();
     };
-    /**
-     * Transform client coordiantes to transformed SVG coordiantes
-     * @param {number} x clientX
-     * @param {number} y clientY
-     * @returns {{x: number; y: number}}
-     */
     // Public api
     /**
      * TODO:
