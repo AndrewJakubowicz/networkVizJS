@@ -18,6 +18,14 @@ module.exports = function(config) {
       , '__tests__/*.test.ts'
     ],
 
+  karmaTypescriptConfig: {
+      bundlerOptions: {
+          transforms: [
+              require("karma-typescript-es6-transform")()
+          ]
+      }
+  },
+
 
     // list of files to exclude
     exclude: [
