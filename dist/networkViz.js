@@ -611,11 +611,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr("pointer-events", "none")
                 .style("cursor", "text")
                 .style("text-align", "center")
-                .style("display", "inline-block")
-                .style("font", "100 22px Source Sans Pro sans-serif")
-                .style("max-width", d => d.fixedWidth ? d.width - layoutOptions.pad * 2 + layoutOptions.margin + "px" : "none")
-                .style("word-wrap", d => d.fixedWidth ? "break-word" : "normal")
-                .style("white-space", d => d.fixedWidth ? "pre-wrap" : "pre");
+                .classed("editable", true)
+                .style("display", "inline-block");
             // .html(function (d) {
             //     return d.shortname || d.hash;
             // });
@@ -652,9 +649,8 @@ function networkVizJS(documentId, userLayoutOptions) {
             })
                 .attr("class", d => d.class)
                 .style("max-width", d => d.fixedWidth ? d.width - layoutOptions.pad * 2 + layoutOptions.margin + "px" : "none")
-                .style("word-wrap", d => d.fixedWidth ? "break-word" : "normal")
-                .style("white-space", d => d.fixedWidth ? "pre-wrap" : "pre")
-                .classed("editable", true);
+                .style("word-break", d => d.fixedWidth ? "break-word" : "normal")
+                .style("white-space", d => d.fixedWidth ? "pre-wrap" : "pre");
             /**
              * Here we can update node properties that have already been attached.
              * When restart() is called, these are the properties that will be affected
@@ -733,7 +729,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr("tabindex", "-1")
                 .style("display", "inline-block")
                 .style("text-align", "center")
-                .style("font", "100 22px Source Sans Pro sans-serif")
                 .style("white-space", "pre")
                 .style("background-color", "rgba(255,255,255,0.85")
                 .html(d => layoutOptions.edgeLabelText(d.predicate));
