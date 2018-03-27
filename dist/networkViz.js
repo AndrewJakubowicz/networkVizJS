@@ -179,6 +179,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      */
     function updatePathDimensions() {
         hoverMenuRemoveIcons(); // hover menu does not automatically change size with node
+        layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial();
         node.select("path")
             .attr("transform", function (d) {
             // Scale appropriately using http://stackoverflow.com/a/9877871/6421793
@@ -294,7 +295,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * @param node data, node d3 element
      */
     function addHoverMenu(d, me) {
-        var element = d3.select(me); // The node
+        const element = d3.select(me); // The node
         var parent = d3.select(me.parentNode);
         var foWidth = 30;
         var foHeight = d.height - layoutOptions.margin / 2;
@@ -537,7 +538,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             .attr("cursor", "e-resize")
             .on("mousedown", (d) => {
             const e = d3.event;
-            layoutOptions.resizeDrag && layoutOptions.resizeDrag(d, e);
+            layoutOptions.resizeDrag && layoutOptions.resizeDrag(d, element, e);
         });
         layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
     }
@@ -611,6 +612,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr("pointer-events", "none")
                 .style("cursor", "text")
                 .style("text-align", "center")
+                .style("font-weight", "100")
+                .style("font-size", "22px")
+                .style("font-family", "\"Source Sans Pro\", sans-serif")
                 .classed("editable", true)
                 .style("display", "inline-block");
             // .html(function (d) {
@@ -710,6 +714,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 deleteEdgeHoverMenu(d, this);
             }).on("click", function (d) {
                 const elem = d3.select(this);
+                layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
                 setTimeout(() => {
                     layoutOptions.clickEdge(d, elem);
                 }, 50);
@@ -729,6 +734,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr("tabindex", "-1")
                 .style("display", "inline-block")
                 .style("text-align", "center")
+                .style("font-weight", "100")
+                .style("font-size", "22px")
+                .style("font-family", "\"Source Sans Pro\", sans-serif")
                 .style("white-space", "pre")
                 .style("background-color", "rgba(255,255,255,0.85")
                 .html(d => layoutOptions.edgeLabelText(d.predicate));
@@ -840,17 +848,24 @@ function networkVizJS(documentId, userLayoutOptions) {
                     return;
                 }
                 link.select(".edge-foreign-object")
-                    .attr("x", (d, i, n) => {
-                    const textWidth = d3.select(n[i]).select("text").node().offsetWidth;
+                    .attr("x", function (d) {
+                    const thisSel = d3.select(this);
+                    const textWidth = thisSel.select("text").node().offsetWidth;
                     const arrayX = simulation.routeEdge(d, undefined);
                     const middleIndex = Math.floor(arrayX.length / 2) - 1;
-                    return (arrayX[middleIndex].x + arrayX[middleIndex + 1].x - textWidth) / 2;
+                    const midpoint = (arrayX[middleIndex].x + arrayX[middleIndex + 1].x - textWidth) / 2;
+                    // TODO temporary hack to reduce occurrence of edge text jitter
+                    const oldX = thisSel.attr("x");
+                    return Math.abs(midpoint - oldX) > 2.5 ? midpoint : oldX;
                 })
-                    .attr("y", (d, i, n) => {
-                    const textHeight = d3.select(n[i]).select("text").node().offsetHeight;
+                    .attr("y", function (d) {
+                    const thisSel = d3.select(this);
+                    const textHeight = thisSel.select("text").node().offsetHeight;
                     const arrayY = simulation.routeEdge(d, undefined);
                     const middleIndex = Math.floor(arrayY.length / 2) - 1;
-                    return (arrayY[middleIndex].y + arrayY[middleIndex + 1].y - textHeight) / 2;
+                    const midpoint = (arrayY[middleIndex].y + arrayY[middleIndex + 1].y - textHeight) / 2;
+                    const oldY = thisSel.attr("y");
+                    return Math.abs(midpoint - oldY) > 2.5 ? midpoint : oldY;
                 });
             };
             // Restart the simulation.
@@ -885,34 +900,31 @@ function networkVizJS(documentId, userLayoutOptions) {
                     link.each(function (d) {
                         this.parentNode.insertBefore(this, this);
                     });
-                if (callback !== "NOUPDATE") {
-                    // TODO temporary hack to reduce occurrence of text jitter whilst editing text
-                    link.select(".edge-foreign-object")
-                        .attr("x", (d, i, n) => {
-                        const textWidth = d3.select(n[i]).select("text").node().offsetWidth;
-                        let route;
-                        try {
-                            route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
-                        }
-                        catch (err) {
-                            console.error(err);
-                            return 0;
-                        }
-                        return (route.sourceIntersection.x + route.targetIntersection.x - textWidth) / 2;
-                    })
-                        .attr("y", (d, i, n) => {
-                        const textHeight = d3.select(n[i]).select("text").node().offsetHeight;
-                        let route;
-                        try {
-                            route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
-                        }
-                        catch (err) {
-                            console.error(err);
-                            return 0;
-                        }
-                        return (route.sourceIntersection.y + route.targetIntersection.y - textHeight) / 2;
-                    });
-                }
+                link.select(".edge-foreign-object")
+                    .attr("x", function (d) {
+                    const textWidth = d3.select(this).select("text").node().offsetWidth;
+                    let route;
+                    try {
+                        route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                    }
+                    catch (err) {
+                        console.error(err);
+                        return 0;
+                    }
+                    return (route.sourceIntersection.x + route.targetIntersection.x - textWidth) / 2;
+                })
+                    .attr("y", function (d) {
+                    const textHeight = d3.select(this).select("text").node().offsetHeight;
+                    let route;
+                    try {
+                        route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                    }
+                    catch (err) {
+                        console.error(err);
+                        return 0;
+                    }
+                    return (route.sourceIntersection.y + route.targetIntersection.y - textHeight) / 2;
+                });
                 group.attr("x", function (d) {
                     return d.bounds.x;
                 })
@@ -1521,21 +1533,10 @@ function networkVizJS(documentId, userLayoutOptions) {
             .attr("stroke", "none")
             .on("mouseover", function () {
             layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
+        })
+            .on("mouseleave", function () {
+            layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
         });
-        // .on("mouseout", function () {
-        //     console.log("mo");
-        //     const e = d3.event;
-        //     var element = d3.select(this);
-        //     var mouse = d3.mouse(this);
-        //     var mosX = mouse[0];
-        //     var mosY = mouse[1];
-        //     layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
-        //     setTimeout(function () {
-        //         if (mosX > d.width / 2 + 11 || mosX < d.width / 2 - 11 || mosY > d.height + 21) {
-        //             // hoverMenuRemoveIcons(menuGroup);
-        //         }
-        //     }, 50);
-        // });
         // CREATE TRASH ICON
         const foTrash = menuGroup
             .append("foreignObject")
