@@ -732,6 +732,10 @@ function networkVizJS(documentId, userLayoutOptions) {
                 deleteEdgeHoverMenu(d, this);
             }).on("click", function (d) {
                 const elem = d3.select(this);
+
+                // IMPORTANT, without this vuegraph will crash in SWARM. bug caused by blur event handled by medium editor.
+                d3.event.stopPropagation();
+
                 layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
                 setTimeout(() => {
                     layoutOptions.clickEdge(d, elem);
@@ -1602,7 +1606,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                 layoutOptions.edgeRemove && layoutOptions.edgeRemove(edge);
                 layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
             });
-
 
         const trash = foTrash.append("xhtml:div")
             .append("div")
