@@ -112,6 +112,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * These represent the data that d3 will visualize.
      */
     const nodes = [];
+    const constraints = [];
     let links = [];
     let groups = [];
     const groupByHashes = [];
@@ -136,6 +137,7 @@ function networkVizJS(documentId, userLayoutOptions) {
     let simulation = updateColaLayout_1.updateColaLayout(layoutOptions)
         .nodes(nodes)
         .links(links)
+        .constraints(constraints)
         .groups(groups)
         .start();
     /**
@@ -1141,6 +1143,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                 nodes.push(object);
                 nodeMap.set(object.hash, object);
             }
+            if (tripletObject.predicate.constraint) {
+                createConstraint(tripletObject.predicate.constraint);
+            }
             if (!preventLayout) {
                 createNewLinks(callback);
             }
@@ -1159,9 +1164,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         if (!tripletValidation(tripletObject)) {
             return;
         }
-        // Node needs a unique hash associated with it.
         const subject = tripletObject.subject, predicate = tripletObject.predicate, object = tripletObject.object;
-        // Check that predicate doesn't already exist
         new Promise((resolve, reject) => tripletsDB.del({
             subject: subject.hash,
             predicate: predicate,
@@ -1171,8 +1174,10 @@ function networkVizJS(documentId, userLayoutOptions) {
                 reject(err);
             resolve();
         })).then(() => {
-            // Add nodes to graph
             predicateMap.delete(predicate.hash);
+            if (tripletObject.predicate.constraint) {
+                removeConstraint(tripletObject.predicate.constraint);
+            }
             simulation.stop();
             createNewLinks(callback);
         });
@@ -1563,6 +1568,39 @@ function networkVizJS(documentId, userLayoutOptions) {
             .append("div")
             .attr("class", "icon-wrapper")
             .html("<i class=\"fa fa-trash-o custom-icon\"></i>");
+    }
+    /**
+     * Helper function to add  a constraint to simulation
+     * requires restarting simulation after
+     * @param constraint
+     */
+    function createConstraint(constraint) {
+        const leftIndex = nodes.map(v => v.id).indexOf(constraint.leftID);
+        const rightIndex = nodes.map(v => v.id).indexOf(constraint.rightID);
+        if (leftIndex === -1 || rightIndex === -1) {
+            console.warn("Cannot create constraint, Node does not exist.", constraint);
+            return;
+        }
+        constraints.push(Object.assign({}, constraint, { left: leftIndex, right: rightIndex }));
+        simulation
+            .constraints(constraints);
+    }
+    /**
+     * Helper function to remove a constraint from simulation
+     * requires restarting simulation after
+     * @param constraint
+     */
+    function removeConstraint(constraint) {
+        const index = constraints
+            .map(c => JSON.stringify({ l: c.leftID, r: c.rightID }))
+            .indexOf(JSON.stringify({ l: constraint.leftID, r: constraint.rightID }));
+        if (index === -1) {
+            console.warn("Cannot delete constraint, does not exist.", constraint);
+            return;
+        }
+        constraints.splice(index, 1);
+        simulation
+            .constraints(constraints);
     }
     /**
      * Serialize the graph.
