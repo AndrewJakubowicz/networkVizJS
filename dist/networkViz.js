@@ -953,6 +953,12 @@ function networkVizJS(documentId, userLayoutOptions) {
         })
             .then(() => typeof callback === "function" && callback());
     }
+    function handleDisconnects() {
+        simulation.handleDisconnected(true);
+        restart().then(() => {
+            simulation.handleDisconnected(false);
+        });
+    }
     // Helper function for updating links after node mutations.
     // Calls a function after links added.
     function createNewLinks(callback) {
@@ -1669,6 +1675,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             textAlign: repositionText,
             redrawEdges: createNewLinks,
             layout: restart,
+            handleDisconnects: handleDisconnects,
         },
         canvasOptions: {
             setWidth: (width) => {
