@@ -5,7 +5,6 @@ const cola = require("webcola");
 const $ = require("jquery");
 const levelgraph = require("levelgraph");
 const level = require("level-browserify");
-const jscolor = require("./util/jscolor");
 const updateColaLayout_1 = require("./updateColaLayout");
 const createColorArrow_1 = require("./util/createColorArrow");
 function networkVizJS(documentId, userLayoutOptions) {
@@ -58,8 +57,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         edgeRemove: undefined,
         mouseOverRadial: undefined,
         mouseOutRadial: undefined,
-        colorPickerOpen: undefined,
-        colorPickerClose: undefined,
+        mouseOverBrush: undefined,
         resizeDrag: undefined,
     };
     const X = 37;
@@ -395,34 +393,8 @@ function networkVizJS(documentId, userLayoutOptions) {
             let colorPickerEl = $("#bgpicker");
             colorPickerEl.css("color", d.color);
             colorPickerEl.css("text-shadow", "1px 0px 6px #1f2d3d");
-            colorPickerEl.mouseover(function () {
-                layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
-                let current = {
-                    "picker": "#bgpicker",
-                    "color": d.color,
-                    "graphic": "#brush"
-                };
-                let yy = colorPickerEl.colpick({
-                    color: d.color ? d.color : "#ffffff",
-                    onShow: function () {
-                        layoutOptions.colorPickerOpen && layoutOptions.colorPickerOpen(d);
-                    },
-                    onChange: function (hsb, hex, rgb, el, bySetColor) {
-                        let newColor = "#" + hex;
-                        $("#brush").css("fill", newColor);
-                        colorPickerEl.css("background-color", newColor);
-                        element.attr("fill", newColor);
-                    },
-                    onSubmit: function (hsb, hex, rgb, el) {
-                        $(el).colpickHide();
-                        let newColor = "#" + hex;
-                        if (newColor !== d.color) {
-                            layoutOptions.updateNodeColor && layoutOptions.updateNodeColor(d, newColor);
-                        }
-                        hoverMenuRemoveIcons(parent);
-                        layoutOptions.colorPickerClose && layoutOptions.colorPickerClose(d);
-                    }
-                });
+            colorPickerEl.click(function (e) {
+                layoutOptions.mouseOverBrush && layoutOptions.mouseOverBrush(e, element, d);
             })
                 .on("mouseout", function () {
                 layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
