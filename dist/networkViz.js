@@ -59,6 +59,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         mouseOutRadial: undefined,
         mouseOverBrush: undefined,
         resizeDrag: undefined,
+        zoomScale: undefined,
     };
     const X = 37;
     const Y = -13;
@@ -155,7 +156,8 @@ function networkVizJS(documentId, userLayoutOptions) {
      */
     const defs = svg.append("defs");
     // Define svg groups for storing the visuals.
-    const g = svg.append("g");
+    const g = svg.append("g")
+        .classed("svg-graph", true);
     let group = g.append("g")
         .selectAll(".group"), link = g.append("g")
         .selectAll(".link"), node = g.append("g")
@@ -172,6 +174,7 @@ function networkVizJS(documentId, userLayoutOptions) {
     function zoomed() {
         layoutOptions.clickAway();
         g.attr("transform", d3.event.transform);
+        layoutOptions.zoomScale && layoutOptions.zoomScale(d3.event.transform.k);
     }
     /**
      * Resets width or radius of nodes.
