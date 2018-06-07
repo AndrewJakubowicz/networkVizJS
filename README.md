@@ -1,7 +1,5 @@
 # Easy, interactive graphs with networkVizJS
 
-> This project is powered by Github 🌟's. Each star matters, [thank you!](https://github.com/SpyR1014/networkVizJS/stargazers)
-
 <p align="center">
 <img src="https://media.giphy.com/media/xUA7b6EQrHg94qkynC/giphy.gif" alt="Interacting with diagram">
 </p>
