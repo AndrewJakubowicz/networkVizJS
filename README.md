@@ -9,8 +9,6 @@
 - [Easy Dynamically changing graph](https://bl.ocks.org/SpyR1014/d82570c509028e6b0a519ef885ab58f0)
 - [Very simple graph editor](http://mind-map-prototype.surge.sh/)
 
-_... more to come or contribute your own_
-
 ## Why this project exists
 
 Force directed graphs can be a mighty headache especially when trying to dynamically update nodes.
@@ -41,13 +39,6 @@ things that matter.
 
 >> Adding a node is as easy as `graph.addNode(<your node object>)`!
 
-
-## Development status
-
-> In early development but very usable.
-> Contributions in the form of pull requests and issues extremely welcome.
-
-Lets make prototyping graphs faster and more interactive!
 
 ## Quickstart using Webpack or another bundler
 
@@ -197,12 +188,4 @@ addNode(node | nodeArray, preventLayout?: Boolean),
 restart.styles()
 restart.layout()
 ```
-
-## Todo
-
-- [ ] Batch node and edge updates without layout refreshing
-- [ ] Stabilise API (need help / guidance)
-- [ ] Add svg tests (need help / guidance)
-- [ ] Document full api
-
 
