@@ -165,7 +165,7 @@ function networkVizJS(documentId, userLayoutOptions) {
     /**
      * Zooming and panning behaviour.
      */
-    const zoom = d3.zoom().scaleExtent([0.1, 5]).on("zoom", zoomed);
+    let zoom = d3.zoom().scaleExtent([0.1, 5]).on("zoom", zoomed);
     zoom.filter(function () {
         // Prevent zoom when mouse over node.
         return d3.event.target.tagName.toLowerCase() === "svg";
@@ -1590,6 +1590,10 @@ function networkVizJS(documentId, userLayoutOptions) {
      */
     const saveGraph = (callback) => {
         d3.selectAll(".radial-menu").remove();
+        let svg = d3.select('.svg-content-responsive');
+        var t = d3.zoomIdentity.translate(0, 0).scale(1);
+        svg.call(zoom.transform, t);
+        layoutOptions.zoomScale(1);
         tripletsDB.get({}, (err, l) => {
             const saved = JSON.stringify({
                 triplets: l.map(v => ({ subject: v.subject, predicate: v.predicate, object: v.object })),
