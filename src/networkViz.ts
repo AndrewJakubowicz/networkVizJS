@@ -7,6 +7,10 @@ const levelgraph = require("levelgraph");
 const level = require("level-browserify");
 const updateColaLayout_1 = require("./updateColaLayout");
 const createColorArrow_1 = require("./util/createColorArrow");
+
+const interact = require('interactjs');
+
+
 function networkVizJS(documentId, userLayoutOptions) {
     /**
      * Default options for webcola and graph
@@ -205,29 +209,47 @@ function networkVizJS(documentId, userLayoutOptions) {
             .then(_ => {
                 node.selectAll("text")
                     .each(function (d) {
-                        if (d.fixedWidth) {
+                        const img = d3.select(this.parentNode.parentNode.parentNode).select('image').node();
+                        const imgWidth = img ? img.getBBox().width : 0;
+                        const margin = layoutOptions.margin, pad = layoutOptions.pad;
+                        const extra = 2 * pad + margin;
+
+                        if (d.fixedWidth && imgWidth + extra < d.fixedWidth) {
                             d.width = d.fixedWidth;
                             return;
                         }
-                        const margin = layoutOptions.margin, pad = layoutOptions.pad;
-                        const extra = 2 * pad + margin;
                         // The width must reset to allow the box to get smaller.
                         // Later we will set width based on the width of the line.
                         d.width = d.minWidth || 0;
                         if (!(d.width)) {
                             d.width = d.minWidth || 0;
                         }
+
                         const lineLength = this.offsetWidth;
+                        const w = imgWidth > lineLength ? imgWidth : lineLength
                         if (d.width < lineLength + extra) {
-                            d.width = lineLength + extra;
+                            d.width = w + extra;
                         }
+
                     })
                     .each(function (d) {
                         // Only update the height, the width is calculated previously
+                        const img = d3.select(this.parentNode.parentNode.parentNode).select('image').node();
+                        const imgHeight = img ? img.getBBox().height : 0;
                         const height = this.offsetHeight;
                         const extra = 2 * layoutOptions.pad + layoutOptions.margin;
-                        d.height = height === 0 ? 28 + extra : height + extra;
+                        d.height = height === 0 ? 28 + extra + imgHeight : height + extra + imgHeight;
                     });
+
+                node.select(".img-node")
+                    .attr("x", function (d) {
+                        const imgWidth = d.img ? this.getBBox().width : 0;
+                        return d.width / 2 - imgWidth / 2;
+                    })
+                    .attr("y", function (d) {
+                        return d.img ? 18 : 0;
+                    });
+
                 node.select(".node-HTML-content")
                     .attr("width", function (d) {
                         if (d.fixedWidth) {
@@ -236,9 +258,14 @@ function networkVizJS(documentId, userLayoutOptions) {
                         return d3.select(this).select("text").node().offsetWidth;
                     })
                     .attr("y", function (d) {
+                        const img = d3.select(this.parentNode).select('image').node();
+                        const imgHeight = img ? img.getBBox().height : 0;
                         const textHeight = d3.select(this).select("text").node().offsetHeight;
-                        // Minus 2 is a hack to get the text feeling 'right'.
-                        return d.height / 2 - textHeight / 2 - 2;
+                        if (!d.img || !img) {
+                            return d.height / 2 - textHeight / 2 - 2;
+                        } else {
+                            return d.height / 2 - textHeight / 2 + imgHeight / 2 + 5;
+                        }
                     })
                     .attr("x", function (d) {
                         const textWidth = d3.select(this).select("text").node().offsetWidth;
@@ -246,6 +273,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         d.textPosition = x; // TODO-ya is this redundant now?
                         return x;
                     });
+
                 link.select(".edge-foreign-object")
                     .attr("width", function (d) {
                         return d3.select(this).select("text").node().offsetWidth;
@@ -517,7 +545,56 @@ function networkVizJS(documentId, userLayoutOptions) {
                 const e = d3.event;
                 layoutOptions.resizeDrag && layoutOptions.resizeDrag(d, element, e);
             });
+
         layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
+
+
+        /** --------------------------------------------------------------------------------
+         Allow Image Resize Using Interact.js
+         -------------------------------------------------------------------------------- **/
+        var imgNode = interact('.img-node')
+            .resizable({
+                edges: {left: false, right: true, bottom: true, top: false},
+                inertia: {
+                    resistance: 1,
+                    minSpeed: 1,
+                    endSpeed: 1
+                }
+            })
+            .on('resizeend', function (event) {
+                layoutOptions.imgResize && layoutOptions.imgResize(false);
+            })
+            .on('resizestart', function (event) {
+                layoutOptions.imgResize && layoutOptions.imgResize(true);
+            })
+            .on('resizemove', function (event) {
+                // layoutOptions.imgResize && layoutOptions.imgResize(true);
+                var target = event.target,
+                    x = (parseFloat(target.getAttribute('data-x')) || 0),
+                    y = (parseFloat(target.getAttribute('data-x')) || 0);
+
+                target.style.width  = event.rect.width + 'px';
+                target.style.height = event.rect.width + 'px';
+                target.style.webkitTransform = target.style.transform =
+                    'translate(' + x + 'px,' + y + 'px)';
+                target.setAttribute('data-x', x);
+                // target.setAttribute('data-y', y);
+
+                parent.select(".img-node")
+                    .attr("x", function (d) {
+                        const textWidth = this.getBBox().width;
+                        return d.width / 2 - textWidth / 2;
+                    })
+                    .attr("y", function (d) {
+                        const textWidth = this.getBBox().height;
+                        return d.width / 2 - textWidth / 2;
+                    });
+
+                restart()
+            });
+
+        interact.maxInteractions(Infinity);
+
     }
     /**
      * This function delete the node hover menu.
@@ -548,7 +625,10 @@ function networkVizJS(documentId, userLayoutOptions) {
      */
     function updateStyles() {
         return new Promise((resolve, reject) => {
-            ///// GROUPS /////
+
+            /** --------------------------------------------------------------------------------
+             GROUPS
+             -------------------------------------------------------------------------------- **/
             group = group.data(groups);
             const groupEnter = group.enter()
                 .append("rect")
@@ -564,25 +644,28 @@ function networkVizJS(documentId, userLayoutOptions) {
             const nodeEnter = node.enter()
                 .append("g")
                 .classed("node", true);
-            // Only allow dragging nodes if turned on.
-            // if (layoutOptions.canDrag()) {
-            nodeEnter.attr("cursor", "move").call(drag); // Drag controlled by filter.
-            // } else {
-            //     nodeEnter.attr("cursor", "default");
-            // }
-            // Here we add node beauty.
-            // To fit nodes to the short-name calculate BBox
-            // from https://bl.ocks.org/mbostock/1160929
-            const textBox = nodeEnter.append("foreignObject")
+            nodeEnter
+                .attr("cursor", "move")
+                .call(drag); // Drag controlled by filter.
+
+
+            /** --------------------------------------------------------------------------------
+             Append Text to Node
+             Here we add node beauty.
+             To fit nodes to the short-name calculate BBox
+             from https://bl.ocks.org/mbostock/1160929
+             -------------------------------------------------------------------------------- **/
+            const foBox = nodeEnter.append("foreignObject")
                 .attr("pointer-events", "none")
                 .classed("node-HTML-content", true)
                 .attr("width", 1)
                 .attr("height", 1)
                 .style("overflow", "visible")
                 .append("xhtml:div")
-                .attr("xmlns", "http://www.w3.org/1999/xhtml")
-                .append("text");
-            textBox
+                .classed("fo-div", true)
+                .attr("xmlns", "http://www.w3.org/1999/xhtml");
+
+            foBox.append("text")
                 .attr("contenteditable", "true")
                 .attr("tabindex", "-1")
                 .attr("class", d => d.class)
@@ -594,14 +677,13 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .style("font-family", "\"Source Sans Pro\", sans-serif")
                 .classed("editable", true)
                 .style("display", "inline-block");
-            // .html(function (d) {
-            //     return d.shortname || d.hash;
-            // });
-            // Choose the node shape and style.
+
+            /** --------------------------------------------------------------------------------
+             Choose the node shape and style.
+             -------------------------------------------------------------------------------- **/
             let nodeShape;
             nodeShape = nodeEnter.insert("path", "foreignObject");
             if (typeof layoutOptions.nodeShape == "string" && layoutOptions.nodeShape == "rect") {
-                // nodeShape = nodeEnter.insert("rect", "text")     // The second arg is what the rect will sit behind.
                 nodeShape.attr("d", "M16 48 L48 48 L48 16 L16 16 Z");
             }
             else if (typeof layoutOptions.nodeShape == "string" && layoutOptions.nodeShape == "circle") {
@@ -612,18 +694,48 @@ function networkVizJS(documentId, userLayoutOptions) {
             else if (typeof layoutOptions.nodeShape == "function") {
                 nodeShape.attr("d", layoutOptions.nodeShape);
             }
-            nodeShape.attr("vector-effect", "non-scaling-stroke");
-            // nodeEnter.append("foreignObject")
-            //     .classed("node-status-icons", true)
-            //     .append('xhtml:div')
-            //     .append('div')
-            //     .html('<i class="fa fa-thumb-tack"></i>');
-            // Merge the entered nodes to the update nodes.
+            nodeShape
+                .attr("vector-effect", "non-scaling-stroke")
+                .classed("node-path", true);
+
+            /** --------------------------------------------------------------------------------
+             Append Image to Node
+             -------------------------------------------------------------------------------- **/
+            nodeEnter
+                .insert("image", "foreignObject")
+                .on("mouseover", function (d) {
+                    nodeEnter.attr("cursor", "resize")
+                    if (internalOptions.isDragging) {
+                        return;
+                    }
+                    layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, d3.select(this.parentNode).select('path'));
+                })
+                .on("mouseout", function (d) {
+                    nodeEnter.attr("cursor", "move")
+                });
+
+            /** --------------------------------------------------------------------------------
+             Merge the entered nodes to the update nodes.
+             -------------------------------------------------------------------------------- **/
             node = node.merge(nodeEnter)
                 .classed("fixed", d => d.fixed || false);
-            /**
-             * Update the text property (allowing dynamically changing text)
-             */
+
+            /** --------------------------------------------------------------------------------
+             Update Node Image Src
+             -------------------------------------------------------------------------------- **/
+            const imgSelect = node.select("image")
+                .attr("class", 'img-node')
+                .attr("width", d => d.img ? d.img.width : 0)
+                .attr("height", d => d.img ? d.img.width : 0)
+                .attr("xlink:href", function (d) {
+                    if (d.img) {
+                        return 'data:image/png;base64,' + d.img.src
+                    }
+                });
+
+            /** --------------------------------------------------------------------------------
+             Update the text property (allowing dynamically changing text)
+             -------------------------------------------------------------------------------- **/
             const textSelect = node.select("text")
                 .html(function (d) {
                     return d.shortname || d.hash;
@@ -632,11 +744,13 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .style("max-width", d => d.fixedWidth ? d.width - layoutOptions.pad * 2 + layoutOptions.margin + "px" : "none")
                 .style("word-break", d => d.fixedWidth ? "break-word" : "normal")
                 .style("white-space", d => d.fixedWidth ? "pre-wrap" : "pre");
-            /**
+
+
+            /** ------------------------------------------------------------------------------- **
              * Here we can update node properties that have already been attached.
              * When restart() is called, these are the properties that will be affected
              * by mutation.
-             */
+             ** ------------------------------------------------------------------------------- **/
             const updateShapes = node.select("path")
                 .attr("class", d => d.class);
             // These changes apply to both rect and circle
@@ -670,7 +784,11 @@ function networkVizJS(documentId, userLayoutOptions) {
                 }
                 layoutOptions.mouseDownNode && layoutOptions.mouseDownNode(d, d3.select(this));
             });
-            /////// LINK ///////
+
+
+            /** ------------------------------------------------------------------------------- **
+             * LINK
+             ** ------------------------------------------------------------------------------- **/
             link = link.data(links, d => d.source.index + "-" + d.target.index);
             link.exit().remove();
             const linkEnter = link.enter()
@@ -1379,6 +1497,11 @@ function networkVizJS(documentId, userLayoutOptions) {
                 restart();
                 break;
             }
+            case "img": {
+                editNodeHelper(prop);
+                restart();
+                break;
+            }
             default: {
                 editNodeHelper(prop);
                 console.warn("Caution. You are modifying a new or unknown property: %s.", action.property);
@@ -1590,13 +1713,10 @@ function networkVizJS(documentId, userLayoutOptions) {
      */
     const saveGraph = (callback) => {
         d3.selectAll(".radial-menu").remove();
-
-        let svg  = d3.select('.svg-content-responsive')
-        var t = d3.zoomIdentity.translate(0, 0).scale(1)
-        svg.call(zoom.transform, t)
-
-        layoutOptions.zoomScale(1)
-
+        let svg = d3.select('.svg-content-responsive');
+        var t = d3.zoomIdentity.translate(0, 0).scale(1);
+        svg.call(zoom.transform, t);
+        layoutOptions.zoomScale(1);
         tripletsDB.get({}, (err, l) => {
             const saved = JSON.stringify({
                 triplets: l.map(v => ({ subject: v.subject, predicate: v.predicate, object: v.object })),
