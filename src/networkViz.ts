@@ -738,10 +738,9 @@ function networkVizJS(documentId, userLayoutOptions) {
         .attr("d", "M 50 0 L 50 40 L 0 20 Z")
         .attr("fill", "rgb(150,150,150)");
     // Define svg groups for storing the visuals.
-    const g = svg.append("g");
-    const alignmentLines = g.append("g");
     const g = svg.append("g")
         .classed("svg-graph", true);
+    const alignmentLines = g.append("g");
     let group = g.append("g")
         .selectAll(".group"), link = g.append("g")
         .selectAll(".link"), node = g.append("g")
