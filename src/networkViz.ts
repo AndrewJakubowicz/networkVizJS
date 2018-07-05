@@ -1,13 +1,15 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", {value: true});
+Object.defineProperty(exports, "__esModule", { value: true });
 const d3 = require("d3");
 const cola = require("webcola");
 const $ = require("jquery");
 const levelgraph = require("levelgraph");
 const level = require("level-browserify");
-const jscolor = require("./util/jscolor");
 const updateColaLayout_1 = require("./updateColaLayout");
 const createColorArrow_1 = require("./util/createColorArrow");
+
+const interact = require('interactjs');
+
 
 function networkVizJS(documentId, userLayoutOptions) {
     /**
@@ -56,11 +58,11 @@ function networkVizJS(documentId, userLayoutOptions) {
         edgeRemove: undefined,
         mouseOverRadial: undefined,
         mouseOutRadial: undefined,
-        colorPickerOpen: undefined,
-        colorPickerClose: undefined,
+        mouseOverBrush: undefined,
         resizeDrag: undefined,
         snapToAlignment: true,
         snapThreshold: 10,
+        zoomScale: undefined,
     };
     const X = 37;
     const Y = -13;
@@ -116,8 +118,7 @@ function networkVizJS(documentId, userLayoutOptions) {
     let links = [];
     let groups = [];
     const groupByHashes = [];
-    const width = layoutOptions.width, height = layoutOptions.height, margin = layoutOptions.margin,
-        pad = layoutOptions.pad;
+    const width = layoutOptions.width, height = layoutOptions.height, margin = layoutOptions.margin, pad = layoutOptions.pad;
     /**
      * Create svg canvas that is responsive to the page.
      * This will try to fill the div that it's placed in.
@@ -739,6 +740,8 @@ function networkVizJS(documentId, userLayoutOptions) {
     // Define svg groups for storing the visuals.
     const g = svg.append("g");
     const alignmentLines = g.append("g");
+    const g = svg.append("g")
+        .classed("svg-graph", true);
     let group = g.append("g")
         .selectAll(".group"), link = g.append("g")
         .selectAll(".link"), node = g.append("g")
@@ -746,18 +749,17 @@ function networkVizJS(documentId, userLayoutOptions) {
     /**
      * Zooming and panning behaviour.
      */
-    const zoom = d3.zoom().scaleExtent([0.1, 5]).on("zoom", zoomed);
+    let zoom = d3.zoom().scaleExtent([0.1, 5]).on("zoom", zoomed);
     zoom.filter(function () {
         // Prevent zoom when mouse over node.
         return d3.event.target.tagName.toLowerCase() === "svg";
     });
     svg.call(zoom).on("dblclick.zoom", null);
-
     function zoomed() {
         layoutOptions.clickAway();
         g.attr("transform", d3.event.transform);
+        layoutOptions.zoomScale && layoutOptions.zoomScale(d3.event.transform.k);
     }
-
     /**
      * Resets width or radius of nodes.
      * Allows dynamically changing node sizes based on text.
@@ -768,16 +770,13 @@ function networkVizJS(documentId, userLayoutOptions) {
         node.select("path")
             .attr("transform", function (d) {
                 // Scale appropriately using http://stackoverflow.com/a/9877871/6421793
-                const currentWidth = this.getBBox().width, w = d.width, currentHeight = this.getBBox().height,
-                    h = d.height, scaleW = (w - layoutOptions.margin) / currentWidth,
-                    scaleH = (h - layoutOptions.margin) / currentHeight;
+                const currentWidth = this.getBBox().width, w = d.width, currentHeight = this.getBBox().height, h = d.height, scaleW = (w - layoutOptions.margin) / currentWidth, scaleH = (h - layoutOptions.margin) / currentHeight;
                 if (isNaN(scaleW) || isNaN(scaleH) || isNaN(w) || isNaN(h)) {
                     return "";
                 }
                 return `translate(${-w / 2 + layoutOptions.margin},${-h / 2 + layoutOptions.margin}) scale(${scaleW},${scaleH})`;
             });
     }
-
     /**
      * This function re-centers the text.
      * This allows you to not change the text without restarting
@@ -790,29 +789,47 @@ function networkVizJS(documentId, userLayoutOptions) {
             .then(_ => {
                 node.selectAll("text")
                     .each(function (d) {
-                        if (d.fixedWidth) {
+                        const img = d3.select(this.parentNode.parentNode.parentNode).select('image').node();
+                        const imgWidth = img ? img.getBBox().width : 0;
+                        const margin = layoutOptions.margin, pad = layoutOptions.pad;
+                        const extra = 2 * pad + margin;
+
+                        if (d.fixedWidth && imgWidth + extra < d.fixedWidth) {
                             d.width = d.fixedWidth;
                             return;
                         }
-                        const margin = layoutOptions.margin, pad = layoutOptions.pad;
-                        const extra = 2 * pad + margin;
                         // The width must reset to allow the box to get smaller.
                         // Later we will set width based on the width of the line.
                         d.width = d.minWidth || 0;
                         if (!(d.width)) {
                             d.width = d.minWidth || 0;
                         }
+
                         const lineLength = this.offsetWidth;
+                        const w = imgWidth > lineLength ? imgWidth : lineLength
                         if (d.width < lineLength + extra) {
-                            d.width = lineLength + extra;
+                            d.width = w + extra;
                         }
+
                     })
                     .each(function (d) {
                         // Only update the height, the width is calculated previously
+                        const img = d3.select(this.parentNode.parentNode.parentNode).select('image').node();
+                        const imgHeight = img ? img.getBBox().height : 0;
                         const height = this.offsetHeight;
                         const extra = 2 * layoutOptions.pad + layoutOptions.margin;
-                        d.height = height === 0 ? 28 + extra : height + extra;
+                        d.height = height === 0 ? 28 + extra + imgHeight : height + extra + imgHeight;
                     });
+
+                node.select(".img-node")
+                    .attr("x", function (d) {
+                        const imgWidth = d.img ? this.getBBox().width : 0;
+                        return d.width / 2 - imgWidth / 2;
+                    })
+                    .attr("y", function (d) {
+                        return d.img ? 18 : 0;
+                    });
+
                 node.select(".node-HTML-content")
                     .attr("width", function (d) {
                         if (d.fixedWidth) {
@@ -821,9 +838,14 @@ function networkVizJS(documentId, userLayoutOptions) {
                         return d3.select(this).select("text").node().offsetWidth;
                     })
                     .attr("y", function (d) {
+                        const img = d3.select(this.parentNode).select('image').node();
+                        const imgHeight = img ? img.getBBox().height : 0;
                         const textHeight = d3.select(this).select("text").node().offsetHeight;
-                        // Minus 2 is a hack to get the text feeling 'right'.
-                        return d.height / 2 - textHeight / 2 - 2;
+                        if (!d.img || !img) {
+                            return d.height / 2 - textHeight / 2 - 2;
+                        } else {
+                            return d.height / 2 - textHeight / 2 + imgHeight / 2 + 5;
+                        }
                     })
                     .attr("x", function (d) {
                         const textWidth = d3.select(this).select("text").node().offsetWidth;
@@ -836,8 +858,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     .attr("width", function (d) {
                         return d3.select(this).select("text").node().offsetWidth;
                     });
-
-                d3.selectAll("#graph .node").each(function (d) { // TODO-ya is this redundant now?
+                d3.selectAll("#graph .node").each(function (d) {
                     const node = d3.select(this);
                     const foOnNode = node.selectAll(".node-status-icons");
                     const pinned = layoutOptions.nodeToPin && layoutOptions.nodeToPin(d);
@@ -854,13 +875,12 @@ function networkVizJS(documentId, userLayoutOptions) {
                 });
             });
     }
-
     /**
      * This function remove the icons from
      * the hover menu
      * @param node element's parent
      */
-    function hoverMenuRemoveIcons(parent?) {
+    function hoverMenuRemoveIcons(parent) {
         if (parent) {
             parent.selectAll(".menu-action").remove();
             parent.selectAll(".menu-shape").remove();
@@ -880,7 +900,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             d3.selectAll(".menu-resize").remove();
         }
     }
-
     /**
      * This function adds a menu to
      * Delete, Pin, Change color and Change shape of a node
@@ -969,7 +988,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                     layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d, "circle");
                 });
         }
-
         //CREATE COLOR SELECTOR ICON
         let foColor = parent.append("foreignObject")
             .attr("x", (d.width / 2) - 12)
@@ -986,34 +1004,8 @@ function networkVizJS(documentId, userLayoutOptions) {
             let colorPickerEl = $("#bgpicker");
             colorPickerEl.css("color", d.color);
             colorPickerEl.css("text-shadow", "1px 0px 6px #1f2d3d");
-            colorPickerEl.mouseover(function () {
-                layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
-                let current = {
-                    "picker": "#bgpicker",
-                    "color": d.color,
-                    "graphic": "#brush"
-                };
-                let yy = colorPickerEl.colpick({
-                    color: d.color ? d.color : "#ffffff",
-                    onShow: function () {
-                        layoutOptions.colorPickerOpen && layoutOptions.colorPickerOpen(d);
-                    },
-                    onChange: function (hsb, hex, rgb, el, bySetColor) {
-                        let newColor = "#" + hex;
-                        $("#brush").css("fill", newColor);
-                        colorPickerEl.css("background-color", newColor);
-                        element.attr("fill", newColor);
-                    },
-                    onSubmit: function (hsb, hex, rgb, el) {
-                        $(el).colpickHide();
-                        let newColor = "#" + hex;
-                        if (newColor !== d.color) {
-                            layoutOptions.updateNodeColor && layoutOptions.updateNodeColor(d, newColor);
-                        }
-                        hoverMenuRemoveIcons(parent);
-                        layoutOptions.colorPickerClose && layoutOptions.colorPickerClose(d);
-                    }
-                });
+            colorPickerEl.click(function (e) {
+                layoutOptions.mouseOverBrush && layoutOptions.mouseOverBrush(e, element, d);
             })
                 .on("mouseout", function () {
                     layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
@@ -1121,7 +1113,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                     hoverMenuRemoveIcons(parent);
                 }
             });
-
         const xresize = parent.append("rect")
             .classed("menu-resize", true)
             .attr("width", 8).attr("height", 8)
@@ -1130,13 +1121,61 @@ function networkVizJS(documentId, userLayoutOptions) {
             .attr("fill", "white")
             .attr("stroke", "black")
             .attr("cursor", "e-resize")
-            .on("mousedown", (d) => { // TODO dblclick to reset autowidth
+            .on("mousedown", (d) => {
                 const e = d3.event;
                 layoutOptions.resizeDrag && layoutOptions.resizeDrag(d, element, e);
             });
-        layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
-    }
 
+        layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
+
+
+        /** --------------------------------------------------------------------------------
+         Allow Image Resize Using Interact.js
+         -------------------------------------------------------------------------------- **/
+        var imgNode = interact('.img-node')
+            .resizable({
+                edges: {left: false, right: true, bottom: true, top: false},
+                inertia: {
+                    resistance: 1,
+                    minSpeed: 1,
+                    endSpeed: 1
+                }
+            })
+            .on('resizeend', function (event) {
+                layoutOptions.imgResize && layoutOptions.imgResize(false);
+            })
+            .on('resizestart', function (event) {
+                layoutOptions.imgResize && layoutOptions.imgResize(true);
+            })
+            .on('resizemove', function (event) {
+                // layoutOptions.imgResize && layoutOptions.imgResize(true);
+                var target = event.target,
+                    x = (parseFloat(target.getAttribute('data-x')) || 0),
+                    y = (parseFloat(target.getAttribute('data-x')) || 0);
+
+                target.style.width  = event.rect.width + 'px';
+                target.style.height = event.rect.width + 'px';
+                target.style.webkitTransform = target.style.transform =
+                    'translate(' + x + 'px,' + y + 'px)';
+                target.setAttribute('data-x', x);
+                // target.setAttribute('data-y', y);
+
+                parent.select(".img-node")
+                    .attr("x", function (d) {
+                        const textWidth = this.getBBox().width;
+                        return d.width / 2 - textWidth / 2;
+                    })
+                    .attr("y", function (d) {
+                        const textWidth = this.getBBox().height;
+                        return d.width / 2 - textWidth / 2;
+                    });
+
+                restart()
+            });
+
+        interact.maxInteractions(Infinity);
+
+    }
     /**
      * This function delete the node hover menu.
      * It will calculate at which position to the node
@@ -1161,13 +1200,15 @@ function networkVizJS(documentId, userLayoutOptions) {
         // }
         layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
     }
-
     /**
      * Update the d3 visuals without layout changes.
      */
     function updateStyles() {
         return new Promise((resolve, reject) => {
-            ///// GROUPS /////
+
+            /** --------------------------------------------------------------------------------
+             GROUPS
+             -------------------------------------------------------------------------------- **/
             group = group.data(groups);
             const groupEnter = group.enter()
                 .append("rect")
@@ -1183,27 +1224,28 @@ function networkVizJS(documentId, userLayoutOptions) {
             const nodeEnter = node.enter()
                 .append("g")
                 .classed("node", true);
-            // Only allow dragging nodes if turned on.
-            // if (layoutOptions.canDrag()) {
-            nodeEnter.attr("cursor", "move").call(drag); // Drag controlled by filter.
-            // } else {
-            //     nodeEnter.attr("cursor", "default");
-            // }
-            // Here we add node beauty.
-            // To fit nodes to the short-name calculate BBox
-            // from https://bl.ocks.org/mbostock/1160929
-            const textBox = nodeEnter.append("foreignObject")
+            nodeEnter
+                .attr("cursor", "move")
+                .call(drag); // Drag controlled by filter.
+
+
+            /** --------------------------------------------------------------------------------
+             Append Text to Node
+             Here we add node beauty.
+             To fit nodes to the short-name calculate BBox
+             from https://bl.ocks.org/mbostock/1160929
+             -------------------------------------------------------------------------------- **/
+            const foBox = nodeEnter.append("foreignObject")
                 .attr("pointer-events", "none")
                 .classed("node-HTML-content", true)
-                // required for firefox support
                 .attr("width", 1)
                 .attr("height", 1)
                 .style("overflow", "visible")
                 .append("xhtml:div")
-                .attr("xmlns", "http://www.w3.org/1999/xhtml")
-                .append("text");
+                .classed("fo-div", true)
+                .attr("xmlns", "http://www.w3.org/1999/xhtml");
 
-            textBox
+            foBox.append("text")
                 .attr("contenteditable", "true")
                 .attr("tabindex", "-1")
                 .attr("class", d => d.class)
@@ -1215,14 +1257,13 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .style("font-family", "\"Source Sans Pro\", sans-serif")
                 .classed("editable", true)
                 .style("display", "inline-block");
-            // .html(function (d) {
-            //     return d.shortname || d.hash;
-            // });
-            // Choose the node shape and style.
+
+            /** --------------------------------------------------------------------------------
+             Choose the node shape and style.
+             -------------------------------------------------------------------------------- **/
             let nodeShape;
             nodeShape = nodeEnter.insert("path", "foreignObject");
             if (typeof layoutOptions.nodeShape == "string" && layoutOptions.nodeShape == "rect") {
-                // nodeShape = nodeEnter.insert("rect", "text")     // The second arg is what the rect will sit behind.
                 nodeShape.attr("d", "M16 48 L48 48 L48 16 L16 16 Z");
             }
             else if (typeof layoutOptions.nodeShape == "string" && layoutOptions.nodeShape == "circle") {
@@ -1233,18 +1274,48 @@ function networkVizJS(documentId, userLayoutOptions) {
             else if (typeof layoutOptions.nodeShape == "function") {
                 nodeShape.attr("d", layoutOptions.nodeShape);
             }
-            nodeShape.attr("vector-effect", "non-scaling-stroke");
-            // nodeEnter.append("foreignObject")
-            //     .classed("node-status-icons", true)
-            //     .append('xhtml:div')
-            //     .append('div')
-            //     .html('<i class="fa fa-thumb-tack"></i>');
-            // Merge the entered nodes to the update nodes.
+            nodeShape
+                .attr("vector-effect", "non-scaling-stroke")
+                .classed("node-path", true);
+
+            /** --------------------------------------------------------------------------------
+             Append Image to Node
+             -------------------------------------------------------------------------------- **/
+            nodeEnter
+                .insert("image", "foreignObject")
+                .on("mouseover", function (d) {
+                    nodeEnter.attr("cursor", "resize")
+                    if (internalOptions.isDragging) {
+                        return;
+                    }
+                    layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, d3.select(this.parentNode).select('path'));
+                })
+                .on("mouseout", function (d) {
+                    nodeEnter.attr("cursor", "move")
+                });
+
+            /** --------------------------------------------------------------------------------
+             Merge the entered nodes to the update nodes.
+             -------------------------------------------------------------------------------- **/
             node = node.merge(nodeEnter)
                 .classed("fixed", d => d.fixed || false);
-            /**
-             * Update the text property (allowing dynamically changing text)
-             */
+
+            /** --------------------------------------------------------------------------------
+             Update Node Image Src
+             -------------------------------------------------------------------------------- **/
+            const imgSelect = node.select("image")
+                .attr("class", 'img-node')
+                .attr("width", d => d.img ? d.img.width : 0)
+                .attr("height", d => d.img ? d.img.width : 0)
+                .attr("xlink:href", function (d) {
+                    if (d.img) {
+                        return 'data:image/png;base64,' + d.img.src
+                    }
+                });
+
+            /** --------------------------------------------------------------------------------
+             Update the text property (allowing dynamically changing text)
+             -------------------------------------------------------------------------------- **/
             const textSelect = node.select("text")
                 .html(function (d) {
                     return d.shortname || d.hash;
@@ -1253,11 +1324,13 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .style("max-width", d => d.fixedWidth ? d.width - layoutOptions.pad * 2 + layoutOptions.margin + "px" : "none")
                 .style("word-break", d => d.fixedWidth ? "break-word" : "normal")
                 .style("white-space", d => d.fixedWidth ? "pre-wrap" : "pre");
-            /**
+
+
+            /** ------------------------------------------------------------------------------- **
              * Here we can update node properties that have already been attached.
              * When restart() is called, these are the properties that will be affected
              * by mutation.
-             */
+             ** ------------------------------------------------------------------------------- **/
             const updateShapes = node.select("path")
                 .attr("class", d => d.class);
             // These changes apply to both rect and circle
@@ -1291,12 +1364,15 @@ function networkVizJS(documentId, userLayoutOptions) {
                 }
                 layoutOptions.mouseDownNode && layoutOptions.mouseDownNode(d, d3.select(this));
             });
-            /////// LINK ///////
+
+
+            /** ------------------------------------------------------------------------------- **
+             * LINK
+             ** ------------------------------------------------------------------------------- **/
             link = link.data(links, d => d.source.index + "-" + d.target.index);
             link.exit().remove();
             const linkEnter = link.enter()
                 .append("g")
-                // .attr("pointer-events", "all")
                 .classed("line", true);
             linkEnter.append("path") // transparent clickable area behind line
                 .attr("stroke-width", layoutOptions.edgeStrokePad)
@@ -1313,10 +1389,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                 deleteEdgeHoverMenu(d, this);
             }).on("click", function (d) {
                 const elem = d3.select(this);
-
                 // IMPORTANT, without this vuegraph will crash in SWARM. bug caused by blur event handled by medium editor.
                 d3.event.stopPropagation();
-
                 layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
                 setTimeout(() => {
                     layoutOptions.clickEdge(d, elem);
@@ -1356,18 +1430,19 @@ function networkVizJS(documentId, userLayoutOptions) {
             return resolve();
         });
     }
-
     /**
      * restart function adds and removes nodes.
      * It also restarts the simulation.
      * This is where aesthetics can be changed.
      */
+
     function restart(callback?) {
         return Promise.resolve()
             .then(() => {
                 if (callback === "NOUPDATE") {
                     return;
-                } else {
+                }
+                else {
                     return updateStyles();
                 }
             })
@@ -1382,33 +1457,32 @@ function networkVizJS(documentId, userLayoutOptions) {
                         // fall back on old method if no need to curve edges
                         return d3.line().x(d => d.x).y(d => d.y)(points);
                     }
-
                     let path = "M" + points[0].x + "," + points[0].y; // move to start point
                     let dy, dx;
                     for (let n = 1; n < points.length - 1; n++) {
                         const p0 = points[n - 1];
                         const p1 = points[n];
                         const p2 = points[n + 1];
-
-                        const v01 = {x: p1.x - p0.x, y: p1.y - p0.y}; // vector from point 0 to 1
+                        const v01 = { x: p1.x - p0.x, y: p1.y - p0.y }; // vector from point 0 to 1
                         const v01abs = Math.sqrt(Math.pow(v01.x, 2) + Math.pow(v01.y, 2)); // |v01|
-                        const uv01 = {x: v01.x / v01abs, y: v01.y / v01abs}; // unit vector v01
-                        if ((layoutOptions.edgeSmoothness * 2 > v01abs)) { // if smoothing is larger than total line length
+                        const uv01 = { x: v01.x / v01abs, y: v01.y / v01abs }; // unit vector v01
+                        if ((layoutOptions.edgeSmoothness * 2 > v01abs)) {
                             dx = v01.x / 2;
                             dy = v01.y / 2;
-                        } else {
+                        }
+                        else {
                             dx = layoutOptions.edgeSmoothness * uv01.x;
                             dy = layoutOptions.edgeSmoothness * uv01.y;
                         }
                         path += " L" + (p1.x - dx) + "," + (p1.y - dy); // straight line to layoutOptions.edgeSmoothness px before vertex
-
-                        const v12 = {x: p2.x - p1.x, y: p2.y - p1.y}; // vector from point 1 to 2
+                        const v12 = { x: p2.x - p1.x, y: p2.y - p1.y }; // vector from point 1 to 2
                         const v12abs = Math.sqrt(Math.pow(v12.x, 2) + Math.pow(v12.y, 2)); // |v12|
-                        const uv12 = {x: v12.x / v12abs, y: v12.y / v12abs}; // unit vector v12
-                        if ((layoutOptions.edgeSmoothness * 2 > v12abs)) { // if smoothing is larger than total line length
+                        const uv12 = { x: v12.x / v12abs, y: v12.y / v12abs }; // unit vector v12
+                        if ((layoutOptions.edgeSmoothness * 2 > v12abs)) {
                             dx = v12.x / 2;
                             dy = v12.y / 2;
-                        } else {
+                        }
+                        else {
                             dx = layoutOptions.edgeSmoothness * uv12.x;
                             dy = layoutOptions.edgeSmoothness * uv12.y;
                         }
@@ -1417,7 +1491,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                     path += " L" + points[points.length - 1].x + "," + points[points.length - 1].y; // straight line to end
                     return path;
                 };
-
                 /**
                  * Causes the links to bend around the rectangles.
                  * Source: https://github.com/tgdwyer/WebCola/blob/master/WebCola/examples/unix.html#L140
@@ -1468,7 +1541,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                             const arrayY = simulation.routeEdge(d, undefined);
                             const middleIndex = Math.floor(arrayY.length / 2) - 1;
                             const midpoint = (arrayY[middleIndex].y + arrayY[middleIndex + 1].y - textHeight) / 2;
-
                             const oldY = thisSel.attr("y");
                             return Math.abs(midpoint - oldY) > 2.5 ? midpoint : oldY;
                         });
@@ -1530,7 +1602,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                             }
                             return (route.sourceIntersection.y + route.targetIntersection.y - textHeight) / 2;
                         });
-
                     group.attr("x", function (d) {
                         return d.bounds.x;
                     })
@@ -1544,11 +1615,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                             return d.bounds.height();
                         });
                 }).on("end", routeEdges);
-
                 function isIE() {
                     return ((navigator.appName == "Microsoft Internet Explorer") || ((navigator.appName == "Netscape") && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined)));
                 }
-
                 // After a tick make sure to add translation to the nodes.
                 // Sometimes it wasn"t added in a single tick.
                 node.attr("transform", d => d.innerBounds ?
@@ -1557,14 +1626,12 @@ function networkVizJS(documentId, userLayoutOptions) {
             })
             .then(() => typeof callback === "function" && callback());
     }
-
     function handleDisconnects() {
         simulation.handleDisconnected(true);
         restart().then(() => {
             simulation.handleDisconnected(false);
         });
     }
-
     // Helper function for updating links after node mutations.
     // Calls a function after links added.
     function createNewLinks(callback) {
@@ -1573,16 +1640,15 @@ function networkVizJS(documentId, userLayoutOptions) {
                 console.error(err);
             }
             // Create edges based on LevelGraph triplets
-            links = l.map(({subject, object, predicate}) => {
+            links = l.map(({ subject, object, predicate }) => {
                 const source = nodeMap.get(subject);
                 const target = nodeMap.get(object);
                 predicateMap.set(predicate.hash, predicate); // update predicateMap to match new link object
-                return {source, target, predicate};
+                return { source, target, predicate };
             });
             restart(callback);
         });
     }
-
     /**
      * Take a node object or list of nodes and add them.
      * @param {object | object[]} nodeObject
@@ -1597,7 +1663,6 @@ function networkVizJS(documentId, userLayoutOptions) {
         function isArray(obj) {
             return !!obj && obj.constructor === Array;
         }
-
         function addNodeObjectHelper(nodeObject) {
             // Check that hash exists
             if (!(nodeObject.hash)) {
@@ -1631,7 +1696,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                 nodeMap.set(nodeObject.hash, nodeObject);
             }
         }
-
         /**
          * Check that the input is valid
          */
@@ -1653,7 +1717,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             typeof callback === "function" && callback();
         }
     }
-
     /**
      * Validates triplets.
      * @param {object} tripletObject
@@ -1684,7 +1747,6 @@ function networkVizJS(documentId, userLayoutOptions) {
         }
         return true;
     }
-
     /**
      * Adds a triplet object. Adds the node if it's not already added.
      * Otherwise it just adds the edge
@@ -1699,7 +1761,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         // Check that predicate doesn't already exist
         return new Promise((resolve, reject) => tripletsDB.get({
             subject: subject.hash,
-            predicate: predicate, // ghazal
+            predicate: predicate,
             object: object.hash
         }, function (err, list) {
             if (err)
@@ -1773,7 +1835,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                 return Promise.reject(err);
             });
     }
-
     /**
      * Removes a triplet object. Silently fails if edge doesn't exist.
      * @param {object} tripletObject
@@ -1800,7 +1861,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             createNewLinks(callback);
         });
     }
-
     /**
      *  Update edge data. Fails silently if doesnt exist
      * @param {object} tripletObject
@@ -1810,7 +1870,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             return;
         }
         const subject = tripletObject.subject, predicate = tripletObject.predicate, object = tripletObject.object;
-        tripletsDB.del({subject: subject.hash, object: object.hash}, (err) => {
+        tripletsDB.del({ subject: subject.hash, object: object.hash }, (err) => {
             if (err) {
                 console.log(err);
             }
@@ -1825,17 +1885,16 @@ function networkVizJS(documentId, userLayoutOptions) {
             });
         });
     }
-
     /**
      * Removes the node and all triplets associated with it.
      * @param {String} nodeHash hash of the node to remove.
      */
     function removeNode(nodeHash, callback) {
-        tripletsDB.get({subject: nodeHash}, function (err, l1) {
+        tripletsDB.get({ subject: nodeHash }, function (err, l1) {
             if (err) {
                 return console.error(err);
             }
-            tripletsDB.get({object: nodeHash}, function (err, l2) {
+            tripletsDB.get({ object: nodeHash }, function (err, l2) {
                 if (err) {
                     return console.error(err);
                 }
@@ -1881,7 +1940,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             });
         });
     }
-
     /**
      * Function that fires when a node is clicked.
      * @param {function} selectNodeFunc
@@ -1889,7 +1947,6 @@ function networkVizJS(documentId, userLayoutOptions) {
     function setSelectNode(selectNodeFunc) {
         layoutOptions.clickNode = selectNodeFunc;
     }
-
     /**
      * Public function to mutate edge objects
      * can mutate single edges or multiple edges at once
@@ -1914,7 +1971,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                 predicateArray.forEach((d, i) => {
                     d[prop] = values[i];
                 });
-            } else {
+            }
+            else {
                 predicateArray.forEach(d => {
                     d[prop] = values[0];
                 });
@@ -1933,8 +1991,8 @@ function networkVizJS(documentId, userLayoutOptions) {
             }
         }
         // Update triplets DB with new predicate(s)
-        const subObjArray = predicateArray.map(p => ({subject: p.subject, object: p.object}));
-        const newTripletsArray = predicateArray.map(p => ({subject: p.subject, predicate: p, object: p.object}));
+        const subObjArray = predicateArray.map(p => ({ subject: p.subject, object: p.object }));
+        const newTripletsArray = predicateArray.map(p => ({ subject: p.subject, predicate: p, object: p.object }));
         tripletsDB.del(subObjArray, (err) => {
             if (err) {
                 console.log(err);
@@ -1946,7 +2004,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             });
         });
     }
-
     /**
      * Public function to mutate node objects
      * can mutate single nodes or multiple nodes at once
@@ -1971,7 +2028,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                 nodeArray.forEach((d, i) => {
                     d[prop] = values[i];
                 });
-            } else {
+            }
+            else {
                 nodeArray.forEach(d => {
                     d[prop] = values[0];
                 });
@@ -1983,52 +2041,53 @@ function networkVizJS(documentId, userLayoutOptions) {
                 idArray.forEach((id, i) => {
                     if (multipleValues) {
                         node.filter(d => d.id === id).select("path").attr("fill", values[i]);
-                    } else {
+                    }
+                    else {
                         node.filter(d => d.id === id).select("path").attr("fill", values[0]);
                     }
                 });
                 break;
             }
-
             case "nodeShape": {
-                const shapePaths = values.map(v => layoutOptions.nodeShape({nodeShape: v}));
+                const shapePaths = values.map(v => layoutOptions.nodeShape({ nodeShape: v }));
                 editNodeHelper(prop);
                 idArray.forEach((id, i) => {
                     if (multipleValues) {
                         node.filter(d => d.id === id).select("path").attr("d", shapePaths[i]);
-                    } else {
+                    }
+                    else {
                         node.filter(d => d.id === id).select("path").attr("d", shapePaths[0]);
                     }
                 });
                 updateStyles();
                 break;
             }
-
             case "fixed": {
                 editNodeHelper(prop);
                 restart();
                 break;
             }
-
-            case "fixedWidth" : {
+            case "fixedWidth": {
                 editNodeHelper(prop);
                 restart();
                 break;
             }
-
             case "shortname": {
                 editNodeHelper(prop);
                 restart();
                 break;
             }
-
+            case "img": {
+                editNodeHelper(prop);
+                restart();
+                break;
+            }
             default: {
                 editNodeHelper(prop);
                 console.warn("Caution. You are modifying a new or unknown property: %s.", action.property);
             }
         }
     }
-
     /**
      * Invoking this function will recenter the graph.
      */
@@ -2043,7 +2102,6 @@ function networkVizJS(documentId, userLayoutOptions) {
     function setMouseOver(mouseOverCallback) {
         layoutOptions.mouseOverNode = mouseOverCallback;
     }
-
     /**
      * Function to call when mouse out registers on a node.
      * It takes a d3 mouse over event.
@@ -2052,12 +2110,10 @@ function networkVizJS(documentId, userLayoutOptions) {
     function setMouseOut(mouseOutCallback) {
         layoutOptions.mouseOutNode = mouseOutCallback;
     }
-
     // Function called when mousedown on node.
     function setMouseDown(mouseDownCallback) {
         layoutOptions.mouseDownNode = mouseDownCallback;
     }
-
     /**
      * Merges a node into another group.
      * If this node was in another group previously it removes it from the prior group.
@@ -2116,13 +2172,12 @@ function networkVizJS(documentId, userLayoutOptions) {
                 indexOfSet.push(nodeIndex);
             }
             // Create and push an object with the indexes of the nodes.
-            newGroupObject.push({leaves: indexOfSet});
+            newGroupObject.push({ leaves: indexOfSet });
         });
         groups = newGroupObject;
         restart(callback);
     }
-
-    function deleteEdgeHoverMenu(d, me) { // incomplete
+    function deleteEdgeHoverMenu(d, me) {
         const e = d3.event;
         e.preventDefault();
         // const element = d3.select(me);
@@ -2136,8 +2191,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         hoverMenuRemoveIcons(parent);
         // }
     }
-
-    function addEdgeHoverMenu(d, me) { // incomplete
+    function addEdgeHoverMenu(d, me) {
         hoverMenuRemoveIcons();
         const element = d3.select(me);
         const parent = d3.select(me.parentNode);
@@ -2166,7 +2220,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                 return xMid - width / 2;
             })
             .attr("y", yMid - textHeight / 2)
-
             .attr("fill", "rgba(0,0,0,0)")
             .attr("stroke", "none")
             .on("mouseover", function () {
@@ -2175,7 +2228,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             .on("mouseleave", function () {
                 layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
             });
-
         // CREATE TRASH ICON
         const foTrash = menuGroup
             .append("foreignObject")
@@ -2196,14 +2248,11 @@ function networkVizJS(documentId, userLayoutOptions) {
                 layoutOptions.edgeRemove && layoutOptions.edgeRemove(edge);
                 layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
             });
-
         const trash = foTrash.append("xhtml:div")
             .append("div")
             .attr("class", "icon-wrapper")
             .html("<i class=\"fa fa-trash-o custom-icon\"></i>");
-
     }
-
     /**
      * Helper function to add  a constraint to simulation
      * requires restarting simulation after
@@ -2216,15 +2265,10 @@ function networkVizJS(documentId, userLayoutOptions) {
             console.warn("Cannot create constraint, Node does not exist.", constraint);
             return;
         }
-        constraints.push({
-            ...constraint,
-            left: leftIndex,
-            right: rightIndex,
-        });
+        constraints.push(Object.assign({}, constraint, { left: leftIndex, right: rightIndex }));
         simulation
             .constraints(constraints);
     }
-
     /**
      * Helper function to remove a constraint from simulation
      * requires restarting simulation after
@@ -2232,8 +2276,8 @@ function networkVizJS(documentId, userLayoutOptions) {
      */
     function removeConstraint(constraint) {
         const index = constraints
-            .map(c => JSON.stringify({l: c.leftID, r: c.rightID}))
-            .indexOf(JSON.stringify({l: constraint.leftID, r: constraint.rightID}));
+            .map(c => JSON.stringify({ l: c.leftID, r: c.rightID }))
+            .indexOf(JSON.stringify({ l: constraint.leftID, r: constraint.rightID }));
         if (index === -1) {
             console.warn("Cannot delete constraint, does not exist.", constraint);
             return;
@@ -2242,7 +2286,6 @@ function networkVizJS(documentId, userLayoutOptions) {
         simulation
             .constraints(constraints);
     }
-
     /**
      * Serialize the graph.
      * scheme: triplets: subj:hash-predicateType-obj:hash[]
@@ -2250,10 +2293,14 @@ function networkVizJS(documentId, userLayoutOptions) {
      */
     const saveGraph = (callback) => {
         d3.selectAll(".radial-menu").remove();
+        let svg = d3.select('.svg-content-responsive');
+        var t = d3.zoomIdentity.translate(0, 0).scale(1);
+        svg.call(zoom.transform, t);
+        layoutOptions.zoomScale(1);
         tripletsDB.get({}, (err, l) => {
             const saved = JSON.stringify({
-                triplets: l.map(v => ({subject: v.subject, predicate: v.predicate, object: v.object})),
-                nodes: nodes.map(v => ({hash: v.hash, x: v.x, y: v.y}))
+                triplets: l.map(v => ({ subject: v.subject, predicate: v.predicate, object: v.object })),
+                nodes: nodes.map(v => ({ hash: v.hash, x: v.x, y: v.y }))
             });
             callback(saved);
         });
@@ -2268,7 +2315,6 @@ function networkVizJS(documentId, userLayoutOptions) {
     window.onblur = function () {
         simulation.stop();
     };
-
     // Public api
     /**
      * TODO:
@@ -2366,6 +2412,5 @@ function networkVizJS(documentId, userLayoutOptions) {
         }
     };
 }
-
 exports.default = networkVizJS;
-// # sourceMappingURL=networkViz.js.map
+//# sourceMappingURL=networkViz.js.map
