@@ -19,5 +19,8 @@
     },
     "files": [
         "src/networkViz.ts"
-    ]
+    ],
+    "include": [
+        "src/**/*"
+  ]
 }
