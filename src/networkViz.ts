@@ -25,6 +25,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         flowDirection: "y",
         enableEdgeRouting: true,
         nodeShape: "rect",
+        nodePath: (d) => "M16 48 L48 48 L48 16 L16 16 Z",
         width: 900,
         height: 600,
         pad: 15,
@@ -217,6 +218,9 @@ function networkVizJS(documentId, userLayoutOptions) {
         hoverMenuRemoveIcons(); // hover menu does not automatically change size with node
         layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial();
         node.select("path")
+            .attr("d", function (d) {
+                return layoutOptions.nodePath(d);
+            })
             .attr("transform", function (d) {
                 // Scale appropriately using http://stackoverflow.com/a/9877871/6421793
                 const currentWidth = this.getBBox().width, w = d.width, currentHeight = this.getBBox().height,
@@ -720,17 +724,7 @@ function networkVizJS(documentId, userLayoutOptions) {
              -------------------------------------------------------------------------------- **/
             let nodeShape;
             nodeShape = nodeEnter.insert("path", "foreignObject");
-            if (typeof layoutOptions.nodeShape == "string" && layoutOptions.nodeShape == "rect") {
-                nodeShape.attr("d", "M16 48 L48 48 L48 16 L16 16 Z");
-            }
-            else if (typeof layoutOptions.nodeShape == "string" && layoutOptions.nodeShape == "circle") {
-                // Circle path technique from:
-                // http://stackoverflow.com/a/10477334/6421793
-                nodeShape.attr("d", "M20,40a20,20 0 1,0 40,0a20,20 0 1,0 -40,0");
-            }
-            else if (typeof layoutOptions.nodeShape == "function") {
-                nodeShape.attr("d", layoutOptions.nodeShape);
-            }
+            nodeShape.attr("d", layoutOptions.nodePath);
             nodeShape
                 .attr("vector-effect", "non-scaling-stroke")
                 .classed("node-path", true);
@@ -1528,8 +1522,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                 break;
             }
             case "nodeShape": {
-                const shapePaths = values.map(v => layoutOptions.nodeShape({ nodeShape: v }));
                 editNodeHelper(prop);
+                const shapePaths = idArray.map(id => layoutOptions.nodePath(nodeMap.get(id)));
                 idArray.forEach((id, i) => {
                     if (multipleValues) {
                         node.filter(d => d.id === id).select("path").attr("d", shapePaths[i]);
@@ -2300,10 +2294,12 @@ function networkVizJS(documentId, userLayoutOptions) {
         getNode: (hash) => nodeMap.get(hash),
         // Get edge from predicateMap
         getPredicate: (hash) => predicateMap.get(hash),
-        // Get Stringified representation of the graph.
-        saveGraph,
+        // Get Layout options
+        getLayoutOptions: () => layoutOptions,
         // Get SVG element. If you want the node use `graph.getSVGElement().node();`
         getSVGElement: () => svg,
+        // Get Stringified representation of the graph.
+        saveGraph,
         // add a directed edge
         addTriplet,
         // remove an edge
