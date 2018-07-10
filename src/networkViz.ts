@@ -966,7 +966,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     }
                     try {
                         link.selectAll("path")
-                            .attr("d", d => lineFunction(simulation.routeEdge(d, undefined)));
+                            .attr("d", d => lineFunction(simulation.routeEdge(d, undefined, undefined)));
                     }
                     catch (err) {
                         console.error(err);
@@ -986,7 +986,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         .attr("x", function (d) {
                             const thisSel = d3.select(this);
                             const textWidth = thisSel.select("text").node().offsetWidth;
-                            const arrayX = simulation.routeEdge(d, undefined);
+                            const arrayX = simulation.routeEdge(d, undefined, undefined);
                             const middleIndex = Math.floor(arrayX.length / 2) - 1;
                             const midpoint = (arrayX[middleIndex].x + arrayX[middleIndex + 1].x - textWidth) / 2;
                             // TODO temporary hack to reduce occurrence of edge text jitter
@@ -996,7 +996,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         .attr("y", function (d) {
                             const thisSel = d3.select(this);
                             const textHeight = thisSel.select("text").node().offsetHeight;
-                            const arrayY = simulation.routeEdge(d, undefined);
+                            const arrayY = simulation.routeEdge(d, undefined, undefined);
                             const middleIndex = Math.floor(arrayY.length / 2) - 1;
                             const midpoint = (arrayY[middleIndex].y + arrayY[middleIndex + 1].y - textHeight) / 2;
                             const oldY = thisSel.attr("y");
@@ -1682,7 +1682,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         const parent = d3.select(me.parentNode);
         const textBox = element.select("text");
         const textFo = element.select(".edge-foreign-object");
-        const array = simulation.routeEdge(d, undefined);
+        const array = simulation.routeEdge(d, undefined, undefined);
         const middleIndex = Math.floor(array.length / 2) - 1;
         const xMid = (array[middleIndex].x + array[middleIndex + 1].x) / 2;
         const yMid = (array[middleIndex].y + array[middleIndex + 1].y) / 2;
