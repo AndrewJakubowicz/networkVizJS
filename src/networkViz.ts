@@ -65,18 +65,20 @@ function networkVizJS(documentId, userLayoutOptions) {
         snapToAlignment: true,
         snapThreshold: 10,
         zoomScale: undefined,
+        isSelect: () => false,
     };
-    const X = 37;
-    const Y = -13;
-    const p1x = 25 + X;
-    const p1y = 25 + Y;
-    const p2x = 75 + X;
-    const p3x = 100 + X;
-    const p4y = 50 + Y;
-    const d0 = "M16 48 L48 48 L48 16 L16 16 Z", // RECT
-        d1 = "M20,40a20,20 0 1,0 40,0a20,20 0 1,0 -40,0", // CIRCLE
-        // d2 = "M148.1,310.5h-13.4c-4.2,0-7.7-3.4-7.7-7.7v-7.4c0-4.2,3.4-7.7,7.7-7.7h13.4c4.2,0,7.7,3.4,7.7,7.7v7.4  C155.7,307.1,152.3,310.5,148.1,310.5z"; // CAPSULE
-        d2 = `M ${p1x} ${p1y} L ${p2x} ${p1y} C ${p3x} ${p1y} ${p3x} ${p4y} ${p2x} ${p4y} L ${p1x} ${p4y} C ${X} ${p4y} ${X} ${p1y} ${p1x} ${p1y} `; // CAPSULE
+    // const X = 37;
+    // const Y = -13;
+    // const p1x = 25 + X;
+    // const p1y = 25 + Y;
+    // const p2x = 75 + X;
+    // const p3x = 100 + X;
+    // const p4y = 50 + Y;
+    // const d0 = "M16 48 L48 48 L48 16 L16 16 Z", // RECT
+    //     d1 = "M20,40a20,20 0 1,0 40,0a20,20 0 1,0 -40,0", // CIRCLE
+    //     // d2 = "M148.1,310.5h-13.4c-4.2,0-7.7-3.4-7.7-7.7v-7.4c0-4.2,3.4-7.7,7.7-7.7h13.4c4.2,0,7.7,3.4,7.7,7.7v7.4  C155.7,307.1,152.3,310.5,148.1,310.5z"; // CAPSULE
+    //     d2 = `M ${p1x} ${p1y} L ${p2x} ${p1y} C ${p3x} ${p1y} ${p3x} ${p4y} ${p2x} ${p4y} L ${p1x} ${p4y} C ${X} ${p4y} ${X} ${p1y} ${p1x} ${p1y} `; // CAPSULE
+    //
     const internalOptions = {
         isDragging: false
     };
@@ -200,7 +202,7 @@ function networkVizJS(documentId, userLayoutOptions) {
     const zoom = d3.zoom().scaleExtent([0.1, 5]).on("zoom", zoomed);
     zoom.filter(function () {
         // Prevent zoom when mouse over node.
-        return d3.event.target.tagName.toLowerCase() === "svg";
+        return d3.event.target.tagName.toLowerCase() === "svg" && !layoutOptions.isSelect();
     });
     svg.call(zoom).on("dblclick.zoom", undefined);
 
@@ -208,6 +210,30 @@ function networkVizJS(documentId, userLayoutOptions) {
         layoutOptions.clickAway();
         g.attr("transform", d3.event.transform);
         layoutOptions.zoomScale && layoutOptions.zoomScale(d3.event.transform.k);
+    }
+
+    /**
+     * Get nodes within a boundary
+     * @param {Object} boundary - Bounds to search within
+     * @param {Number} boundary.x
+     * @param {Number} boundary.X
+     * @param {Number} boundary.y
+     * @param {Number} boundary.Y
+     * @returns {any[]} - Array of node objects
+     */
+    function selectByCoords(boundary: { x: number, X: number, y: number, Y: number }) {
+        const newSelect = [];
+        const x = Math.min(boundary.x, boundary.X);
+        const X = Math.max(boundary.x, boundary.X);
+        const y = Math.min(boundary.y, boundary.Y);
+        const Y = Math.max(boundary.y, boundary.Y);
+        nodes.forEach((d) => {
+            if (Math.max(d.bounds.x, x) <= Math.min(d.bounds.X, X) &&
+                Math.max(d.bounds.y, y) <= Math.min(d.bounds.Y, Y)) {
+                newSelect.push(d);
+            }
+        });
+        return newSelect;
     }
 
     /**
@@ -463,6 +489,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             colorPickerEl.css("color", d.color);
             colorPickerEl.css("text-shadow", "1px 0px 6px #1f2d3d");
             colorPickerEl.click(function (e) {
+                e.stopPropagation();
                 layoutOptions.mouseOverBrush && layoutOptions.mouseOverBrush(e, element, d);
             })
                 .on("mouseout", function () {
@@ -772,6 +799,21 @@ function networkVizJS(documentId, userLayoutOptions) {
                     return d.shortname || d.hash;
                 })
                 .attr("class", d => d.class)
+                .style("color", d => {
+                    let color = "#000000";
+                    if (d.color) {
+                        if (d.color.length === 7 && d.color[0] === "#") {
+                            const r = parseInt(d.color.substring(1, 3), 16);
+                            const g = parseInt(d.color.substring(3, 5), 16);
+                            const b = parseInt(d.color.substring(5, 7), 16);
+                            const brightness = Math.sqrt(0.241 * r * r + 0.691 * g * g + 0.068 * b * b);
+                            if (brightness < 130) {
+                                color = "#FFFFFF";
+                            }
+                        }
+                    }
+                    return color;
+                })
                 .style("max-width", d => d.fixedWidth ? d.width - layoutOptions.pad * 2 + layoutOptions.margin + "px" : "none")
                 .style("word-break", d => d.fixedWidth ? "break-word" : "normal")
                 .style("white-space", d => d.fixedWidth ? "pre-wrap" : "pre");
@@ -1217,7 +1259,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * @param callback
      * @param preventLayout
      */
-    function addTriplet(tripletObject, callback, preventLayout) {
+    function addTriplet(tripletObject, callback?, preventLayout?) {
         if (!tripletValidation(tripletObject)) {
             return Promise.reject("Invalid triplet");
         }
@@ -1305,13 +1347,14 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Removes a triplet object. Silently fails if edge doesn't exist.
      * @param {object} tripletObject
      * @param callback
+     * @returns {Promise<void>}
      */
     function removeTriplet(tripletObject, callback) {
         if (!tripletValidation(tripletObject)) {
             return;
         }
         const subject = tripletObject.subject, predicate = tripletObject.predicate, object = tripletObject.object;
-        new Promise((resolve, reject) => tripletsDB.del({
+        return new Promise((resolve, reject) => tripletsDB.del({
             subject: subject.hash,
             predicate: predicate,
             object: object.hash
@@ -1519,6 +1562,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         node.filter(d => d.id === id).select("path").attr("fill", values[0]);
                     }
                 });
+                updateStyles();
                 break;
             }
             case "nodeShape": {
@@ -2292,6 +2336,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         getDB: () => tripletsDB,
         // Get node from nodeMap
         getNode: (hash) => nodeMap.get(hash),
+        // Get node by coordinates
+        selectByCoords,
         // Get edge from predicateMap
         getPredicate: (hash) => predicateMap.get(hash),
         // Get Layout options
