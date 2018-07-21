@@ -1888,7 +1888,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 }
                 return acc;
             }, { coord: undefined, array: [], offset: undefined });
-            if (!alignments.coord) { // If not centre aligned check for edge alignment
+            // if (!alignments.coord) { // If not centre aligned check for edge alignment
                 alignments = [... edgeMap.entries()].reduce((acc, curr) => {
                     if (curr[0] > position + offset - threshold && curr[0] < position + offset + threshold && curr[1].length > acc.array.length) {
                         return { coord: curr[0], array: curr[1], offset: offset };
@@ -1898,8 +1898,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                     }
                     return acc;
 
-                }, { coord: undefined, array: [], offset: undefined });
-            }
+                }, alignments);
+            // }
             return alignments;
         };
         const xAlign = findAligns({ centreMap: gridCX, edgeMap: gridX, offset: xOffset, threshold, position: e.x });
