@@ -701,7 +701,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .classed("fo-div", true)
                 .attr("xmlns", "http://www.w3.org/1999/xhtml");
             foBox.append("text")
-                .attr("contenteditable", "true")
+                // .attr("contenteditable", "true")
                 .attr("tabindex", "-1")
                 .attr("class", d => d.class)
                 .attr("pointer-events", "none")
@@ -768,8 +768,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                         const r = parseInt(d.color.substring(1, 3), 16);
                         const g = parseInt(d.color.substring(3, 5), 16);
                         const b = parseInt(d.color.substring(5, 7), 16);
-                        const brightness = Math.sqrt(0.241 * r * r + 0.691 * g * g + 0.068 * b * b);
-                        if (brightness < 130) {
+                        const brightness = Math.sqrt(0.299 * r * r + 0.587 * g * g + 0.114 * b * b);
+                        if (brightness <= 150) {
                             color = "#FFFFFF";
                         }
                     }
