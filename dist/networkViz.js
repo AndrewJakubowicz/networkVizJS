@@ -701,7 +701,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .classed("fo-div", true)
                 .attr("xmlns", "http://www.w3.org/1999/xhtml");
             foBox.append("text")
-                // .attr("contenteditable", "true")
                 .attr("tabindex", "-1")
                 .attr("class", d => d.class)
                 .attr("pointer-events", "none")
@@ -769,7 +768,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         const g = parseInt(d.color.substring(3, 5), 16);
                         const b = parseInt(d.color.substring(5, 7), 16);
                         const brightness = Math.sqrt(0.299 * r * r + 0.587 * g * g + 0.114 * b * b);
-                        if (brightness <= 150) {
+                        if (brightness <= 170) {
                             color = "#FFFFFF";
                         }
                     }
@@ -1815,7 +1814,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 }
                 return acc;
             }, { coord: undefined, array: [], offset: undefined });
-            // if (!alignments.coord) { // If not centre aligned check for edge alignment
+            // check for edge alignments
             alignments = [...edgeMap.entries()].reduce((acc, curr) => {
                 if (curr[0] > position + offset - threshold && curr[0] < position + offset + threshold && curr[1].length > acc.array.length) {
                     return { coord: curr[0], array: curr[1], offset: offset };
@@ -1825,7 +1824,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                 }
                 return acc;
             }, alignments);
-            // }
             return alignments;
         };
         const xAlign = findAligns({ centreMap: gridCX, edgeMap: gridX, offset: xOffset, threshold, position: e.x });
