@@ -207,13 +207,13 @@ function networkVizJS(documentId, userLayoutOptions) {
         layoutOptions.zoomScale && layoutOptions.zoomScale(d3.event.transform.k);
     }
     /**
-     * Get nodes within a boundary
+     * Return nodes and edges within a boundary
      * @param {Object} boundary - Bounds to search within
      * @param {Number} boundary.x
      * @param {Number} boundary.X
      * @param {Number} boundary.y
      * @param {Number} boundary.Y
-     * @returns {any[]} - Array of node objects
+     * @returns {{nodes: any[]; edges: any[]}} - object containing node array and edge array
      */
     function selectByCoords(boundary) {
         const newSelect = [];
@@ -227,7 +227,14 @@ function networkVizJS(documentId, userLayoutOptions) {
                 newSelect.push(d);
             }
         });
-        return newSelect;
+        const edges = d3.selectAll(".line")
+            .filter(function () {
+            const bounds = this.getBBox();
+            const insidex = bounds.x >= x && bounds.x + bounds.width <= X;
+            const insidey = bounds.y >= y && bounds.y + bounds.height <= Y;
+            return insidex && insidey;
+        });
+        return { nodes: newSelect, edges: edges.data() };
     }
     /**
      * Resets width or radius of nodes.
@@ -829,6 +836,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr("stroke", "rgba(0, 0, 0, 0)")
                 .attr("fill", "none");
             linkEnter.append("path")
+                .attr("class", "line-front")
                 .attr("stroke-width", layoutOptions.edgeStroke)
                 .attr("stroke", layoutOptions.edgeColor)
                 .attr("fill", "none")
@@ -839,11 +847,12 @@ function networkVizJS(documentId, userLayoutOptions) {
                 deleteEdgeHoverMenu(d, this);
             }).on("click", function (d) {
                 const elem = d3.select(this);
+                const e = d3.event;
                 // IMPORTANT, without this vuegraph will crash in SWARM. bug caused by blur event handled by medium editor.
-                d3.event.stopPropagation();
+                e.stopPropagation();
                 layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
                 setTimeout(() => {
-                    layoutOptions.clickEdge(d, elem);
+                    layoutOptions.clickEdge(d, elem, e);
                 }, 50);
             });
             // Add an empty text field.
@@ -877,6 +886,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                     return layoutOptions.edgeLabelText(d.predicate);
                 });
             }
+            link.select(".line-front")
+                .attr("class", d => "line-front " + d.predicate.class);
             return resolve();
         });
     }
