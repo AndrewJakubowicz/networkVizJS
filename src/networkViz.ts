@@ -66,6 +66,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         snapThreshold: 10,
         zoomScale: undefined,
         isSelect: () => false,
+        selection: undefined,
     };
     // const X = 37;
     // const Y = -13;
@@ -187,6 +188,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         .append("path")
         .attr("d", "M 50 0 L 50 40 L 0 20 Z")
         .attr("fill", "rgb(150,150,150)");
+    createColorArrow_1.default(defs, "#409EFF");
     // Define svg groups for storing the visuals.
     const g = svg.append("g")
         .classed("svg-graph", true);
@@ -929,6 +931,12 @@ function networkVizJS(documentId, userLayoutOptions) {
                 });
             }
             link.select(".line-front")
+                .attr("marker-end", d => {
+                    if (d.predicate.class.includes("highlight")) {
+                        return "url(#arrow-409EFF)";
+                    }
+                    return `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.edgeData)})`;
+                })
                 .attr("class", d => "line-front " + d.predicate.class);
             return resolve();
         });
@@ -1843,479 +1851,490 @@ function networkVizJS(documentId, userLayoutOptions) {
     };
 
     function dragged(d) {
-        if (!layoutOptions.nodeToPin(d) || !layoutOptions.snapToAlignment) {
+        const e = d3.event;
+        if (layoutOptions.isSelect && layoutOptions.isSelect()) {
+            const { dx, dy } = e;
+            [...layoutOptions.selection().nodes.values()]
+                .forEach(x => {
+                    if (x.id !== d.id) {
+                        x.px += dx;
+                        x.py += dy;
+                    }
+                });
             return;
         }
-        alignElements.remove();
-        const e = d3.event;
-        const threshold = layoutOptions.snapThreshold;
-        const xOffset = d.width / 2;
-        const yOffset = d.height / 2;
-        const gridX = new Map();
-        const gridY = new Map();
-        const gridCX = new Map();
-        const gridCY = new Map();
-        const dBoundsInflate = d.bounds.inflate(1);
-        const xOverlapNodes = [];
-        const yOverlapNodes = [];
-        const foundAlignment = {
-            x: false,
-            xDist: false,
-            y: false,
-            yDist: false,
-        };
 
-        const mapHelper = (mapObj, key, value) => {
-            value = [].concat(value);
-            mapObj.has(key) ? mapObj.set(key, mapObj.get(key).concat([value])) : mapObj.set(key, [value]);
-        };
+        if (layoutOptions.nodeToPin(d) && layoutOptions.snapToAlignment) {
+            alignElements.remove();
+            const threshold = layoutOptions.snapThreshold;
+            const xOffset = d.width / 2;
+            const yOffset = d.height / 2;
+            const gridX = new Map();
+            const gridY = new Map();
+            const gridCX = new Map();
+            const gridCY = new Map();
+            const dBoundsInflate = d.bounds.inflate(1);
+            const xOverlapNodes = [];
+            const yOverlapNodes = [];
+            const foundAlignment = {
+                x: false,
+                xDist: false,
+                y: false,
+                yDist: false,
+            };
 
-        nodes.forEach((node) => {
-            if (node.hash !== d.hash) {
-                // create map of possible alignment coordinates
-                const yCoords = [node.bounds.y, node.bounds.Y];
-                const xCoords = [node.bounds.x, node.bounds.X];
-                xCoords.forEach(x => mapHelper(gridX, Math.round(x * 2) / 2, yCoords));
-                yCoords.forEach(y => mapHelper(gridY, Math.round(y * 2) / 2, xCoords));
-                mapHelper(gridCX, Math.round(node.bounds.cx() * 2) / 2, yCoords);
-                mapHelper(gridCY, Math.round(node.bounds.cy() * 2) / 2, xCoords);
+            const mapHelper = (mapObj, key, value) => {
+                value = [].concat(value);
+                mapObj.has(key) ? mapObj.set(key, mapObj.get(key).concat([value])) : mapObj.set(key, [value]);
+            };
 
-                // find all overlapping node boundaries
-                if (node.bounds.overlapX(dBoundsInflate) > 0) {
-                    xOverlapNodes.push(node.bounds);
+            nodes.forEach((node) => {
+                if (node.hash !== d.hash) {
+                    // create map of possible alignment coordinates
+                    const yCoords = [node.bounds.y, node.bounds.Y];
+                    const xCoords = [node.bounds.x, node.bounds.X];
+                    xCoords.forEach(x => mapHelper(gridX, Math.round(x * 2) / 2, yCoords));
+                    yCoords.forEach(y => mapHelper(gridY, Math.round(y * 2) / 2, xCoords));
+                    mapHelper(gridCX, Math.round(node.bounds.cx() * 2) / 2, yCoords);
+                    mapHelper(gridCY, Math.round(node.bounds.cy() * 2) / 2, xCoords);
+
+                    // find all overlapping node boundaries
+                    if (node.bounds.overlapX(dBoundsInflate) > 0) {
+                        xOverlapNodes.push(node.bounds);
+                    }
+                    if (node.bounds.overlapY(dBoundsInflate) > 0) {
+                        yOverlapNodes.push(node.bounds);
+                    }
                 }
-                if (node.bounds.overlapY(dBoundsInflate) > 0) {
-                    yOverlapNodes.push(node.bounds);
-                }
+            });
+
+            const findAligns = ({ centreMap, edgeMap, offset, threshold, position }) => {
+                // check for centre alignments
+                let alignments = [... centreMap.entries()].reduce((acc, curr) => {
+                    if (curr[0] > position - threshold && curr[0] < position + threshold && curr[1].length > acc.array.length) {
+                        return { coord: curr[0], array: curr[1], offset: 0 };
+                    }
+                    return acc;
+                }, { coord: undefined, array: [], offset: undefined });
+                // check for edge alignments
+                alignments = [... edgeMap.entries()].reduce((acc, curr) => {
+                    if (curr[0] > position + offset - threshold && curr[0] < position + offset + threshold && curr[1].length > acc.array.length) {
+                        return { coord: curr[0], array: curr[1], offset: offset };
+                    }
+                    if (curr[0] > position - offset - threshold && curr[0] < position - offset + threshold && curr[1].length > acc.array.length) {
+                        return { coord: curr[0], array: curr[1], offset: -offset };
+                    }
+                    return acc;
+
+                }, alignments);
+                return alignments;
+            };
+            const xAlign = findAligns({ centreMap: gridCX, edgeMap: gridX, offset: xOffset, threshold, position: e.x });
+            const yAlign = findAligns({ centreMap: gridCY, edgeMap: gridY, offset: yOffset, threshold, position: e.y });
+            if (xAlign.coord) { // if X alignment found
+                const yarr = xAlign.array.reduce((acc, curr) => acc.concat(curr), []);
+                alignElements.create("x", {
+                    x: xAlign.coord,
+                    X: xAlign.coord,
+                    y: Math.min(...yarr, d.bounds.y) - 4,
+                    Y: Math.max(...yarr, d.bounds.Y) + 4,
+                });
+                d.px = xAlign.coord - xAlign.offset;
+                foundAlignment.x = true;
             }
-        });
-
-        const findAligns = ({ centreMap, edgeMap, offset, threshold, position }) => {
-            // check for centre alignments
-            let alignments = [... centreMap.entries()].reduce((acc, curr) => {
-                if (curr[0] > position - threshold && curr[0] < position + threshold && curr[1].length > acc.array.length) {
-                    return { coord: curr[0], array: curr[1], offset: 0 };
-                }
-                return acc;
-            }, { coord: undefined, array: [], offset: undefined });
-            // check for edge alignments
-            alignments = [... edgeMap.entries()].reduce((acc, curr) => {
-                if (curr[0] > position + offset - threshold && curr[0] < position + offset + threshold && curr[1].length > acc.array.length) {
-                    return { coord: curr[0], array: curr[1], offset: offset };
-                }
-                if (curr[0] > position - offset - threshold && curr[0] < position - offset + threshold && curr[1].length > acc.array.length) {
-                    return { coord: curr[0], array: curr[1], offset: -offset };
-                }
-                return acc;
-
-            }, alignments);
-            return alignments;
-        };
-        const xAlign = findAligns({ centreMap: gridCX, edgeMap: gridX, offset: xOffset, threshold, position: e.x });
-        const yAlign = findAligns({ centreMap: gridCY, edgeMap: gridY, offset: yOffset, threshold, position: e.y });
-        if (xAlign.coord) { // if X alignment found
-            const yarr = xAlign.array.reduce((acc, curr) => acc.concat(curr), []);
-            alignElements.create("x", {
-                x: xAlign.coord,
-                X: xAlign.coord,
-                y: Math.min(...yarr, d.bounds.y) - 4,
-                Y: Math.max(...yarr, d.bounds.Y) + 4,
-            });
-            d.px = xAlign.coord - xAlign.offset;
-            foundAlignment.x = true;
-        }
-        if (yAlign.coord) { // if Y alignment found
-            const xarr = yAlign.array.reduce((acc, curr) => acc.concat(curr), []);
-            alignElements.create("y", {
-                x: Math.min(...xarr, d.bounds.x) - 4,
-                X: Math.max(...xarr, d.bounds.X) + 4,
-                y: yAlign.coord,
-                Y: yAlign.coord,
-            });
-            // +1 required otherwise nodes collide.
-            const offset = yAlign.offset === 0 ? 0 : yAlign.offset > 0 ? yAlign.offset + 1 : yAlign.offset - 1;
-            d.py = yAlign.coord - offset;
-            foundAlignment.y = true;
-        }
-
-        // Sort overlapping boundaries by position in increasing order
-        xOverlapNodes.sort((a, b) => (a.y - b.y));
-        yOverlapNodes.sort((a, b) => (a.x - b.x));
-
-        const findOverlapGroups = ({ bounds, splitThreshold, axis }) => {
-            const invAxis = axis === "X" ? "Y" : "X";
-            const overlapGroups = [];
-            let index: number = -1;
-            const visited: boolean[] = new Array(bounds.length).fill(false);
-            let tempArray = [];
-            let newNode = false;
-            for (let i = 0; i < bounds.length; i++) {
-                if (bounds[i][invAxis] < splitThreshold) {
-                    index = i;
-                }
-                if (visited.every(v => v)) {
-                    continue;
-                }
-                newNode = false;
-                if (!visited[i]) {
-                    newNode = true;
-                    visited[i] = true;
-                }
-                tempArray = [bounds[i]];
-                for (let j = i + 1; j < bounds.length; j++) {
-                    if ((axis === "X" && bounds[i].overlapX(bounds[j]) > 0) || (axis === "Y" && bounds[i].overlapY(bounds[j]) > 0)) {
-                        if (!visited[j]) {
-                            newNode = true;
-                            visited[j] = true;
-                        }
-                        tempArray.push(bounds[j]);
-                    }
-                }
-                if (newNode && tempArray.length > 1) {
-                    overlapGroups.push(tempArray);
-                }
+            if (yAlign.coord) { // if Y alignment found
+                const xarr = yAlign.array.reduce((acc, curr) => acc.concat(curr), []);
+                alignElements.create("y", {
+                    x: Math.min(...xarr, d.bounds.x) - 4,
+                    X: Math.max(...xarr, d.bounds.X) + 4,
+                    y: yAlign.coord,
+                    Y: yAlign.coord,
+                });
+                // +1 required otherwise nodes collide.
+                const offset = yAlign.offset === 0 ? 0 : yAlign.offset > 0 ? yAlign.offset + 1 : yAlign.offset - 1;
+                d.py = yAlign.coord - offset;
+                foundAlignment.y = true;
             }
-            return { overlapGroups, index };
-        };
 
-        const { overlapGroups: xOverlapGroups, index: xIndex } = findOverlapGroups({
-            bounds: xOverlapNodes,
-            splitThreshold: e.y - yOffset,
-            axis: "X",
-        });
-        const { overlapGroups: yOverlapGroups, index: yIndex } = findOverlapGroups({
-            bounds: yOverlapNodes,
-            splitThreshold: e.x - xOffset,
-            axis: "Y",
-        });
-        const dimensioningLines = {
-            projection: [],
-            dimension: [],
-        };
-        // If overlaps found in X axis
+            // Sort overlapping boundaries by position in increasing order
+            xOverlapNodes.sort((a, b) => (a.y - b.y));
+            yOverlapNodes.sort((a, b) => (a.x - b.x));
 
-        if (xOverlapGroups.length > 0) {
-            const xGaps = new Map();
-            xOverlapGroups.forEach((group) => {
-                for (let i = 1; i < group.length; i++) {
-                    mapHelper(xGaps, group[i].y - group[i - 1].Y, [group[i - 1], group[i]]);
-                }
-            });
-
-            const dimensionLineHelper = (pair) => {
-                const x = Math.max(...pair.reduce((acc, curr) => acc.concat(curr.X), []));
-                dimensioningLines.projection.push({
-                    x: pair[0].X,
-                    X: x + 12,
-                    y: pair[0].Y,
-                    Y: pair[0].Y,
-                });
-                dimensioningLines.projection.push({
-                    x: pair[1].X,
-                    X: x + 12,
-                    y: pair[1].y,
-                    Y: pair[1].y,
-                });
-                dimensioningLines.dimension.push({
-                    x: x + 9,
-                    X: x + 9,
-                    y: pair[0].Y,
-                    Y: pair[1].y,
-                });
-            };
-
-            const dimLinesBelow = (i, g) => {
-                const X = Math.max(d.bounds.X, xOverlapNodes[i].X);
-                // projection line on target node
-                dimensioningLines.projection.push({
-                    x: d.bounds.X,
-                    X: X + 12,
-                    y: xOverlapNodes[i].y - g,
-                    Y: xOverlapNodes[i].y - g,
-                });
-                // projection line on neighbour node
-                dimensioningLines.projection.push({
-                    x: xOverlapNodes[i].X,
-                    X: X + 12,
-                    y: xOverlapNodes[i].y,
-                    Y: xOverlapNodes[i].y,
-                });
-                // dimension line between projection lines
-                dimensioningLines.dimension.push({
-                    x: X + 9,
-                    X: X + 9,
-                    y: xOverlapNodes[i].y - g,
-                    Y: xOverlapNodes[i].y,
-                });
-            };
-
-            const dimLinesAbove = (i, g) => {
-                const X = Math.max(d.bounds.X, xOverlapNodes[i].X);
-                // projection line on target node
-                dimensioningLines.projection.push({
-                    x: d.bounds.X,
-                    X: X + 12,
-                    y: xOverlapNodes[i].Y + g,
-                    Y: xOverlapNodes[i].Y + g,
-                });
-                // projection line on neighbour node
-                dimensioningLines.projection.push({
-                    x: xOverlapNodes[i].X,
-                    X: X + 12,
-                    y: xOverlapNodes[i].Y,
-                    Y: xOverlapNodes[i].Y,
-                });
-                // dimension line between projection lines
-                dimensioningLines.dimension.push({
-                    x: X + 9,
-                    X: X + 9,
-                    y: xOverlapNodes[i].Y + g,
-                    Y: xOverlapNodes[i].Y,
-                });
-            };
-
-            xGaps.forEach((b, g) => {
-                let alignFound = false;
-                if (xIndex > -1) {
-                    if (xOverlapNodes[xIndex].Y + g > e.y - yOffset - threshold && xOverlapNodes[xIndex].Y + g < e.y - yOffset + threshold) {
-                        if (!foundAlignment.y || d.py === xOverlapNodes[xIndex].Y + g + yOffset) {
-                            d.py = xOverlapNodes[xIndex].Y + g + yOffset;
-                            dimLinesAbove(xIndex, g);
-                            alignFound = true;
-                            foundAlignment.yDist = true;
-                        }
-
+            const findOverlapGroups = ({ bounds, splitThreshold, axis }) => {
+                const invAxis = axis === "X" ? "Y" : "X";
+                const overlapGroups = [];
+                let index: number = -1;
+                const visited: boolean[] = new Array(bounds.length).fill(false);
+                let tempArray = [];
+                let newNode = false;
+                for (let i = 0; i < bounds.length; i++) {
+                    if (bounds[i][invAxis] < splitThreshold) {
+                        index = i;
                     }
-                }
-                if (xIndex < xOverlapNodes.length - 1) {
-                    if (xOverlapNodes[xIndex + 1].y - g > e.y + yOffset - threshold && xOverlapNodes[xIndex + 1].y - g < e.y + yOffset + threshold) {
-                        if (!foundAlignment.y || d.py === xOverlapNodes[xIndex + 1].y - g - yOffset) {
-                            d.py = xOverlapNodes[xIndex + 1].y - g - yOffset;
-                            dimLinesBelow(xIndex + 1, g);
-                            alignFound = true;
-                            foundAlignment.yDist = true;
+                    if (visited.every(v => v)) {
+                        continue;
+                    }
+                    newNode = false;
+                    if (!visited[i]) {
+                        newNode = true;
+                        visited[i] = true;
+                    }
+                    tempArray = [bounds[i]];
+                    for (let j = i + 1; j < bounds.length; j++) {
+                        if ((axis === "X" && bounds[i].overlapX(bounds[j]) > 0) || (axis === "Y" && bounds[i].overlapY(bounds[j]) > 0)) {
+                            if (!visited[j]) {
+                                newNode = true;
+                                visited[j] = true;
+                            }
+                            tempArray.push(bounds[j]);
                         }
                     }
+                    if (newNode && tempArray.length > 1) {
+                        overlapGroups.push(tempArray);
+                    }
                 }
-                if (alignFound) {
-                    b.forEach(pair => dimensionLineHelper(pair));
-                    alignElements.create("yDist", dimensioningLines);
-                }
+                return { overlapGroups, index };
+            };
+
+            const { overlapGroups: xOverlapGroups, index: xIndex } = findOverlapGroups({
+                bounds: xOverlapNodes,
+                splitThreshold: e.y - yOffset,
+                axis: "X",
             });
-            // if target node is in middle
-            if (xIndex >= 0 && xIndex < xOverlapNodes.length - 1 && !foundAlignment.yDist) {
-                const midpoint = (xOverlapNodes[xIndex + 1].y + xOverlapNodes[xIndex].Y) / 2;
-                const y = midpoint - yOffset;
-                const Y = midpoint + yOffset;
-                if (midpoint > e.y - threshold && midpoint < e.y + threshold && (!foundAlignment.y || d.py === midpoint)) {
-                    d.py = midpoint;
-                    const X = Math.max(d.bounds.X, xOverlapNodes[xIndex].X, xOverlapNodes[xIndex + 1].X);
-                    // projection line on target node bottom
+            const { overlapGroups: yOverlapGroups, index: yIndex } = findOverlapGroups({
+                bounds: yOverlapNodes,
+                splitThreshold: e.x - xOffset,
+                axis: "Y",
+            });
+            const dimensioningLines = {
+                projection: [],
+                dimension: [],
+            };
+            // If overlaps found in X axis
+
+            if (xOverlapGroups.length > 0) {
+                const xGaps = new Map();
+                xOverlapGroups.forEach((group) => {
+                    for (let i = 1; i < group.length; i++) {
+                        mapHelper(xGaps, group[i].y - group[i - 1].Y, [group[i - 1], group[i]]);
+                    }
+                });
+
+                const dimensionLineHelper = (pair) => {
+                    const x = Math.max(...pair.reduce((acc, curr) => acc.concat(curr.X), []));
+                    dimensioningLines.projection.push({
+                        x: pair[0].X,
+                        X: x + 12,
+                        y: pair[0].Y,
+                        Y: pair[0].Y,
+                    });
+                    dimensioningLines.projection.push({
+                        x: pair[1].X,
+                        X: x + 12,
+                        y: pair[1].y,
+                        Y: pair[1].y,
+                    });
+                    dimensioningLines.dimension.push({
+                        x: x + 9,
+                        X: x + 9,
+                        y: pair[0].Y,
+                        Y: pair[1].y,
+                    });
+                };
+
+                const dimLinesBelow = (i, g) => {
+                    const X = Math.max(d.bounds.X, xOverlapNodes[i].X);
+                    // projection line on target node
                     dimensioningLines.projection.push({
                         x: d.bounds.X,
                         X: X + 12,
-                        y: Y,
-                        Y: Y,
+                        y: xOverlapNodes[i].y - g,
+                        Y: xOverlapNodes[i].y - g,
                     });
-                    // projection line on top neighbour node
+                    // projection line on neighbour node
                     dimensioningLines.projection.push({
-                        x: xOverlapNodes[xIndex].X,
+                        x: xOverlapNodes[i].X,
                         X: X + 12,
-                        y: xOverlapNodes[xIndex].Y,
-                        Y: xOverlapNodes[xIndex].Y,
+                        y: xOverlapNodes[i].y,
+                        Y: xOverlapNodes[i].y,
                     });
-                    // dimension node above
+                    // dimension line between projection lines
                     dimensioningLines.dimension.push({
                         x: X + 9,
                         X: X + 9,
-                        y: y,
-                        Y: xOverlapNodes[xIndex].Y,
+                        y: xOverlapNodes[i].y - g,
+                        Y: xOverlapNodes[i].y,
                     });
-                    // projection line on target node top
+                };
+
+                const dimLinesAbove = (i, g) => {
+                    const X = Math.max(d.bounds.X, xOverlapNodes[i].X);
+                    // projection line on target node
                     dimensioningLines.projection.push({
                         x: d.bounds.X,
                         X: X + 12,
-                        y: y,
-                        Y: y,
+                        y: xOverlapNodes[i].Y + g,
+                        Y: xOverlapNodes[i].Y + g,
                     });
-                    // projection line on bottom neighbour  node
+                    // projection line on neighbour node
                     dimensioningLines.projection.push({
-                        x: xOverlapNodes[xIndex + 1].X,
+                        x: xOverlapNodes[i].X,
                         X: X + 12,
-                        y: xOverlapNodes[xIndex + 1].y,
-                        Y: xOverlapNodes[xIndex + 1].y,
+                        y: xOverlapNodes[i].Y,
+                        Y: xOverlapNodes[i].Y,
                     });
-                    // dimension node below
+                    // dimension line between projection lines
                     dimensioningLines.dimension.push({
                         x: X + 9,
                         X: X + 9,
-                        y: Y,
-                        Y: xOverlapNodes[xIndex + 1].y,
+                        y: xOverlapNodes[i].Y + g,
+                        Y: xOverlapNodes[i].Y,
                     });
-                    alignElements.create("yDist", dimensioningLines);
+                };
+
+                xGaps.forEach((b, g) => {
+                    let alignFound = false;
+                    if (xIndex > -1) {
+                        if (xOverlapNodes[xIndex].Y + g > e.y - yOffset - threshold && xOverlapNodes[xIndex].Y + g < e.y - yOffset + threshold) {
+                            if (!foundAlignment.y || d.py === xOverlapNodes[xIndex].Y + g + yOffset) {
+                                d.py = xOverlapNodes[xIndex].Y + g + yOffset;
+                                dimLinesAbove(xIndex, g);
+                                alignFound = true;
+                                foundAlignment.yDist = true;
+                            }
+
+                        }
+                    }
+                    if (xIndex < xOverlapNodes.length - 1) {
+                        if (xOverlapNodes[xIndex + 1].y - g > e.y + yOffset - threshold && xOverlapNodes[xIndex + 1].y - g < e.y + yOffset + threshold) {
+                            if (!foundAlignment.y || d.py === xOverlapNodes[xIndex + 1].y - g - yOffset) {
+                                d.py = xOverlapNodes[xIndex + 1].y - g - yOffset;
+                                dimLinesBelow(xIndex + 1, g);
+                                alignFound = true;
+                                foundAlignment.yDist = true;
+                            }
+                        }
+                    }
+                    if (alignFound) {
+                        b.forEach(pair => dimensionLineHelper(pair));
+                        alignElements.create("yDist", dimensioningLines);
+                    }
+                });
+                // if target node is in middle
+                if (xIndex >= 0 && xIndex < xOverlapNodes.length - 1 && !foundAlignment.yDist) {
+                    const midpoint = (xOverlapNodes[xIndex + 1].y + xOverlapNodes[xIndex].Y) / 2;
+                    const y = midpoint - yOffset;
+                    const Y = midpoint + yOffset;
+                    if (midpoint > e.y - threshold && midpoint < e.y + threshold && (!foundAlignment.y || d.py === midpoint)) {
+                        d.py = midpoint;
+                        const X = Math.max(d.bounds.X, xOverlapNodes[xIndex].X, xOverlapNodes[xIndex + 1].X);
+                        // projection line on target node bottom
+                        dimensioningLines.projection.push({
+                            x: d.bounds.X,
+                            X: X + 12,
+                            y: Y,
+                            Y: Y,
+                        });
+                        // projection line on top neighbour node
+                        dimensioningLines.projection.push({
+                            x: xOverlapNodes[xIndex].X,
+                            X: X + 12,
+                            y: xOverlapNodes[xIndex].Y,
+                            Y: xOverlapNodes[xIndex].Y,
+                        });
+                        // dimension node above
+                        dimensioningLines.dimension.push({
+                            x: X + 9,
+                            X: X + 9,
+                            y: y,
+                            Y: xOverlapNodes[xIndex].Y,
+                        });
+                        // projection line on target node top
+                        dimensioningLines.projection.push({
+                            x: d.bounds.X,
+                            X: X + 12,
+                            y: y,
+                            Y: y,
+                        });
+                        // projection line on bottom neighbour  node
+                        dimensioningLines.projection.push({
+                            x: xOverlapNodes[xIndex + 1].X,
+                            X: X + 12,
+                            y: xOverlapNodes[xIndex + 1].y,
+                            Y: xOverlapNodes[xIndex + 1].y,
+                        });
+                        // dimension node below
+                        dimensioningLines.dimension.push({
+                            x: X + 9,
+                            X: X + 9,
+                            y: Y,
+                            Y: xOverlapNodes[xIndex + 1].y,
+                        });
+                        alignElements.create("yDist", dimensioningLines);
+                    }
                 }
+
             }
-
-        }
-        if (yOverlapGroups.length > 0) {
-            const yGaps = new Map();
-            yOverlapGroups.forEach((group) => {
-                for (let i = 1; i < group.length; i++) {
-                    mapHelper(yGaps, group[i].x - group[i - 1].X, [group[i - 1], group[i]]);
-                }
-            });
-
-            const dimensionLineHelper = (pair) => {
-                const y = Math.max(...pair.reduce((acc, curr) => acc.concat(curr.Y), []));
-                dimensioningLines.projection.push({
-                    y: pair[0].Y,
-                    Y: y + 12,
-                    x: pair[0].X,
-                    X: pair[0].X,
-                });
-                dimensioningLines.projection.push({
-                    y: pair[1].Y,
-                    Y: y + 12,
-                    x: pair[1].x,
-                    X: pair[1].x,
-                });
-                dimensioningLines.dimension.push({
-                    y: y + 9,
-                    Y: y + 9,
-                    x: pair[0].X,
-                    X: pair[1].x,
-                });
-            };
-
-            const dimLinesRight = (i, g) => {
-                const Y = Math.max(d.bounds.Y, yOverlapNodes[i].Y);
-                // projection line on target node
-                dimensioningLines.projection.push({
-                    y: d.bounds.Y,
-                    Y: Y + 12,
-                    x: yOverlapNodes[i].x - g,
-                    X: yOverlapNodes[i].x - g,
-                });
-                // projection line on neighbour node
-                dimensioningLines.projection.push({
-                    y: yOverlapNodes[i].Y,
-                    Y: Y + 12,
-                    x: yOverlapNodes[i].x,
-                    X: yOverlapNodes[i].x,
-                });
-                // dimension line between projection lines
-                dimensioningLines.dimension.push({
-                    y: Y + 9,
-                    Y: Y + 9,
-                    x: yOverlapNodes[i].x - g,
-                    X: yOverlapNodes[i].x,
-                });
-            };
-
-            const dimLinesLeft = (i, g) => {
-                const Y = Math.max(d.bounds.Y, yOverlapNodes[i].Y);
-                // projection line on target node
-                dimensioningLines.projection.push({
-                    y: d.bounds.Y,
-                    Y: Y + 12,
-                    x: yOverlapNodes[i].X + g,
-                    X: yOverlapNodes[i].X + g,
-                });
-                // projection line on neighbour node
-                dimensioningLines.projection.push({
-                    y: yOverlapNodes[i].Y,
-                    Y: Y + 12,
-                    x: yOverlapNodes[i].X,
-                    X: yOverlapNodes[i].X,
-                });
-                // dimension line between projection lines
-                dimensioningLines.dimension.push({
-                    y: Y + 9,
-                    Y: Y + 9,
-                    x: yOverlapNodes[i].X + g,
-                    X: yOverlapNodes[i].X,
-                });
-            };
-
-            yGaps.forEach((b, g) => {
-                let alignFound = false;
-                if (yIndex > -1) {
-                    if (yOverlapNodes[yIndex].X + g > e.x - xOffset - threshold && yOverlapNodes[yIndex].X + g < e.x - xOffset + threshold) {
-                        if (!foundAlignment.x || d.px === yOverlapNodes[yIndex].X + g + xOffset) {
-                            d.px = yOverlapNodes[yIndex].X + g + xOffset;
-                            dimLinesLeft(yIndex, g);
-                            alignFound = true;
-                            foundAlignment.xDist = true;
-                        }
-
+            if (yOverlapGroups.length > 0) {
+                const yGaps = new Map();
+                yOverlapGroups.forEach((group) => {
+                    for (let i = 1; i < group.length; i++) {
+                        mapHelper(yGaps, group[i].x - group[i - 1].X, [group[i - 1], group[i]]);
                     }
-                }
-                if (yIndex < yOverlapNodes.length - 1) {
-                    if (yOverlapNodes[yIndex + 1].x - g > e.x + xOffset - threshold && yOverlapNodes[yIndex + 1].x - g < e.x + xOffset + threshold) {
-                        if (!foundAlignment.x || d.px === yOverlapNodes[yIndex + 1].x - g - xOffset) {
-                            d.px = yOverlapNodes[yIndex + 1].x - g - xOffset;
-                            dimLinesRight(yIndex + 1, g);
-                            alignFound = true;
-                            foundAlignment.xDist = true;
-                        }
-                    }
-                }
-                if (alignFound) {
-                    b.forEach(pair => dimensionLineHelper(pair));
-                    alignElements.create("xDist", dimensioningLines);
-                }
-            });
-            // if target node is in middle
-            if (yIndex >= 0 && yIndex < yOverlapNodes.length - 1 && !foundAlignment.xDist) {
-                const midpoint = (yOverlapNodes[yIndex + 1].x + yOverlapNodes[yIndex].X) / 2;
-                const x = midpoint - xOffset;
-                const X = midpoint + xOffset;
-                if (midpoint > e.x - threshold && midpoint < e.x + threshold && (!foundAlignment.x || d.px === midpoint)) {
-                    d.px = midpoint;
-                    const Y = Math.max(d.bounds.Y, yOverlapNodes[yIndex].Y, yOverlapNodes[yIndex + 1].Y);
-                    // projection line on target node bottom
+                });
+
+                const dimensionLineHelper = (pair) => {
+                    const y = Math.max(...pair.reduce((acc, curr) => acc.concat(curr.Y), []));
+                    dimensioningLines.projection.push({
+                        y: pair[0].Y,
+                        Y: y + 12,
+                        x: pair[0].X,
+                        X: pair[0].X,
+                    });
+                    dimensioningLines.projection.push({
+                        y: pair[1].Y,
+                        Y: y + 12,
+                        x: pair[1].x,
+                        X: pair[1].x,
+                    });
+                    dimensioningLines.dimension.push({
+                        y: y + 9,
+                        Y: y + 9,
+                        x: pair[0].X,
+                        X: pair[1].x,
+                    });
+                };
+
+                const dimLinesRight = (i, g) => {
+                    const Y = Math.max(d.bounds.Y, yOverlapNodes[i].Y);
+                    // projection line on target node
                     dimensioningLines.projection.push({
                         y: d.bounds.Y,
                         Y: Y + 12,
-                        x: X,
-                        X: X,
+                        x: yOverlapNodes[i].x - g,
+                        X: yOverlapNodes[i].x - g,
                     });
-                    // projection line on top neighbour node
+                    // projection line on neighbour node
                     dimensioningLines.projection.push({
-                        y: yOverlapNodes[yIndex].Y,
+                        y: yOverlapNodes[i].Y,
                         Y: Y + 12,
-                        x: yOverlapNodes[yIndex].X,
-                        X: yOverlapNodes[yIndex].X,
+                        x: yOverlapNodes[i].x,
+                        X: yOverlapNodes[i].x,
                     });
-                    // dimension node above
+                    // dimension line between projection lines
                     dimensioningLines.dimension.push({
                         y: Y + 9,
                         Y: Y + 9,
-                        x: x,
-                        X: yOverlapNodes[yIndex].X,
+                        x: yOverlapNodes[i].x - g,
+                        X: yOverlapNodes[i].x,
                     });
-                    // projection line on target node top
+                };
+
+                const dimLinesLeft = (i, g) => {
+                    const Y = Math.max(d.bounds.Y, yOverlapNodes[i].Y);
+                    // projection line on target node
                     dimensioningLines.projection.push({
                         y: d.bounds.Y,
                         Y: Y + 12,
-                        x: x,
-                        X: x,
+                        x: yOverlapNodes[i].X + g,
+                        X: yOverlapNodes[i].X + g,
                     });
-                    // projection line on bottom neighbour  node
+                    // projection line on neighbour node
                     dimensioningLines.projection.push({
-                        y: yOverlapNodes[yIndex + 1].Y,
+                        y: yOverlapNodes[i].Y,
                         Y: Y + 12,
-                        x: yOverlapNodes[yIndex + 1].x,
-                        X: yOverlapNodes[yIndex + 1].x,
+                        x: yOverlapNodes[i].X,
+                        X: yOverlapNodes[i].X,
                     });
-                    // dimension node below
+                    // dimension line between projection lines
                     dimensioningLines.dimension.push({
                         y: Y + 9,
                         Y: Y + 9,
-                        x: X,
-                        X: yOverlapNodes[yIndex + 1].x,
+                        x: yOverlapNodes[i].X + g,
+                        X: yOverlapNodes[i].X,
                     });
-                    alignElements.create("xDist", dimensioningLines);
+                };
+
+                yGaps.forEach((b, g) => {
+                    let alignFound = false;
+                    if (yIndex > -1) {
+                        if (yOverlapNodes[yIndex].X + g > e.x - xOffset - threshold && yOverlapNodes[yIndex].X + g < e.x - xOffset + threshold) {
+                            if (!foundAlignment.x || d.px === yOverlapNodes[yIndex].X + g + xOffset) {
+                                d.px = yOverlapNodes[yIndex].X + g + xOffset;
+                                dimLinesLeft(yIndex, g);
+                                alignFound = true;
+                                foundAlignment.xDist = true;
+                            }
+
+                        }
+                    }
+                    if (yIndex < yOverlapNodes.length - 1) {
+                        if (yOverlapNodes[yIndex + 1].x - g > e.x + xOffset - threshold && yOverlapNodes[yIndex + 1].x - g < e.x + xOffset + threshold) {
+                            if (!foundAlignment.x || d.px === yOverlapNodes[yIndex + 1].x - g - xOffset) {
+                                d.px = yOverlapNodes[yIndex + 1].x - g - xOffset;
+                                dimLinesRight(yIndex + 1, g);
+                                alignFound = true;
+                                foundAlignment.xDist = true;
+                            }
+                        }
+                    }
+                    if (alignFound) {
+                        b.forEach(pair => dimensionLineHelper(pair));
+                        alignElements.create("xDist", dimensioningLines);
+                    }
+                });
+                // if target node is in middle
+                if (yIndex >= 0 && yIndex < yOverlapNodes.length - 1 && !foundAlignment.xDist) {
+                    const midpoint = (yOverlapNodes[yIndex + 1].x + yOverlapNodes[yIndex].X) / 2;
+                    const x = midpoint - xOffset;
+                    const X = midpoint + xOffset;
+                    if (midpoint > e.x - threshold && midpoint < e.x + threshold && (!foundAlignment.x || d.px === midpoint)) {
+                        d.px = midpoint;
+                        const Y = Math.max(d.bounds.Y, yOverlapNodes[yIndex].Y, yOverlapNodes[yIndex + 1].Y);
+                        // projection line on target node bottom
+                        dimensioningLines.projection.push({
+                            y: d.bounds.Y,
+                            Y: Y + 12,
+                            x: X,
+                            X: X,
+                        });
+                        // projection line on top neighbour node
+                        dimensioningLines.projection.push({
+                            y: yOverlapNodes[yIndex].Y,
+                            Y: Y + 12,
+                            x: yOverlapNodes[yIndex].X,
+                            X: yOverlapNodes[yIndex].X,
+                        });
+                        // dimension node above
+                        dimensioningLines.dimension.push({
+                            y: Y + 9,
+                            Y: Y + 9,
+                            x: x,
+                            X: yOverlapNodes[yIndex].X,
+                        });
+                        // projection line on target node top
+                        dimensioningLines.projection.push({
+                            y: d.bounds.Y,
+                            Y: Y + 12,
+                            x: x,
+                            X: x,
+                        });
+                        // projection line on bottom neighbour  node
+                        dimensioningLines.projection.push({
+                            y: yOverlapNodes[yIndex + 1].Y,
+                            Y: Y + 12,
+                            x: yOverlapNodes[yIndex + 1].x,
+                            X: yOverlapNodes[yIndex + 1].x,
+                        });
+                        // dimension node below
+                        dimensioningLines.dimension.push({
+                            y: Y + 9,
+                            Y: Y + 9,
+                            x: X,
+                            X: yOverlapNodes[yIndex + 1].x,
+                        });
+                        alignElements.create("xDist", dimensioningLines);
+                    }
                 }
             }
         }

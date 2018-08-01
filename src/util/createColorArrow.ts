@@ -5,7 +5,7 @@
  */
 export default function createColorArrow(defElement: any, color: string) {
     defElement.append("marker")
-        .attr("id", `arrow-${color}`)
+        .attr("id", `arrow-${color.replace(/^#/, "")}`)
         .attr("viewBox", "0 -5 10 10")
         .attr("refX", 8)
         .attr("markerWidth", 6)

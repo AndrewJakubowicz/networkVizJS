@@ -7,7 +7,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  */
 function createColorArrow(defElement, color) {
     defElement.append("marker")
-        .attr("id", `arrow-${color}`)
+        .attr("id", `arrow-${color.replace(/^#/, "")}`)
         .attr("viewBox", "0 -5 10 10")
         .attr("refX", 8)
         .attr("markerWidth", 6)
