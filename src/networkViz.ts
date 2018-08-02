@@ -236,11 +236,15 @@ function networkVizJS(documentId, userLayoutOptions) {
             }
         });
         const edges = d3.selectAll(".line")
+            .select(".line-front")
             .filter(function () {
-                const bounds = this.getBBox();
-                const insidex = bounds.x >= x && bounds.x + bounds.width <= X;
-                const insidey = bounds.y >= y && bounds.y + bounds.height <= Y;
-                return insidex && insidey;
+                const len = this.getTotalLength();
+                const p = len / 3;
+                const p1 = this.getPointAtLength(p);
+                const p2 = this.getPointAtLength(p * 2);
+                const p1In = p1.x >= x && p1.x <= X && p1.y >= y && p1.y <= Y;
+                const p2In = p2.x >= x && p2.x <= X && p2.y >= y && p2.y <= Y;
+                return p1In && p2In;
             });
         return { nodes: newSelect, edges: edges.data() };
     }
