@@ -18,14 +18,6 @@ module.exports = function(config) {
       , '__tests__/*.test.ts'
     ],
 
-  karmaTypescriptConfig: {
-      bundlerOptions: {
-          transforms: [
-              require("karma-typescript-es6-transform")()
-          ]
-      }
-  },
-
 
     // list of files to exclude
     exclude: [
@@ -35,7 +27,7 @@ module.exports = function(config) {
     // preprocess matching files before serving them to the browser
     // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
     preprocessors: {
-        "**/*.ts": ["karma-typescript"],
+        "**/*.(ts|tsx)": ["karma-typescript"],
     },
 
 
