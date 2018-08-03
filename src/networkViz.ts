@@ -4,7 +4,6 @@ import AlignElemContainer from "./util/AlignElemContainer";
 
 const d3 = require("d3");
 const cola = require("webcola");
-const $ = require("jquery");
 const levelgraph = require("levelgraph");
 const level = require("level-browserify");
 const updateColaLayout_1 = require("./updateColaLayout");
@@ -515,13 +514,14 @@ function networkVizJS(documentId, userLayoutOptions) {
         if (d.id.slice(0, 5) === "note-") {
             colorPik.append("div")
                 .html("<div id=\"controls\"><div><i class=\"fa fa-paint-brush\" id=\"bgpicker\"></i></div></div>");
-            const colorPickerEl = $("#bgpicker");
-            colorPickerEl.css("color", d.color);
-            colorPickerEl.css("text-shadow", "1px 0px 6px #1f2d3d");
-            colorPickerEl.click(function (e) {
-                e.stopPropagation();
-                layoutOptions.mouseOverBrush && layoutOptions.mouseOverBrush(e, element, d);
-            })
+            d3.select("#bgpicker")
+                .style("color", d.color)
+                .style("text-shadow", "1px 0px 6px #1f2d3d")
+                .on("click", function () {
+                    const e = d3.event;
+                    e.stopPropagation();
+                    layoutOptions.mouseOverBrush && layoutOptions.mouseOverBrush(d, element, e);
+                })
                 .on("mouseout", function () {
                     layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
                     setTimeout(function () {
