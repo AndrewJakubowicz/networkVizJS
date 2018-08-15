@@ -553,7 +553,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         const trash = foTrash.append("xhtml:div")
             .append("div")
             .attr("class", "icon-wrapper")
-            .html("<i class=\"far fa-trash-alt custom-icon\"></i>")
+            .html("<i class=\"fa fa-trash-o custom-icon\"></i>")
             .on("click", function () {
                 layoutOptions.nodeRemove && layoutOptions.nodeRemove(d);
                 layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
@@ -590,10 +590,10 @@ function networkVizJS(documentId, userLayoutOptions) {
         // CREATE PIN ICON
         const pinIcon = div.append("div").attr("class", "icon-wrapper");
         if (layoutOptions.nodeToPin(d)) {
-            pinIcon.html("<i class=\"fas fa-thumbtack pinned\"></i>");
+            pinIcon.html("<i class=\"fa fa-thumb-tack pinned\"></i>");
         }
         else {
-            pinIcon.html("<i class=\"fas fa-thumbtack unpinned\"></i>");
+            pinIcon.html("<i class=\"fa fa-thumb-tack unpinned\"></i>");
         }
         pinIcon.on("click", function () {
             layoutOptions.clickPin && layoutOptions.clickPin(d, element);
@@ -1813,7 +1813,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         const trash = foTrash.append("xhtml:div")
             .append("div")
             .attr("class", "icon-wrapper")
-            .html("<i class=\"far fa-trash-alt custom-icon\"></i>");
+            .html("<i class=\"fa fa-trash-o custom-icon\"></i>");
     }
 
     /**
