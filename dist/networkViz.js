@@ -64,6 +64,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         zoomScale: undefined,
         isSelect: () => false,
         selection: undefined,
+        imgResize: undefined,
     };
     // const X = 37;
     // const Y = -13;
@@ -78,7 +79,8 @@ function networkVizJS(documentId, userLayoutOptions) {
     //     d2 = `M ${p1x} ${p1y} L ${p2x} ${p1y} C ${p3x} ${p1y} ${p3x} ${p4y} ${p2x} ${p4y} L ${p1x} ${p4y} C ${X} ${p4y} ${X} ${p1y} ${p1x} ${p1y} `; // CAPSULE
     //
     const internalOptions = {
-        isDragging: false
+        isDragging: false,
+        isImgResize: false,
     };
     /**
      * Create the layoutOptions object with the users options
@@ -152,10 +154,21 @@ function networkVizJS(documentId, userLayoutOptions) {
     drag.on("start", (d, i, elements) => {
         layoutOptions.nodeDragStart && layoutOptions.nodeDragStart(d, elements[i]);
         internalOptions.isDragging = true;
-    }).on("drag", dragged).on("end", (d, i, elements) => {
+        // TODO find permanent solution in vuegraph
+        if (layoutOptions.isSelect && layoutOptions.isSelect()) {
+            d.class += " highlight";
+            updateStyles();
+        }
+    })
+        .on("drag", dragged)
+        .on("end", (d, i, elements) => {
         alignElements.remove();
         layoutOptions.nodeDragEnd && layoutOptions.nodeDragEnd(d, elements[i]);
         internalOptions.isDragging = false;
+        if (layoutOptions.isSelect && layoutOptions.isSelect()) {
+            d.class = d.class.replace(" highlight", "");
+            updateStyles();
+        }
     });
     /**
      * Create the defs element that stores the arrow heads.
@@ -183,21 +196,6 @@ function networkVizJS(documentId, userLayoutOptions) {
         .append("path")
         .attr("d", "M 50 0 L 50 40 L 0 20 Z")
         .attr("fill", "rgb(150,150,150)");
-    {
-        const filterGlow = defs.append("filter")
-            .attr("id", "highlight-glow");
-        filterGlow.append("feColorMatrix")
-            .attr("type", "matrix")
-            .attr("values", "0 0 0 0 0  0 0.41 0 0 0  0 0 0.5 0 0   0 0 0 1 0");
-        filterGlow.append("feGaussianBlur")
-            .attr("stdDeviation", "2.5")
-            .attr("result", "coloredBlur");
-        const feMerge = filterGlow.append("feMerge");
-        feMerge.append("feMergeNode")
-            .attr("in", "coloredBlur");
-        feMerge.append("feMergeNode")
-            .attr("in", "SourceGraphic");
-    }
     createColorArrow_1.default(defs, "#409EFF");
     // Define svg groups for storing the visuals.
     const g = svg.append("g")
@@ -636,12 +634,15 @@ function networkVizJS(documentId, userLayoutOptions) {
         })
             .on("resizeend", function (event) {
             layoutOptions.imgResize && layoutOptions.imgResize(false);
+            internalOptions.isImgResize = false;
         })
             .on("resizestart", function (event) {
             layoutOptions.imgResize && layoutOptions.imgResize(true);
+            internalOptions.isImgResize = true;
         })
             .on("resizemove", function (event) {
             // layoutOptions.imgResize && layoutOptions.imgResize(true);
+            internalOptions.isImgResize = true;
             const target = event.target, x = (parseFloat(target.getAttribute("data-x")) || 0), y = (parseFloat(target.getAttribute("data-x")) || 0);
             target.style.width = event.rect.width + "px";
             target.style.height = event.rect.width + "px";
@@ -1802,6 +1803,14 @@ function networkVizJS(documentId, userLayoutOptions) {
     };
     function dragged(d) {
         const e = d3.event;
+        // TODO move to graphviz
+        // prevent drag whilst image resizing
+        if (internalOptions.isImgResize) {
+            d.py = d.y;
+            d.px = d.x;
+            return;
+        }
+        // Multiple item drag
         if (layoutOptions.isSelect && layoutOptions.isSelect()) {
             const { dx, dy } = e;
             [...layoutOptions.selection().nodes.values()]
@@ -1813,6 +1822,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             });
             return;
         }
+        // Snap to alignment
         if (layoutOptions.nodeToPin(d) && layoutOptions.snapToAlignment) {
             alignElements.remove();
             const threshold = layoutOptions.snapThreshold;
