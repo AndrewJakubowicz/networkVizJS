@@ -187,21 +187,6 @@ function networkVizJS(documentId, userLayoutOptions) {
         .append("path")
         .attr("d", "M 50 0 L 50 40 L 0 20 Z")
         .attr("fill", "rgb(150,150,150)");
-    {
-        const filterGlow = defs.append("filter")
-            .attr("id", "highlight-glow");
-        filterGlow.append("feColorMatrix")
-            .attr("type", "matrix")
-            .attr("values", "0 0 0 0 0  0 0.41 0 0 0  0 0 0.5 0 0   0 0 0 1 0");
-        filterGlow.append("feGaussianBlur")
-            .attr("stdDeviation", "2.5")
-            .attr("result", "coloredBlur");
-        const feMerge = filterGlow.append("feMerge");
-        feMerge.append("feMergeNode")
-            .attr("in", "coloredBlur");
-        feMerge.append("feMergeNode")
-            .attr("in", "SourceGraphic");
-    }
 
 
     createColorArrow_1.default(defs, "#409EFF");
