@@ -38,48 +38,31 @@ function networkVizJS(documentId, userLayoutOptions) {
         mouseOverNode: undefined,
         mouseOutNode: undefined,
         mouseUpNode: undefined,
-        // These are "live options"
-        updateNodeColor: undefined,
-        updateNodeShape: undefined,
-        nodeRemove: undefined,
-        startArrow: undefined,
-        clickPin: undefined,
-        nodeToPin: false,
-        nodeToColor: "#ffffff",
-        nodeStrokeWidth: 1,
-        nodeStrokeColor: "grey",
-        clickNode: (node, element) => undefined,
+        clickNode: () => undefined,
+        clickEdge: () => undefined,
         clickAway: () => undefined,
+        // These are "live options"
+        nodeToPin: () => false,
+        nodeToColor: () => "#ffffff",
+        nodeStrokeWidth: () => 1,
+        nodeStrokeColor: () => "grey",
         edgeColor: "black",
         edgeStroke: 2,
         edgeStrokePad: 20,
-        edgeLength: d => 150,
+        edgeLength: () => 150,
         edgeSmoothness: 0,
-        clickEdge: (d, element) => undefined,
         edgeRemove: undefined,
-        mouseOverRadial: undefined,
-        mouseOutRadial: undefined,
-        mouseOverBrush: undefined,
-        resizeDrag: undefined,
+        mouseOverRadial: undefined, // TODO move edge hover menu to graphviz
+        mouseOutRadial: undefined, //
         snapToAlignment: true,
         snapThreshold: 10,
         zoomScale: undefined,
         isSelect: () => false,
+        nodeSizeChange: undefined,
         selection: undefined,
         imgResize: undefined,
     };
-    // const X = 37;
-    // const Y = -13;
-    // const p1x = 25 + X;
-    // const p1y = 25 + Y;
-    // const p2x = 75 + X;
-    // const p3x = 100 + X;
-    // const p4y = 50 + Y;
-    // const d0 = "M16 48 L48 48 L48 16 L16 16 Z", // RECT
-    //     d1 = "M20,40a20,20 0 1,0 40,0a20,20 0 1,0 -40,0", // CIRCLE
-    //     // d2 = "M148.1,310.5h-13.4c-4.2,0-7.7-3.4-7.7-7.7v-7.4c0-4.2,3.4-7.7,7.7-7.7h13.4c4.2,0,7.7,3.4,7.7,7.7v7.4  C155.7,307.1,152.3,310.5,148.1,310.5z"; // CAPSULE
-    //     d2 = `M ${p1x} ${p1y} L ${p2x} ${p1y} C ${p3x} ${p1y} ${p3x} ${p4y} ${p2x} ${p4y} L ${p1x} ${p4y} C ${X} ${p4y} ${X} ${p1y} ${p1x} ${p1y} `; // CAPSULE
-    //
+
     const internalOptions = {
         isDragging: false,
         isImgResize: false,
@@ -228,6 +211,43 @@ function networkVizJS(documentId, userLayoutOptions) {
         layoutOptions.zoomScale && layoutOptions.zoomScale(d3.event.transform.k);
     }
 
+
+    /** Allow Image Resize Using Interact.js */
+    interact(".img-node")
+        .resizable({
+            edges: { left: false, right: true, bottom: true, top: false },
+            inertia: {
+                resistance: 1,
+                minSpeed: 1,
+                endSpeed: 1
+            }
+        })
+        .on("resizeend", function (event) {
+            layoutOptions.imgResize && layoutOptions.imgResize(false);
+            internalOptions.isImgResize = false;
+        })
+        .on("resizestart", function (event) {
+            layoutOptions.imgResize && layoutOptions.imgResize(true);
+            internalOptions.isImgResize = true;
+        })
+        .on("resizemove", function (event) {
+            // layoutOptions.imgResize && layoutOptions.imgResize(true);
+            internalOptions.isImgResize = true;
+            const target = event.target,
+                x = (parseFloat(target.getAttribute("data-x")) || 0),
+                y = (parseFloat(target.getAttribute("data-x")) || 0);
+
+            target.style.width = event.rect.width + "px";
+            target.style.height = event.rect.width + "px";
+            target.style.webkitTransform = target.style.transform =
+                "translate(" + x + "px," + y + "px)";
+            target.setAttribute("data-x", x);
+
+            restart();
+        });
+
+    interact.maxInteractions(Infinity);
+
     /**
      * Return nodes and edges within a boundary
      * @param {Object} boundary - Bounds to search within
@@ -268,6 +288,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Allows dynamically changing node sizes based on text.
      */
     function updatePathDimensions() {
+        layoutOptions.nodeSizeChange && layoutOptions.nodeSizeChange();
         hoverMenuRemoveIcons(); // hover menu does not automatically change size with node
         layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial();
         node.select("path")
@@ -391,332 +412,11 @@ function networkVizJS(documentId, userLayoutOptions) {
      */
     function hoverMenuRemoveIcons(parent?) {
         if (parent) {
-            parent.selectAll(".menu-action").remove();
-            parent.selectAll(".menu-shape").remove();
-            parent.selectAll(".menu-color").remove();
-            parent.selectAll(".menu-trash").remove();
-            parent.selectAll(".menu-hover-box").remove();
             parent.selectAll(".edge-hover-menu").remove();
-            parent.selectAll(".menu-resize").remove();
         }
         else {
-            d3.selectAll(".menu-action").remove();
-            d3.selectAll(".menu-shape").remove();
-            d3.selectAll(".menu-color").remove();
-            d3.selectAll(".menu-trash").remove();
-            d3.selectAll(".menu-hover-box").remove();
             d3.selectAll(".edge-hover-menu").remove();
-            d3.selectAll(".menu-resize").remove();
         }
-    }
-
-    /**
-     * This function adds a menu to
-     * Delete, Pin, Change color and Change shape of a node
-     * @param d - node data
-     * @param me - node d3 element
-     */
-    function addHoverMenu(d, me) {
-        const element = d3.select(me); // The node
-        const parent = d3.select(me.parentNode);
-        const foWidth = 30;
-        const foHeight = d.height - layoutOptions.margin / 2;
-        const foX = d.width - layoutOptions.margin / 2;
-        const foY = d.height / 2;
-        const currentShape = d.nodeShape;
-        let firstShape = true;
-        let shapeY = 3 + d.height / 2 - 26;
-        hoverMenuRemoveIcons();
-        // CREATE SHAPES MENU
-        const shapeMenu = parent.append("g")
-            .attr("x", -30)
-            .attr("y", foY)
-            .attr("width", 30)
-            .attr("height", foHeight)
-            .attr("class", "menu-shape")
-            .on("mouseout", function () {
-                const e = d3.event;
-                const element = d3.select(this);
-                const mouse = d3.mouse(this);
-                const mosX = mouse[0];
-                const mosY = mouse[1];
-                setTimeout(function () {
-                    if (mosX < -20 || (mosY > d.height - 4 || mosY < 2)) {
-                        hoverMenuRemoveIcons(parent);
-                    }
-                }, 50);
-            });
-        if (currentShape !== "capsule") {
-            firstShape = false;
-            shapeMenu.append("rect")
-                .attr("rx", 6)
-                .attr("ry", 6)
-                .attr("x", layoutOptions.margin / 2 - 27)
-                .attr("y", shapeY)
-                .attr("width", 24)
-                .attr("height", 21)
-                .attr("class", "menu-shape-rect")
-                .attr("fill", "#edfdfd")
-                .attr("stroke", "#b8c6c6")
-                .attr("stroke-width", 2)
-                .on("click", function () {
-                    hoverMenuRemoveIcons(parent);
-                    layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d, "capsule");
-                });
-        }
-        if (currentShape !== "rect") {
-            if (!firstShape)
-                shapeY = shapeY + 26;
-            firstShape = false;
-            shapeMenu.append("rect")
-                .attr("x", layoutOptions.margin / 2 - 27)
-                .attr("y", shapeY)
-                .attr("width", 24)
-                .attr("height", 21)
-                .attr("class", "menu-shape-rect")
-                .attr("fill", "#edfdfd")
-                .attr("stroke", "#b8c6c6")
-                .attr("stroke-width", 2)
-                .on("click", function () {
-                    hoverMenuRemoveIcons(parent);
-                    layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d, "rect");
-                });
-        }
-        if (currentShape !== "circle") {
-            if (!firstShape)
-                shapeY = shapeY + 36;
-            firstShape = false;
-            shapeMenu.append("circle")
-                .attr("cx", layoutOptions.margin / 2 - 15)
-                .attr("cy", shapeY)
-                .attr("r", 12)
-                .attr("class", "menu-shape-circle")
-                .attr("fill", "#edfdfd")
-                .attr("stroke", "#b8c6c6")
-                .attr("stroke-width", 2)
-                .on("click", function () {
-                    hoverMenuRemoveIcons(parent);
-                    layoutOptions.updateNodeShape && layoutOptions.updateNodeShape(d, "circle");
-                });
-        }
-        // CREATE COLOR SELECTOR ICON
-        const foColor = parent.append("foreignObject")
-            .attr("x", (d.width / 2) - 12)
-            .attr("y", -22 + layoutOptions.margin / 2)
-            .attr("width", 24)
-            .attr("height", 24)
-            .style("overflow", "visible")
-            .attr("class", "menu-color");
-        const colorPik = foColor.append("xhtml:div")
-            .append("div");
-        if (d.id.slice(0, 5) === "note-") {
-            colorPik.append("div")
-                .html("<div id=\"controls\"><div><i class=\"fa fa-paint-brush\" id=\"bgpicker\"></i></div></div>");
-            d3.select("#bgpicker")
-                .style("color", d.color)
-                .style("text-shadow", "1px 0px 6px #1f2d3d")
-                .on("click", function () {
-                    const e = d3.event;
-                    e.stopPropagation();
-                    layoutOptions.mouseOverBrush && layoutOptions.mouseOverBrush(d, element, e);
-                })
-                .on("mouseout", function () {
-                    layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
-                    setTimeout(function () {
-                        hoverMenuRemoveIcons(parent);
-                    }, 50);
-                });
-        }
-        // CREATE TRASH ICON
-        const foTrash = parent.append("foreignObject")
-            .attr("x", (d.width / 2) - 12)
-            .attr("y", d.height + 3 - layoutOptions.margin / 2)
-            .attr("class", "menu-trash")
-            .attr("width", 22)
-            .attr("height", 27)
-            .style("overflow", "visible")
-            .on("mouseout", function () {
-                const e = d3.event;
-                const element = d3.select(this);
-                const mouse = d3.mouse(this);
-                const mosX = mouse[0];
-                const mosY = mouse[1];
-                layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
-                setTimeout(function () {
-                    if (mosX > d.width / 2 + 11 || mosX < d.width / 2 - 11 || mosY > d.height + 21) {
-                        hoverMenuRemoveIcons(parent);
-                    }
-                }, 50);
-            });
-        const trash = foTrash.append("xhtml:div")
-            .append("div")
-            .attr("class", "icon-wrapper")
-            .html("<i class=\"fa fa-trash-o custom-icon\"></i>")
-            .on("click", function () {
-                layoutOptions.nodeRemove && layoutOptions.nodeRemove(d);
-                layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
-            })
-            .on("mouseover", function () {
-                layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
-            });
-        // CREATE RIGHT MENU
-        const fo = parent.append("foreignObject")
-            .attr("x", foX + 5)
-            .attr("y", foY - 26)
-            .attr("width", foWidth)
-            .attr("height", 30)
-            .attr("class", "menu-action")
-            .style("overflow", "visible")
-            .on("mouseover", function () {
-                layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
-            })
-            .on("mouseout", function () {
-                const e = d3.event;
-                const element = d3.select(this);
-                const mouse = d3.mouse(this);
-                const mosX = mouse[0];
-                const mosY = mouse[1];
-                layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
-                setTimeout(function () {
-                    if (mosX > d.width + 21 || mosY > d.height - 4 || mosY < 2) {
-                        hoverMenuRemoveIcons(parent);
-                    }
-                }, 50);
-            });
-        const div = fo.append("xhtml:div")
-            .append("div");
-        // CREATE PIN ICON
-        const pinIcon = div.append("div").attr("class", "icon-wrapper");
-        if (layoutOptions.nodeToPin(d)) {
-            pinIcon.html("<i class=\"fa fa-thumb-tack pinned\"></i>");
-        }
-        else {
-            pinIcon.html("<i class=\"fa fa-thumb-tack unpinned\"></i>");
-        }
-        pinIcon.on("click", function () {
-            layoutOptions.clickPin && layoutOptions.clickPin(d, element);
-            hoverMenuRemoveIcons(parent);
-            layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
-            restart();
-        });
-        // CREATE DRAW ARROW icon
-        div.append("div").attr("class", "icon-wrapper")
-            .html("<i class=\"fa fa-arrow-right custom-icon\"></i>")
-            .on("mousedown", function () {
-                layoutOptions.startArrow && layoutOptions.startArrow(d, element);
-            });
-        // Rectangle to detect mouse leave
-        const parentBBox = parent.node().getBBox();
-        parent.insert("rect", "path")
-            .attr("x", parentBBox.x - 4)
-            .attr("y", parentBBox.y - 2)
-            .attr("width", parentBBox.width)
-            .attr("height", parentBBox.height)
-            .attr("fill", "rgba(0,0,0,0)")
-            .attr("class", "menu-hover-box")
-            .on("mouseout", (d, i, n) => {
-                const elem = n[i];
-                const e = d3.event;
-                e.preventDefault();
-                const mouse = d3.mouse(elem);
-                const bbox = elem.getBBox();
-                const mosX = mouse[0];
-                const mosY = mouse[1];
-                if (mosX < bbox.x || mosX > (bbox.width + bbox.x) || mosY > (bbox.height + bbox.y) || mosY < bbox.y) {
-                    hoverMenuRemoveIcons(parent);
-                }
-            });
-        const xresize = parent.append("rect")
-            .classed("menu-resize", true)
-            .attr("width", 8).attr("height", 8)
-            .attr("x", (d.width) - layoutOptions.margin / 2 - 4)
-            .attr("y", d.height - layoutOptions.margin / 2 - 4)
-            .attr("fill", "white")
-            .attr("stroke", "black")
-            .attr("cursor", "e-resize")
-            .on("mousedown", (d) => {
-                const e = d3.event;
-                layoutOptions.resizeDrag && layoutOptions.resizeDrag(d, element, e);
-            });
-
-        layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, element);
-
-
-        /** --------------------------------------------------------------------------------
-         Allow Image Resize Using Interact.js
-         -------------------------------------------------------------------------------- **/
-        const imgNode = interact(".img-node")
-            .resizable({
-                edges: { left: false, right: true, bottom: true, top: false },
-                inertia: {
-                    resistance: 1,
-                    minSpeed: 1,
-                    endSpeed: 1
-                }
-            })
-            .on("resizeend", function (event) {
-                layoutOptions.imgResize && layoutOptions.imgResize(false);
-                internalOptions.isImgResize = false;
-            })
-            .on("resizestart", function (event) {
-                layoutOptions.imgResize && layoutOptions.imgResize(true);
-                internalOptions.isImgResize = true;
-            })
-            .on("resizemove", function (event) {
-                // layoutOptions.imgResize && layoutOptions.imgResize(true);
-                internalOptions.isImgResize = true;
-                const target = event.target,
-                    x = (parseFloat(target.getAttribute("data-x")) || 0),
-                    y = (parseFloat(target.getAttribute("data-x")) || 0);
-
-                target.style.width = event.rect.width + "px";
-                target.style.height = event.rect.width + "px";
-                target.style.webkitTransform = target.style.transform =
-                    "translate(" + x + "px," + y + "px)";
-                target.setAttribute("data-x", x);
-                // target.setAttribute('data-y', y);
-
-                parent.select(".img-node")
-                    .attr("x", function (d) {
-                        const textWidth = this.getBBox().width;
-                        return d.width / 2 - textWidth / 2;
-                    })
-                    .attr("y", function (d) {
-                        const textHeight = this.getBBox().height;
-                        return d.width / 2 - textHeight / 2;
-                    });
-
-                restart();
-            });
-
-        interact.maxInteractions(Infinity);
-
-    }
-
-    /**
-     * This function delete the node hover menu.
-     * It will calculate at which position to the node
-     * the menu should be removed
-     * @param d - node data
-     * @param me - node d3 element
-     */
-    function deleteHoverMenu(d, me) {
-        const e = d3.event;
-        e.preventDefault();
-        const element = d3.select(me);
-        const parent = d3.select(me.parentNode);
-        const mouse = d3.mouse(me.parentElement);
-        const mosX = mouse[0];
-        const mosY = mouse[1];
-        if (mosY < -15 || mosY > d.height + 2 || mosX < -30 || mosX > d.width + 20) {
-            hoverMenuRemoveIcons(parent);
-        }
-        // if (mosX < -20 || mosX > (d.width + 40) || mosY < -15 || mosY > d.height + 10 ||
-        //   (mosX < d.width && mosX > d.width / 2 && mosY > 0 && mosY < d.height) ||
-        //   (mosX < d.width / 2 && mosX > 0 && mosY > 0 && mosY < d.height)) {
-        //   hoverMenuRemoveIcons(parent)
-        // }
-        layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, element);
     }
 
     /**
@@ -725,9 +425,7 @@ function networkVizJS(documentId, userLayoutOptions) {
     function updateStyles() {
         return new Promise((resolve, reject) => {
 
-            /** --------------------------------------------------------------------------------
-             GROUPS
-             -------------------------------------------------------------------------------- **/
+            /** GROUPS */
             group = group.data(groups);
             const groupEnter = group.enter()
                 .append("rect")
@@ -748,12 +446,12 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .call(drag); // Drag controlled by filter.
 
 
-            /** --------------------------------------------------------------------------------
-             Append Text to Node
-             Here we add node beauty.
-             To fit nodes to the short-name calculate BBox
-             from https://bl.ocks.org/mbostock/1160929
-             -------------------------------------------------------------------------------- **/
+            /**
+             * Append Text to Node
+             * Here we add node beauty.
+             * To fit nodes to the short-name calculate BBox
+             * from https://bl.ocks.org/mbostock/1160929
+             */
             const foBox = nodeEnter.append("foreignObject")
                 .attr("pointer-events", "none")
                 .classed("node-HTML-content", true)
@@ -776,9 +474,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .classed("editable", true)
                 .style("display", "inline-block");
 
-            /** --------------------------------------------------------------------------------
-             Choose the node shape and style.
-             -------------------------------------------------------------------------------- **/
+            /** Choose the node shape and style. */
             let nodeShape;
             nodeShape = nodeEnter.insert("path", "foreignObject");
             nodeShape.attr("d", layoutOptions.nodePath);
@@ -786,9 +482,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr("vector-effect", "non-scaling-stroke")
                 .classed("node-path", true);
 
-            /** --------------------------------------------------------------------------------
-             Append Image to Node
-             -------------------------------------------------------------------------------- **/
+            /** Append Image to Node */
             nodeEnter
                 .insert("image", "foreignObject")
                 .on("mouseover", function (d) {
@@ -796,21 +490,17 @@ function networkVizJS(documentId, userLayoutOptions) {
                     if (internalOptions.isDragging) {
                         return;
                     }
-                    layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, d3.select(this.parentNode).select("path"));
+                    layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, d3.select(this.parentNode).select("path"), d3.event);
                 })
                 .on("mouseout", function (d) {
                     nodeEnter.attr("cursor", "move");
                 });
 
-            /** --------------------------------------------------------------------------------
-             Merge the entered nodes to the update nodes.
-             -------------------------------------------------------------------------------- **/
+            /** Merge the entered nodes to the update nodes. */
             node = node.merge(nodeEnter)
                 .classed("fixed", d => d.fixed || false);
 
-            /** --------------------------------------------------------------------------------
-             Update Node Image Src
-             -------------------------------------------------------------------------------- **/
+            /** Update Node Image Src */
             const imgSelect = node.select("image")
                 .attr("class", "img-node")
                 .attr("width", d => d.img ? d.img.width : 0)
@@ -821,15 +511,14 @@ function networkVizJS(documentId, userLayoutOptions) {
                     }
                 });
 
-            /** --------------------------------------------------------------------------------
-             Update the text property (allowing dynamically changing text)
-             -------------------------------------------------------------------------------- **/
+            /** Update the text property (allowing dynamically changing text) */
             const textSelect = node.select("text")
                 .html(function (d) {
                     return d.shortname || d.hash;
                 })
                 // .attr("class", d => d.class)
                 .style("color", d => {
+                    // select text colour based on background brightness
                     let color = "#000000";
                     if (d.color) {
                         if (d.color.length === 7 && d.color[0] === "#") {
@@ -849,11 +538,11 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .style("white-space", d => d.fixedWidth ? "pre-wrap" : "pre");
 
 
-            /** ------------------------------------------------------------------------------- **
+            /**
              * Here we can update node properties that have already been attached.
              * When restart() is called, these are the properties that will be affected
              * by mutation.
-             ** ------------------------------------------------------------------------------- **/
+             */
             const updateShapes = node.select("path")
                 .attr("class", d => d.class);
             // These changes apply to both rect and circle
@@ -868,16 +557,16 @@ function networkVizJS(documentId, userLayoutOptions) {
                 if (internalOptions.isDragging) {
                     return;
                 }
-                addHoverMenu(d, this);
+                layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, d3.select(this), d3.event);
             }).on("mouseout", function (d) {
                 if (internalOptions.isDragging) {
                     return;
                 }
-                deleteHoverMenu(d, this);
+                layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, d3.select(this));
             }).on("click", function (d) {
                 const elem = d3.select(this);
                 setTimeout(() => {
-                    layoutOptions.clickNode(d, elem);
+                    layoutOptions.clickNode(d, elem, d3.event);
                 }, 50);
             }).on("mouseup", function (d) {
                 layoutOptions.mouseUpNode && layoutOptions.mouseUpNode(d, d3.select(this));
@@ -889,9 +578,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             });
 
 
-            /** ------------------------------------------------------------------------------- **
-             * LINK
-             ** ------------------------------------------------------------------------------- **/
+            /** LINK */
             link = link.data(links, d => d.source.index + "-" + d.target.index);
             link.exit().remove();
             const linkEnter = link.enter()
@@ -986,7 +673,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                  * Helper function for drawing the lines.
                  * Adds quadratic curve to smooth corners in line
                  */
-                const lineFunction = points => {
+                const lineFunction = (points) => {
                     if (points.length <= 2 || !layoutOptions.edgeSmoothness || layoutOptions.edgeSmoothness === 0) {
                         // fall back on old method if no need to curve edges
                         return d3.line().x(d => d.x).y(d => d.y)(points);
@@ -1163,6 +850,9 @@ function networkVizJS(documentId, userLayoutOptions) {
             .then(() => typeof callback === "function" && callback());
     }
 
+    /**
+     * Handle layout of disconnected graph components.
+     */
     function handleDisconnects() {
         simulation.handleDisconnected(true);
         restart().then(() => {
@@ -1170,8 +860,11 @@ function networkVizJS(documentId, userLayoutOptions) {
         });
     }
 
-    // Helper function for updating links after node mutations.
-    // Calls a function after links added.
+    /**
+     * Helper function for updating links after node mutations.
+     * Calls a function after links added.
+     * @param callback - function to run on end
+     */
     function createNewLinks(callback) {
         tripletsDB.get({}, (err, l) => {
             if (err) {
@@ -1740,18 +1433,8 @@ function networkVizJS(documentId, userLayoutOptions) {
     }
 
     function deleteEdgeHoverMenu(d, me) {
-        const e = d3.event;
-        e.preventDefault();
-        // const element = d3.select(me);
-        const parent = d3.select(me.parentNode);
-        // const mouse = d3.mouse(me);
-        // console.log(me)
-        // const mosX = mouse[0];
-        // var mosY = mouse[1];
-        // console.log(mosX, mouse)
-        // if (mosY < -15) {
-        hoverMenuRemoveIcons(parent);
-        // }
+        d3.event.preventDefault();
+        hoverMenuRemoveIcons(d3.select(me.parentNode));
     }
 
     function addEdgeHoverMenu(d, me) {
@@ -1808,10 +1491,10 @@ function networkVizJS(documentId, userLayoutOptions) {
                     predicate: d.predicate,
                     object: d.target
                 };
-                layoutOptions.edgeRemove && layoutOptions.edgeRemove(edge);
+                layoutOptions.edgeRemove && layoutOptions.edgeRemove(edge, d3.select(this), e);
                 layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
             });
-        const trash = foTrash.append("xhtml:div")
+        foTrash.append("xhtml:div")
             .append("div")
             .attr("class", "icon-wrapper")
             .html("<i class=\"fa fa-trash-o custom-icon\"></i>");
@@ -1874,7 +1557,6 @@ function networkVizJS(documentId, userLayoutOptions) {
 
     function dragged(d) {
         const e = d3.event;
-        // TODO move to graphviz
         // prevent drag whilst image resizing
         if (internalOptions.isImgResize) {
             d.py = d.y;
@@ -2394,7 +2076,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         getDB: () => tripletsDB,
         // Get node from nodeMap
         getNode: (hash) => nodeMap.get(hash),
-        // Get node by coordinates
+        // Get nodes and edges by coordinates
         selectByCoords,
         // Get edge from predicateMap
         getPredicate: (hash) => predicateMap.get(hash),

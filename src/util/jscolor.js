@@ -94,14 +94,14 @@ import jQuery from 'jquery';
           a.preventDefault ? a.preventDefault() : a.returnValue = !1;
           var e = {
             cal: t(this).parent(),
-            pos: t(this).offset()
+            posPad: t(this).offset()
           };
           e.preview = e.cal.data("colpick").livePreview, t(document).on("mouseup touchend", e, I), t(document).on("mousemove touchmove", e, M);
           var i;
-          return "touchstart" == a.type ? (pageX = a.originalEvent.changedTouches[0].pageX, i = a.originalEvent.changedTouches[0].pageY) : (pageX = a.pageX, i = a.pageY), h.apply(e.cal.data("colpick").fields.eq(6).val(parseInt(100 * (e.cal.data("colpick").height - (i - e.pos.top)) / e.cal.data("colpick").height, 10)).end().eq(5).val(parseInt(100 * (pageX - e.pos.left) / e.cal.data("colpick").height, 10)).get(0), [e.preview]), !1
+          return "touchstart" == a.type ? (pageX = a.originalEvent.changedTouches[0].pageX, i = a.originalEvent.changedTouches[0].pageY) : (pageX = a.pageX, i = a.pageY), h.apply(e.cal.data("colpick").fields.eq(6).val(parseInt(100 * (e.cal.data("colpick").height - (i - e.posPad.top)) / e.cal.data("colpick").height, 10)).end().eq(5).val(parseInt(100 * (pageX - e.posPad.left) / e.cal.data("colpick").height, 10)).get(0), [e.preview]), !1
         }, M = function (t) {
           var a;
-          return "touchmove" == t.type ? (pageX = t.originalEvent.changedTouches[0].pageX, a = t.originalEvent.changedTouches[0].pageY) : (pageX = t.pageX, a = t.pageY), h.apply(t.data.cal.data("colpick").fields.eq(6).val(parseInt(100 * (t.data.cal.data("colpick").height - Math.max(0, Math.min(t.data.cal.data("colpick").height, a - t.data.pos.top))) / t.data.cal.data("colpick").height, 10)).end().eq(5).val(parseInt(100 * Math.max(0, Math.min(t.data.cal.data("colpick").height, pageX - t.data.pos.left)) / t.data.cal.data("colpick").height, 10)).get(0), [t.data.preview]), !1
+          return "touchmove" == t.type ? (pageX = t.originalEvent.changedTouches[0].pageX, a = t.originalEvent.changedTouches[0].pageY) : (pageX = t.pageX, a = t.pageY), h.apply(t.data.cal.data("colpick").fields.eq(6).val(parseInt(100 * (t.data.cal.data("colpick").height - Math.max(0, Math.min(t.data.cal.data("colpick").height, a - t.data.posPad.top))) / t.data.cal.data("colpick").height, 10)).end().eq(5).val(parseInt(100 * Math.max(0, Math.min(t.data.cal.data("colpick").height, pageX - t.data.posPad.left)) / t.data.cal.data("colpick").height, 10)).get(0), [t.data.preview]), !1
         }, I = function (a) {
           return l(a.data.cal.data("colpick").color, a.data.cal.get(0)), n(a.data.cal.data("colpick").color, a.data.cal.get(0)), t(document).off("mouseup touchend", I), t(document).off("mousemove touchmove", M), !1
         }, C = function () {

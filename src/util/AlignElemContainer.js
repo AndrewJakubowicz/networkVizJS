@@ -1,7 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var d3 = require("d3");
-var AlignElemContainer = (function () {
+var AlignElemContainer = /** @class */ (function () {
+    /**
+     * Create container to manage HTML elements for snap-to alignment
+     * @param parentNode: parent node to append lines to.
+     */
     function AlignElemContainer(parentNode) {
         this.templateLine = d3.select(document.createElementNS("http://www.w3.org/2000/svg", "line"))
             .attr("style", "stroke:rgb(150,150,150);stroke-width:1")
