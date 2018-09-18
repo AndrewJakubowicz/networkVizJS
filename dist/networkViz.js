@@ -21,6 +21,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         handleDisconnected: false,
         flowDirection: "y",
         enableEdgeRouting: true,
+        // groupCompactness: 5e-6,
+        // convergenceThreshold: 0.1,
         nodeShape: "rect",
         nodePath: (d) => "M16 48 L48 48 L48 16 L16 16 Z",
         width: 900,
@@ -36,6 +38,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         mouseOverNode: undefined,
         mouseOutNode: undefined,
         mouseUpNode: undefined,
+        mouseOverGroup: undefined,
+        mouseOutGroup: undefined,
         clickNode: () => undefined,
         clickEdge: () => undefined,
         clickAway: () => undefined,
@@ -50,6 +54,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         edgeLength: () => 150,
         edgeSmoothness: 0,
         edgeRemove: undefined,
+        groupFillColor: () => "#F6ECAF",
         mouseOverRadial: undefined,
         mouseOutRadial: undefined,
         snapToAlignment: true,
@@ -85,6 +90,7 @@ function networkVizJS(documentId, userLayoutOptions) {
     const nodeMap = new Map();
     const predicateTypeToColorMap = new Map();
     const predicateMap = new Map();
+    const groupMap = new Map();
     /**
      * Todo:    This is currently a hack. Create a random database on the client
      *          side to build the networks on top of.
@@ -242,17 +248,20 @@ function networkVizJS(documentId, userLayoutOptions) {
      * @returns {{nodes: any[]; edges: any[]}} - object containing node array and edge array
      */
     function selectByCoords(boundary) {
-        const newSelect = [];
+        const nodeSelect = [];
+        const groupSelect = [];
         const x = Math.min(boundary.x, boundary.X);
         const X = Math.max(boundary.x, boundary.X);
         const y = Math.min(boundary.y, boundary.Y);
         const Y = Math.max(boundary.y, boundary.Y);
-        nodes.forEach((d) => {
+        const boundsChecker = (d, arr) => {
             if (Math.max(d.bounds.x, x) <= Math.min(d.bounds.X, X) &&
                 Math.max(d.bounds.y, y) <= Math.min(d.bounds.Y, Y)) {
-                newSelect.push(d);
+                arr.push(d);
             }
-        });
+        };
+        nodes.forEach((d) => boundsChecker(d, nodeSelect));
+        groups.forEach((d) => boundsChecker(d, groupSelect));
         const edges = d3.selectAll(".line")
             .select(".line-front")
             .filter(function () {
@@ -264,7 +273,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             const p2In = p2.x >= x && p2.x <= X && p2.y >= y && p2.y <= Y;
             return p1In && p2In;
         });
-        return { nodes: newSelect, edges: edges.data() };
+        return { nodes: nodeSelect, edges: edges.data(), groups: groupSelect };
     }
     /**
      * Resets width or radius of nodes.
@@ -399,13 +408,20 @@ function networkVizJS(documentId, userLayoutOptions) {
         return new Promise((resolve, reject) => {
             /** GROUPS */
             group = group.data(groups);
+            group.exit().remove();
             const groupEnter = group.enter()
                 .append("rect")
                 .attr("rx", 8)
                 .attr("ry", 8)
                 .attr("class", "group")
-                .style("fill", "green");
-            // .call(simulation.drag);
+                .attr("fill", layoutOptions.groupFillColor)
+                .attr("stroke", "black")
+                .call(simulation.drag)
+                .on("mouseover", function (d) {
+                layoutOptions.mouseOverGroup && layoutOptions.mouseOverGroup(d, d3.select(this), d3.event);
+            }).on("mouseout", function (d) {
+                layoutOptions.mouseOutGroup && layoutOptions.mouseOutGroup(d, d3.select(this), d3.event);
+            });
             group = group.merge(groupEnter);
             /////// NODE ///////
             node = node.data(nodes, d => d.index);
@@ -881,6 +897,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                 // Set the node
                 nodes.push(nodeObject);
                 nodeMap.set(nodeObject.hash, nodeObject);
+                if (nodeObject.parent) {
+                    addToGroup(nodeObject.parent, [nodeObject.id]);
+                }
             }
         }
         /**
@@ -1105,6 +1124,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                     }
                     simulation.stop();
                     nodes.splice(nodeIndex, 1);
+                    if (nodeMap.get(nodeHash).parent) {
+                        unGroup([nodeHash], undefined, undefined, true);
+                    }
                     nodeMap.delete(nodeHash);
                     createNewLinks(callback);
                     return;
@@ -1307,6 +1329,89 @@ function networkVizJS(documentId, userLayoutOptions) {
     function setMouseDown(mouseDownCallback) {
         layoutOptions.mouseDownNode = mouseDownCallback;
     }
+    function addToGroup(group, nodeId, subGroupId, callback) {
+        // check minimum size
+        if (nodeId.length === 0 || (subGroupId && subGroupId.length <= 1)) {
+            throw new Error("Minimum 1 node or two subgroups");
+        }
+        // check nodes
+        const nodeIndices = nodeId.map(id => nodes.findIndex(d => d.id === id));
+        if (!nodeIndices.every(i => i >= 0)) {
+            throw new Error("One or more nodes do not exist. Check node hash is correct");
+        }
+        // check subGroups
+        let groupIndices = [];
+        if (subGroupId) {
+            groupIndices = subGroupId.map(id => groups.findIndex(g => g.id === id));
+            if (!groupIndices.every(i => i < groups.length && i >= 0)) {
+                throw new Error("One or more groups do not exist.");
+            }
+        }
+        const nodesWithParentsID = nodeId.filter(id => nodeMap.get(id).parent);
+        unGroup(nodesWithParentsID);
+        // get target group, if does not exist, create new group
+        simulation.stop();
+        const groupId = typeof (group) === "string" ? group : group.id;
+        let groupObj = groupMap.get(groupId);
+        if (!groupObj) {
+            groupObj = {
+                id: groupId,
+                leaves: [],
+                groups: []
+            };
+            groups.push(groupObj);
+            groupMap.set(groupId, groupObj);
+        }
+        else {
+            if (!groupObj.leaves) {
+                groupObj.leaves = [];
+            }
+            if (!groupObj.groups) {
+                groupObj.groups = [];
+            }
+        }
+        groupObj.leaves = groupObj.leaves.concat(nodeIndices);
+        groupObj.groups = groupObj.groups.concat(groupIndices);
+        return restart(callback);
+    }
+    function unGroup(nodeId, subGroupId, callback, deleteOp) {
+        simulation.stop();
+        if (nodeId) {
+            // remove nodes from groups
+            const leaves = nodeId.map(id => nodeMap.get(id));
+            leaves.forEach(d => {
+                d.parent.leaves = d.parent.leaves.filter(leaf => leaf.id !== d.id);
+                if (!deleteOp) {
+                    delete d.parent;
+                }
+            });
+        }
+        if (subGroupId) {
+            // remove groups from groups
+            const subGroups = subGroupId.map(id => {
+                const i = groups.findIndex(g => g.id === id);
+                return groups[i];
+            });
+            subGroups.forEach(g => {
+                g.parent.groups = g.parent.groups.filter(sibling => sibling.id !== g.id);
+            });
+        }
+        // remove empty groups
+        groups = groups.filter(g => {
+            if (g.leaves.length === 0 && g.groups.length <= 1) {
+                groupMap.delete(g.id);
+                // empty group is a child of another group
+                if (g.parent) {
+                    g.parent.groups = g.parent.groups.filter(subgroup => subgroup.id !== g.id);
+                }
+                return false;
+            }
+            else {
+                return true;
+            }
+        });
+        return restart(callback);
+    }
     /**
      * Merges a node into another group.
      * If this node was in another group previously it removes it from the prior group.
@@ -1497,7 +1602,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             return;
         }
         // Multiple item drag
-        if (layoutOptions.isSelect && layoutOptions.isSelect()) {
+        if (layoutOptions.isSelect && layoutOptions.isSelect() && layoutOptions.selection().nodes.size > 1) {
             const { dx, dy } = e;
             [...layoutOptions.selection().nodes.values()]
                 .forEach(x => {
@@ -1988,6 +2093,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         getDB: () => tripletsDB,
         // Get node from nodeMap
         getNode: (hash) => nodeMap.get(hash),
+        // Get Group from groupMap
+        getGroup: (hash) => groupMap.get(hash),
         // Get nodes and edges by coordinates
         selectByCoords,
         // Get edge from predicateMap
@@ -2004,8 +2111,6 @@ function networkVizJS(documentId, userLayoutOptions) {
         removeTriplet,
         // update edge data in database
         updateTriplet,
-        // EXPERIMENTAL - DONT USE YET.
-        mergeNodeToGroup,
         // remove a node and all edges connected to it.
         removeNode,
         // add a node or array of nodes.
@@ -2014,6 +2119,10 @@ function networkVizJS(documentId, userLayoutOptions) {
         editNode,
         // edit edge property
         editEdge,
+        // Add nodes or groups to group
+        addToGroup,
+        // Remove nodes or groups from group
+        unGroup,
         // Restart styles or layout.
         restart: {
             styles: updateStyles,
