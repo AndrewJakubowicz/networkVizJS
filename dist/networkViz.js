@@ -188,12 +188,14 @@ function networkVizJS(documentId, userLayoutOptions) {
     // Define svg groups for storing the visuals.
     const g = svg.append("g")
         .classed("svg-graph", true);
+    let group = g.append("g").attr("id", "group-container")
+        .selectAll(".group");
+    let link = g.append("g").attr("id", "link-container")
+        .selectAll(".link");
     const alignmentLines = g.append("g");
-    const alignElements = new AlignElemContainer_1.default(alignmentLines.node());
-    let group = g.append("g")
-        .selectAll(".group"), link = g.append("g")
-        .selectAll(".link"), node = g.append("g")
+    let node = g.append("g").attr("id", "node-container")
         .selectAll(".node");
+    const alignElements = new AlignElemContainer_1.default(alignmentLines.node());
     /**
      * Zooming and panning behaviour.
      */
@@ -410,19 +412,20 @@ function networkVizJS(documentId, userLayoutOptions) {
             group = group.data(groups);
             group.exit().remove();
             const groupEnter = group.enter()
-                .append("rect")
-                .attr("rx", 8)
+                .append("rect");
+            groupEnter.attr("rx", 8)
                 .attr("ry", 8)
                 .attr("class", "group")
-                .attr("fill", layoutOptions.groupFillColor)
                 .attr("stroke", "black")
                 .call(simulation.drag)
                 .on("mouseover", function (d) {
                 layoutOptions.mouseOverGroup && layoutOptions.mouseOverGroup(d, d3.select(this), d3.event);
-            }).on("mouseout", function (d) {
+            })
+                .on("mouseout", function (d) {
                 layoutOptions.mouseOutGroup && layoutOptions.mouseOutGroup(d, d3.select(this), d3.event);
             });
             group = group.merge(groupEnter);
+            group.attr("fill", layoutOptions.groupFillColor);
             /////// NODE ///////
             node = node.data(nodes, d => d.index);
             node.exit().remove();
@@ -897,9 +900,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                 // Set the node
                 nodes.push(nodeObject);
                 nodeMap.set(nodeObject.hash, nodeObject);
-                if (nodeObject.parent) {
-                    addToGroup(nodeObject.parent, [nodeObject.id]);
-                }
             }
         }
         /**
@@ -1125,7 +1125,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     simulation.stop();
                     nodes.splice(nodeIndex, 1);
                     if (nodeMap.get(nodeHash).parent) {
-                        unGroup([nodeHash], undefined, undefined, true);
+                        unGroup({ nodes: [nodeHash] }, undefined, true);
                     }
                     nodeMap.delete(nodeHash);
                     createNewLinks(callback);
@@ -1260,6 +1260,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         node.filter(d => d.id === id).select("path").attr("fill", values[0]);
                     }
                 });
+                //TODO either make colour change +text here or in updatestyles, not both.
                 updateStyles();
                 break;
             }
@@ -1299,7 +1300,11 @@ function networkVizJS(documentId, userLayoutOptions) {
             }
             default: {
                 editNodeHelper(prop);
-                console.warn("Caution. You are modifying a new or unknown property: %s.", action.property);
+                restart();
+                const list = ["x", "y"];
+                if (!list.includes(prop)) {
+                    console.warn("Caution. You are modifying a new or unknown property: %s.", action.property);
+                }
             }
         }
     }
@@ -1329,7 +1334,9 @@ function networkVizJS(documentId, userLayoutOptions) {
     function setMouseDown(mouseDownCallback) {
         layoutOptions.mouseDownNode = mouseDownCallback;
     }
-    function addToGroup(group, nodeId, subGroupId, callback) {
+    function addToGroup(group, children, callback, preventLayout) {
+        const nodeId = children.nodes;
+        const subGroupId = children.groups;
         // check minimum size
         if (nodeId.length === 0 || (subGroupId && subGroupId.length <= 1)) {
             throw new Error("Minimum 1 node or two subgroups");
@@ -1348,7 +1355,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             }
         }
         const nodesWithParentsID = nodeId.filter(id => nodeMap.get(id).parent);
-        unGroup(nodesWithParentsID);
+        unGroup({ nodes: nodesWithParentsID }, undefined, true);
         // get target group, if does not exist, create new group
         simulation.stop();
         const groupId = typeof (group) === "string" ? group : group.id;
@@ -1357,7 +1364,8 @@ function networkVizJS(documentId, userLayoutOptions) {
             groupObj = {
                 id: groupId,
                 leaves: [],
-                groups: []
+                groups: [],
+                data: group.data ? group.data : { color: layoutOptions.groupFillColor(), }
             };
             groups.push(groupObj);
             groupMap.set(groupId, groupObj);
@@ -1372,23 +1380,27 @@ function networkVizJS(documentId, userLayoutOptions) {
         }
         groupObj.leaves = groupObj.leaves.concat(nodeIndices);
         groupObj.groups = groupObj.groups.concat(groupIndices);
-        return restart(callback);
+        if (!preventLayout) {
+            return restart(callback);
+        }
+        else {
+            typeof callback === "function" && callback();
+            return Promise.resolve();
+        }
     }
-    function unGroup(nodeId, subGroupId, callback, deleteOp) {
+    function unGroup(children, callback, preventLayout) {
         simulation.stop();
-        if (nodeId) {
+        if (children.nodes) {
             // remove nodes from groups
-            const leaves = nodeId.map(id => nodeMap.get(id));
+            const leaves = children.nodes.map(id => nodeMap.get(id));
             leaves.forEach(d => {
                 d.parent.leaves = d.parent.leaves.filter(leaf => leaf.id !== d.id);
-                if (!deleteOp) {
-                    delete d.parent;
-                }
+                delete d.parent;
             });
         }
-        if (subGroupId) {
+        if (children.groups) {
             // remove groups from groups
-            const subGroups = subGroupId.map(id => {
+            const subGroups = children.groups.map(id => {
                 const i = groups.findIndex(g => g.id === id);
                 return groups[i];
             });
@@ -1410,7 +1422,13 @@ function networkVizJS(documentId, userLayoutOptions) {
                 return true;
             }
         });
-        return restart(callback);
+        if (!preventLayout) {
+            return restart(callback);
+        }
+        else {
+            typeof callback === "function" && callback();
+            return Promise.resolve();
+        }
     }
     /**
      * Merges a node into another group.
@@ -1579,20 +1597,33 @@ function networkVizJS(documentId, userLayoutOptions) {
      * scheme: triplets: subj:hash-predicateType-obj:hash[]
      *         nodes: hash[]
      */
-    const saveGraph = (callback) => {
+    function saveGraph() {
         d3.selectAll(".radial-menu").remove();
         const svg = d3.select(".svg-content-responsive");
         const t = d3.zoomIdentity.translate(0, 0).scale(1);
         svg.call(zoom.transform, t);
         layoutOptions.zoomScale(1);
-        tripletsDB.get({}, (err, l) => {
-            const saved = JSON.stringify({
-                triplets: l.map(v => ({ subject: v.subject, predicate: v.predicate, object: v.object })),
-                nodes: nodes.map(v => ({ hash: v.hash, x: v.x, y: v.y }))
+        return new Promise((resolve, reject) => {
+            tripletsDB.get({}, (err, l) => {
+                if (err) {
+                    reject(err);
+                }
+                else {
+                    const saved = JSON.stringify({
+                        triplets: l.map(v => ({ subject: v.subject, predicate: v.predicate, object: v.object })),
+                        nodes: nodes.map(v => ({ hash: v.hash, x: v.x, y: v.y })),
+                        groups: groups.map(v => ({
+                            nodes: v.leaves.map(d => d.id),
+                            groups: v.groups.map(g => g.id),
+                            id: v.id,
+                            data: v.data
+                        })),
+                    });
+                    resolve(saved);
+                }
             });
-            callback(saved);
         });
-    };
+    }
     function dragged(d) {
         const e = d3.event;
         // prevent drag whilst image resizing
