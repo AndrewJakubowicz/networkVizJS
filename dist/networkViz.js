@@ -1394,8 +1394,10 @@ function networkVizJS(documentId, userLayoutOptions) {
             // remove nodes from groups
             const leaves = children.nodes.map(id => nodeMap.get(id));
             leaves.forEach(d => {
-                d.parent.leaves = d.parent.leaves.filter(leaf => leaf.id !== d.id);
-                delete d.parent;
+                if (d.parent) {
+                    d.parent.leaves = d.parent.leaves.filter(leaf => leaf.id !== d.id);
+                    delete d.parent;
+                }
             });
         }
         if (children.groups) {
@@ -1405,7 +1407,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                 return groups[i];
             });
             subGroups.forEach(g => {
-                g.parent.groups = g.parent.groups.filter(sibling => sibling.id !== g.id);
+                if (g.parent) {
+                    g.parent.groups = g.parent.groups.filter(sibling => sibling.id !== g.id);
+                }
             });
         }
         // remove empty groups
