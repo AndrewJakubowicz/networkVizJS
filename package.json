@@ -38,7 +38,7 @@
   "dependencies": {
     "d3": "4.9.1",
     "interactjs": "^1.3.4",
-    "level-browserify": "~1.1.1",
+    "level-browserify": "^2.0.0",
     "levelgraph": "2.1.1",
     "webcola": "3.3.8"
   }
