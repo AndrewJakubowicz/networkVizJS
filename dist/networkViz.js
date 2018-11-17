@@ -41,7 +41,9 @@ function networkVizJS(documentId, userLayoutOptions) {
         mouseOverGroup: undefined,
         mouseOutGroup: undefined,
         clickNode: () => undefined,
+        dblclickNode: () => undefined,
         clickEdge: () => undefined,
+        dblclickEdge: () => undefined,
         clickAway: () => undefined,
         // These are "live options"
         nodeToPin: () => false,
@@ -306,7 +308,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      */
     function repositionText() {
         return Promise.resolve()
-            .then(_ => {
+            .then(() => {
             node.selectAll("text")
                 .each(function (d) {
                 const img = d3.select(this.parentNode.parentNode.parentNode).select("image").node();
@@ -534,24 +536,29 @@ function networkVizJS(documentId, userLayoutOptions) {
             // update size
             updatePathDimensions();
             // These CANNOT be arrow functions or 'this' context becomes wrong.
-            updateShapes.on("mouseover", function (d) {
+            updateShapes
+                .on("mouseover", function (d) {
                 if (internalOptions.isDragging) {
                     return;
                 }
                 layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, d3.select(this), d3.event);
-            }).on("mouseout", function (d) {
+            })
+                .on("mouseout", function (d) {
                 if (internalOptions.isDragging) {
                     return;
                 }
                 layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, d3.select(this));
-            }).on("click", function (d) {
-                const elem = d3.select(this);
-                setTimeout(() => {
-                    layoutOptions.clickNode(d, elem, d3.event);
-                }, 50);
-            }).on("mouseup", function (d) {
+            })
+                .on("dblclick", function (d) {
+                layoutOptions.dblclickNode(d, d3.select(this), d3.event);
+            })
+                .on("click", function (d) {
+                layoutOptions.clickNode(d, d3.select(this), d3.event);
+            })
+                .on("mouseup", function (d) {
                 layoutOptions.mouseUpNode && layoutOptions.mouseUpNode(d, d3.select(this));
-            }).on("mousedown", function (d) {
+            })
+                .on("mousedown", function (d) {
                 if ((layoutOptions.canDrag === undefined) || (layoutOptions.canDrag())) {
                     return;
                 }
@@ -573,23 +580,30 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr("stroke", layoutOptions.edgeColor)
                 .attr("fill", "none")
                 .attr("marker-end", d => `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.edgeData)})`);
-            linkEnter.on("mouseenter", function (d) {
+            linkEnter
+                .on("mouseenter", function (d) {
                 addEdgeHoverMenu(d, this);
-            }).on("mouseleave", function (d) {
+            })
+                .on("mouseleave", function (d) {
                 deleteEdgeHoverMenu(d, this);
-            }).on("click", function (d) {
+            })
+                .on("dblclick", function (d) {
                 const elem = d3.select(this);
                 const e = d3.event;
                 // IMPORTANT, without this vuegraph will crash in SWARM. bug caused by blur event handled by medium editor.
                 e.stopPropagation();
                 layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
                 setTimeout(() => {
-                    layoutOptions.clickEdge(d, elem, e);
+                    layoutOptions.dblclickEdge(d, elem, e);
                 }, 50);
+            })
+                .on("click", function (d) {
+                layoutOptions.clickEdge(d, d3.select(this), d3.event);
             });
             // Add an empty text field.
             linkEnter
                 .append("foreignObject")
+                .attr("pointer-events", "none")
                 .classed("edge-foreign-object", true)
                 .attr("width", 1)
                 .attr("height", 1)
@@ -597,6 +611,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .append("xhtml:div")
                 .attr("xmlns", "http://www.w3.org/1999/xhtml")
                 .append("text")
+                .attr("pointer-events", "none")
                 .classed("editable", true)
                 .attr("contenteditable", "true")
                 .attr("tabindex", "-1")
@@ -634,18 +649,19 @@ function networkVizJS(documentId, userLayoutOptions) {
      * It also restarts the simulation.
      * This is where aesthetics can be changed.
      */
-    function restart(callback) {
+    function restart(callback, preventLayout) {
         return Promise.resolve()
             .then(() => {
-            if (callback === "NOUPDATE") {
-                return;
-            }
-            else {
+            if (!preventLayout) {
                 return updateStyles();
+            }
+            if (callback === "NOUPDATE") {
+                console.error("WARNING OLD CODE");
+                return;
             }
         })
             .then(repositionText)
-            .then(_ => {
+            .then(() => {
             /**
              * Helper function for drawing the lines.
              * Adds quadratic curve to smooth corners in line
@@ -1158,8 +1174,15 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Function that fires when a node is clicked.
      * @param {function} selectNodeFunc
      */
-    function setSelectNode(selectNodeFunc) {
+    function setClickNode(selectNodeFunc) {
         layoutOptions.clickNode = selectNodeFunc;
+    }
+    /**
+     * Function that fires when a node is double clicked.
+     * @param {function} selectNodeFunc
+     */
+    function setDblClickNode(selectNodeFunc) {
+        layoutOptions.dblclickNode = selectNodeFunc;
     }
     /**
      * Public function to mutate edge objects
@@ -2178,7 +2201,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         },
         // Set event handlers for node.
         nodeOptions: {
-            setClickNode: setSelectNode,
+            setDblClickNode,
+            setClickNode,
             setMouseOver,
             setMouseOut,
             setMouseDown,
@@ -2187,6 +2211,9 @@ function networkVizJS(documentId, userLayoutOptions) {
         edgeOptions: {
             setClickEdge: (callback) => {
                 layoutOptions.clickEdge = callback;
+            },
+            setDblClickEdge: (callback) => {
+                layoutOptions.dblclickEdge = callback;
             }
         },
         // Change layouts on the fly.
