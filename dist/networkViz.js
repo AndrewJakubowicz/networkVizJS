@@ -123,6 +123,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         .append("svg")
         .attr("preserveAspectRatio", "xMinYMin meet")
         .attr("viewBox", `0 0 ${width} ${height}`)
+        .style("background-color", "white")
         .classed("svg-content-responsive", true);
     svg.on("click", layoutOptions.clickAway);
     /**
