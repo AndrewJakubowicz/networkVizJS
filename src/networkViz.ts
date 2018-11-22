@@ -127,6 +127,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         .append("svg")
         .attr("preserveAspectRatio", "xMinYMin meet")
         .attr("viewBox", `0 0 ${width} ${height}`)
+        .style("background-color", "white")
         .classed("svg-content-responsive", true);
     svg.on("click", layoutOptions.clickAway);
     /**
@@ -1422,7 +1423,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         layoutOptions.mouseDownNode = mouseDownCallback;
     }
 
-    function addToGroup(group: string | { id: string, data?: {} }, children: { nodes?: string[], groups?: string[] }, callback?: () => void, preventLayout?: boolean) {
+    function addToGroup(group, children: { nodes?: string[], groups?: string[] }, callback?: () => void, preventLayout?: boolean) {
         const nodeId = children.nodes;
         const subGroupId = children.groups;
         // check minimum size
