@@ -42,6 +42,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         mouseUpNode: undefined,
         mouseOverGroup: undefined,
         mouseOutGroup: undefined,
+        mouseOverEdge: undefined,
+        mouseOutEdge: undefined,
         clickNode: () => undefined,
         dblclickNode: () => undefined,
         clickEdge: () => undefined,
@@ -626,10 +628,14 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr("marker-end", d => `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.edgeData)})`);
             linkEnter
                 .on("mouseenter", function (d) {
-                    addEdgeHoverMenu(d, this);
+                    console.log(d, d3.select(this), d3.event);
+                    console.log(layoutOptions.mouseOverEdge);
+                    layoutOptions.mouseOverEdge && layoutOptions.mouseOverEdge(d, d3.select(this), d3.event);
+                    // addEdgeHoverMenu(d, this);
                 })
                 .on("mouseleave", function (d) {
-                    deleteEdgeHoverMenu(d, this);
+                    layoutOptions.mouseOutEdge && layoutOptions.mouseOutEdge();
+                    // deleteEdgeHoverMenu(d, this);
                 })
                 .on("dblclick", function (d) {
                     const elem = d3.select(this);
@@ -684,7 +690,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                     }
                     return `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.edgeData)})`;
                 })
-                .attr("class", d => "line-front " + d.predicate.class);
+                .attr("class", d => "line-front " + d.predicate.class)
+                .attr("stroke-width", d => d.predicate.strokeWidth)
+                .attr("stroke-dasharray", d => d.predicate.strokeDasharray);
             return resolve();
         });
     }
@@ -1055,6 +1063,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                  * If a predicate type already has a color,
                  * it is not redefined.
                  */
+                // arrowhead change
                 const edgeColor = typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(predicate);
                 if (!predicateTypeToColorMap.has(edgeColor)) {
                     predicateTypeToColorMap.set(edgeColor, true);
@@ -1283,6 +1292,16 @@ function networkVizJS(documentId, userLayoutOptions) {
                 restart();
                 break;
             }
+            case "weight": {
+                editEdgeHelper("strokeWidth");
+                restart();
+                break;
+            }
+            case "dash": {
+                editEdgeHelper("strokeDasharray");
+                restart();
+                break;
+            }
             default: {
                 editEdgeHelper(prop);
                 console.warn("Caution. You are modifying a new or unknown property: %s.", prop);
@@ -1345,7 +1364,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         node.filter(d => d.id === id).select("path").attr("fill", values[0]);
                     }
                 });
-                //TODO either make colour change +text here or in updatestyles, not both.
+                // TODO either make colour change +text here or in updatestyles, not both.
                 updateStyles();
                 break;
             }
