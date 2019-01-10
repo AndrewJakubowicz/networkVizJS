@@ -412,8 +412,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                             .attr("x", d => d.width / 2 || 0)
                             .attr("y", 0)
                             .style("opacity", 1);
-                    }
-                    else {
+                    } else {
                         foOnNode
                             .style("opacity", 0);
                     }
@@ -429,8 +428,7 @@ function networkVizJS(documentId, userLayoutOptions) {
     function hoverMenuRemoveIcons(parent?) {
         if (parent) {
             parent.selectAll(".edge-hover-menu").remove();
-        }
-        else {
+        } else {
             d3.selectAll(".edge-hover-menu").remove();
         }
     }
@@ -737,8 +735,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         if ((layoutOptions.edgeSmoothness * 2 > v01abs)) {
                             dx = v01.x / 2;
                             dy = v01.y / 2;
-                        }
-                        else {
+                        } else {
                             dx = layoutOptions.edgeSmoothness * uv01.x;
                             dy = layoutOptions.edgeSmoothness * uv01.y;
                         }
@@ -749,8 +746,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         if ((layoutOptions.edgeSmoothness * 2 > v12abs)) {
                             dx = v12.x / 2;
                             dy = v12.y / 2;
-                        }
-                        else {
+                        } else {
                             dx = layoutOptions.edgeSmoothness * uv12.x;
                             dy = layoutOptions.edgeSmoothness * uv12.y;
                         }
@@ -769,16 +765,14 @@ function networkVizJS(documentId, userLayoutOptions) {
                     }
                     try {
                         simulation.prepareEdgeRouting();
-                    }
-                    catch (err) {
+                    } catch (err) {
                         console.error(err);
                         return;
                     }
                     try {
                         link.selectAll("path")
                             .attr("d", d => lineFunction(simulation.routeEdge(d, undefined, undefined)));
-                    }
-                    catch (err) {
+                    } catch (err) {
                         console.error(err);
                         return;
                     }
@@ -787,8 +781,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                             link.selectAll("path").each(function (d) {
                                 this.parentNode.insertBefore(this, this);
                             });
-                    }
-                    catch (err) {
+                    } catch (err) {
                         console.log(err);
                         return;
                     }
@@ -834,8 +827,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         let route;
                         try {
                             route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
-                        }
-                        catch (err) {
+                        } catch (err) {
                             console.error(err);
                             return;
                         }
@@ -851,8 +843,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                             let route;
                             try {
                                 route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
-                            }
-                            catch (err) {
+                            } catch (err) {
                                 console.error(err);
                                 return 0;
                             }
@@ -863,8 +854,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                             let route;
                             try {
                                 route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
-                            }
-                            catch (err) {
+                            } catch (err) {
                                 console.error(err);
                                 return 0;
                             }
@@ -988,15 +978,13 @@ function networkVizJS(documentId, userLayoutOptions) {
         if (isArray(nodeObjectOrArray)) {
             // Run through the array adding the nodes
             nodeObjectOrArray.forEach(addNodeObjectHelper);
-        }
-        else {
+        } else {
             addNodeObjectHelper(nodeObjectOrArray);
         }
         // Draw the changes, and either fire callback or pass it on to restart.
         if (!preventLayout) {
             restart(callback);
-        }
-        else {
+        } else {
             typeof callback === "function" && callback();
         }
     }
@@ -1278,8 +1266,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 predicateArray.forEach((d, i) => {
                     d[prop] = values[i];
                 });
-            }
-            else {
+            } else {
                 predicateArray.forEach(d => {
                     d[prop] = values[0];
                 });
@@ -1346,8 +1333,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 nodeArray.forEach((d, i) => {
                     d[prop] = values[i];
                 });
-            }
-            else {
+            } else {
                 nodeArray.forEach(d => {
                     d[prop] = values[0];
                 });
@@ -1359,8 +1345,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 idArray.forEach((id, i) => {
                     if (multipleValues) {
                         node.filter(d => d.id === id).select("path").attr("fill", values[i]);
-                    }
-                    else {
+                    } else {
                         node.filter(d => d.id === id).select("path").attr("fill", values[0]);
                     }
                 });
@@ -1374,8 +1359,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 idArray.forEach((id, i) => {
                     if (multipleValues) {
                         node.filter(d => d.id === id).select("path").attr("d", shapePaths[i]);
-                    }
-                    else {
+                    } else {
                         node.filter(d => d.id === id).select("path").attr("d", shapePaths[0]);
                     }
                 });
@@ -1469,7 +1453,7 @@ function networkVizJS(documentId, userLayoutOptions) {
 
         // get target group, if does not exist, create new group
         simulation.stop();
-        const groupId = typeof(group) === "string" ? group : group.id;
+        const groupId = typeof (group) === "string" ? group : group.id;
         let groupObj = groupMap.get(groupId);
         if (!groupObj) {
             groupObj = {
@@ -1492,8 +1476,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         groupObj.groups = groupObj.groups.concat(groupIndices);
         if (!preventLayout) {
             return restart(callback);
-        }
-        else {
+        } else {
             typeof callback === "function" && callback();
             return Promise.resolve();
         }
@@ -1539,8 +1522,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         });
         if (!preventLayout) {
             return restart(callback);
-        }
-        else {
+        } else {
             typeof callback === "function" && callback();
             return Promise.resolve();
         }
@@ -1813,14 +1795,14 @@ function networkVizJS(documentId, userLayoutOptions) {
 
             const findAligns = ({ centreMap, edgeMap, offset, threshold, position }) => {
                 // check for centre alignments
-                let alignments = [... centreMap.entries()].reduce((acc, curr) => {
+                let alignments = [...centreMap.entries()].reduce((acc, curr) => {
                     if (curr[0] > position - threshold && curr[0] < position + threshold && curr[1].length > acc.array.length) {
                         return { coord: curr[0], array: curr[1], offset: 0 };
                     }
                     return acc;
                 }, { coord: undefined, array: [], offset: undefined });
                 // check for edge alignments
-                alignments = [... edgeMap.entries()].reduce((acc, curr) => {
+                alignments = [...edgeMap.entries()].reduce((acc, curr) => {
                     if (curr[0] > position + offset - threshold && curr[0] < position + offset + threshold && curr[1].length > acc.array.length) {
                         return { coord: curr[0], array: curr[1], offset: offset };
                     }
@@ -2340,8 +2322,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     layoutOptions.flowDirection = "y";
                     if (layoutOptions.layoutType == "flowLayout") {
                         simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
-                    }
-                    else {
+                    } else {
                         layoutOptions.layoutType = "flowLayout";
                         simulation = updateColaLayout_1.updateColaLayout(layoutOptions);
                     }
@@ -2351,8 +2332,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     layoutOptions.flowDirection = "x";
                     if (layoutOptions.layoutType == "flowLayout") {
                         simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
-                    }
-                    else {
+                    } else {
                         layoutOptions.layoutType = "flowLayout";
                         simulation = updateColaLayout_1.updateColaLayout(layoutOptions);
                     }
