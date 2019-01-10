@@ -1540,72 +1540,72 @@ function networkVizJS(documentId, userLayoutOptions) {
         groups = newGroupObject;
         restart(callback);
     }
-    function deleteEdgeHoverMenu(d, me) {
-        d3.event.preventDefault();
-        hoverMenuRemoveIcons(d3.select(me.parentNode));
-    }
-    function addEdgeHoverMenu(d, me) {
-        hoverMenuRemoveIcons();
-        const element = d3.select(me);
-        const parent = d3.select(me.parentNode);
-        const textBox = element.select("text");
-        const textFo = element.select(".edge-foreign-object");
-        const array = simulation.routeEdge(d, undefined, undefined);
-        const middleIndex = Math.floor(array.length / 2) - 1;
-        const xMid = (array[middleIndex].x + array[middleIndex + 1].x) / 2;
-        const yMid = (array[middleIndex].y + array[middleIndex + 1].y) / 2;
-        const textWidth = textBox.node().offsetWidth;
-        const textHeight = textBox.node().offsetHeight; // NB when text is empty = 26 i.e. 1 line height
-        const menuGroup = element.insert("g", "foreignObject")
-            .attr("class", "edge-hover-menu");
-        menuGroup.append("rect")
-            .classed("menu-hover-box", true)
-            .attr("width", () => {
-            const minWidth = 30;
-            return textWidth < minWidth ? minWidth : textWidth;
-        })
-            .attr("height", () => {
-            const minHeight = 30;
-            return textHeight === 0 ? 10 + minHeight : textHeight + minHeight;
-        })
-            .attr("x", function () {
-            const width = d3.select(this).attr("width");
-            return xMid - width / 2;
-        })
-            .attr("y", yMid - textHeight / 2)
-            .attr("fill", "rgba(0,0,0,0)")
-            .attr("stroke", "none")
-            .on("mouseover", function () {
-            layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
-        })
-            .on("mouseleave", function () {
-            layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
-        });
-        // CREATE TRASH ICON
-        const foTrash = menuGroup
-            .append("foreignObject")
-            .attr("x", xMid - 11)
-            .attr("y", yMid + textHeight / 2 + 5)
-            .attr("class", "menu-trash")
-            .attr("width", 22)
-            .attr("height", 27)
-            .style("overflow", "visible")
-            .on("click", function () {
-            const e = d3.event;
-            e.stopPropagation();
-            const edge = {
-                subject: d.source,
-                predicate: d.predicate,
-                object: d.target
-            };
-            layoutOptions.edgeRemove && layoutOptions.edgeRemove(edge, d3.select(this), e);
-            layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
-        });
-        foTrash.append("xhtml:div")
-            .append("div")
-            .attr("class", "icon-wrapper")
-            .html("<i class=\"fa fa-trash-o custom-icon\"></i>");
-    }
+    // function deleteEdgeHoverMenu(d, me) {
+    //     d3.event.preventDefault();
+    //     hoverMenuRemoveIcons(d3.select(me.parentNode));
+    // }
+    // function addEdgeHoverMenu(d, me) {
+    //     hoverMenuRemoveIcons();
+    //     const element = d3.select(me);
+    //     const parent = d3.select(me.parentNode);
+    //     const textBox = element.select("text");
+    //     const textFo = element.select(".edge-foreign-object");
+    //     const array = simulation.routeEdge(d, undefined, undefined);
+    //     const middleIndex = Math.floor(array.length / 2) - 1;
+    //     const xMid = (array[middleIndex].x + array[middleIndex + 1].x) / 2;
+    //     const yMid = (array[middleIndex].y + array[middleIndex + 1].y) / 2;
+    //     const textWidth = textBox.node().offsetWidth;
+    //     const textHeight = textBox.node().offsetHeight; // NB when text is empty = 26 i.e. 1 line height
+    //     const menuGroup = element.insert("g", "foreignObject")
+    //         .attr("class", "edge-hover-menu");
+    //     menuGroup.append("rect")
+    //         .classed("menu-hover-box", true)
+    //         .attr("width", () => {
+    //             const minWidth = 30;
+    //             return textWidth < minWidth ? minWidth : textWidth;
+    //         })
+    //         .attr("height", () => {
+    //             const minHeight = 30;
+    //             return textHeight === 0 ? 10 + minHeight : textHeight + minHeight;
+    //         })
+    //         .attr("x", function () {
+    //             const width = d3.select(this).attr("width");
+    //             return xMid - width / 2;
+    //         })
+    //         .attr("y", yMid - textHeight / 2)
+    //         .attr("fill", "rgba(0,0,0,0)")
+    //         .attr("stroke", "none")
+    //         .on("mouseover", function () {
+    //             layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
+    //         })
+    //         .on("mouseleave", function () {
+    //             layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
+    //         });
+    //     // CREATE TRASH ICON
+    //     const foTrash = menuGroup
+    //         .append("foreignObject")
+    //         .attr("x", xMid - 11)
+    //         .attr("y", yMid + textHeight / 2 + 5)
+    //         .attr("class", "menu-trash")
+    //         .attr("width", 22)
+    //         .attr("height", 27)
+    //         .style("overflow", "visible")
+    //         .on("click", function () {
+    //             const e = d3.event;
+    //             e.stopPropagation();
+    //             const edge = {
+    //                 subject: d.source,
+    //                 predicate: d.predicate,
+    //                 object: d.target
+    //             };
+    //             layoutOptions.edgeRemove && layoutOptions.edgeRemove(edge, d3.select(this), e);
+    //             layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
+    //         });
+    //     foTrash.append("xhtml:div")
+    //         .append("div")
+    //         .attr("class", "icon-wrapper")
+    //         .html("<i class=\"fa fa-trash-o custom-icon\"></i>");
+    // }
     /**
      * Helper function to add  a constraint to simulation
      * requires restarting simulation after
