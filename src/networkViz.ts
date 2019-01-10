@@ -42,6 +42,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         mouseUpNode: undefined,
         mouseOverGroup: undefined,
         mouseOutGroup: undefined,
+        clickGroup: undefined,
         clickNode: () => undefined,
         dblclickNode: () => undefined,
         clickEdge: () => undefined,
@@ -452,10 +453,14 @@ function networkVizJS(documentId, userLayoutOptions) {
                 })
                 .on("mouseout", function (d) {
                     layoutOptions.mouseOutGroup && layoutOptions.mouseOutGroup(d, d3.select(this), d3.event);
+                })
+                .on("click", function (d) {
+                    layoutOptions.clickGroup && layoutOptions.clickGroup(d, d3.select(this), d3.event);
                 });
             group = group.merge(groupEnter);
 
-            group.attr("fill", layoutOptions.groupFillColor);
+            group.attr("fill", layoutOptions.groupFillColor)
+                .attr("class", d => d.data.class);
 
 
             /////// NODE ///////
@@ -487,7 +492,6 @@ function networkVizJS(documentId, userLayoutOptions) {
 
             foBox.append("text")
                 .attr("tabindex", "-1")
-                // .attr("class", d => d.class)
                 .attr("pointer-events", "none")
                 .style("cursor", "text")
                 .style("text-align", "center")
@@ -539,7 +543,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .html(function (d) {
                     return d.shortname || d.hash;
                 })
-                // .attr("class", d => d.class)
                 .style("color", d => {
                     // select text colour based on background brightness
                     let color = "#000000";
@@ -1187,7 +1190,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     simulation.stop();
                     nodes.splice(nodeIndex, 1);
                     if (nodeMap.get(nodeHash).parent) {
-                        unGroup({ nodes: [nodeHash] }, undefined, true);
+                        unGroup({ nodes: [nodeHash] }, true);
                     }
                     nodeMap.delete(nodeHash);
                     createNewLinks(callback);
@@ -1330,7 +1333,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         node.filter(d => d.id === id).select("path").attr("fill", values[0]);
                     }
                 });
-                //TODO either make colour change +text here or in updatestyles, not both.
+                // TODO either make colour change +text here or in updatestyles, not both.
                 updateStyles();
                 break;
             }
@@ -1407,7 +1410,13 @@ function networkVizJS(documentId, userLayoutOptions) {
         layoutOptions.mouseDownNode = mouseDownCallback;
     }
 
-    function addToGroup(group, children: { nodes?: string[], groups?: string[] }, callback?: () => void, preventLayout?: boolean) {
+    /**
+     * Add a node or a group to a group
+     * @param group - target group, either an existing group, or a new group to create
+     * @param children - object containing nodes and/or groups property. they are arrays of ID values
+     * @param preventLayout - prevent layout restart from occuring
+     */
+    function addToGroup(group, children: { nodes?: string[], groups?: string[] }, preventLayout?: boolean) {
         const nodeId = children.nodes;
         const subGroupId = children.groups;
         // check minimum size
@@ -1429,7 +1438,9 @@ function networkVizJS(documentId, userLayoutOptions) {
         }
 
         const nodesWithParentsID = nodeId.filter(id => nodeMap.get(id).parent);
-        unGroup({ nodes: nodesWithParentsID }, undefined, true);
+        if (nodesWithParentsID.length > 0) {
+            unGroup({ nodes: nodesWithParentsID }, true);
+        }
 
 
         // get target group, if does not exist, create new group
@@ -1456,37 +1467,44 @@ function networkVizJS(documentId, userLayoutOptions) {
         groupObj.leaves = groupObj.leaves.concat(nodeIndices);
         groupObj.groups = groupObj.groups.concat(groupIndices);
         if (!preventLayout) {
-            return restart(callback);
+            return restart();
         } else {
-            typeof callback === "function" && callback();
             return Promise.resolve();
         }
     }
 
-    function unGroup(children: { nodes?: string[], groups?: string[] }, callback?: () => void, preventLayout?: boolean) {
+    /**
+     * Remove a group or node from a group
+     * @param children - object containing nodes and/or groups property. they are arrays of ID values
+     * @param preventLayout - prevent layout restart from occuring
+     */
+    function unGroup(children: { nodes?: string[], groups?: string[] } | [{ nodes?: string[], groups?: string[] }], preventLayout?: boolean) {
         simulation.stop();
-        if (children.nodes) {
-            // remove nodes from groups
-            const leaves = children.nodes.map(id => nodeMap.get(id));
-            leaves.forEach(d => {
-                if (d.parent) {
-                    d.parent.leaves = d.parent.leaves.filter(leaf => leaf.id !== d.id);
-                    delete d.parent;
-                }
-            });
-        }
-        if (children.groups) {
-            // remove groups from groups
-            const subGroups = children.groups.map(id => {
-                const i = groups.findIndex(g => g.id === id);
-                return groups[i];
-            });
-            subGroups.forEach(g => {
-                if (g.parent) {
-                    g.parent.groups = g.parent.groups.filter(sibling => sibling.id !== g.id);
-                }
-            });
-        }
+        const childArray = Array.isArray(children) ? children : [children];
+        childArray.forEach(child => {
+            if (child.nodes) {
+                // remove nodes from groups
+                const leaves = child.nodes.map(id => nodeMap.get(id));
+                leaves.forEach(d => {
+                    if (d.parent) {
+                        d.parent.leaves = d.parent.leaves.filter(leaf => leaf.id !== d.id);
+                        delete d.parent;
+                    }
+                });
+            }
+            if (child.groups) {
+                // remove groups from groups
+                const subGroups = child.groups.map(id => {
+                    const i = groups.findIndex(g => g.id === id);
+                    return groups[i];
+                });
+                subGroups.forEach(g => {
+                    if (g.parent) {
+                        g.parent.groups = g.parent.groups.filter(sibling => sibling.id !== g.id);
+                    }
+                });
+            }
+        });
 
         // remove empty groups
         groups = groups.filter(g => {
@@ -1502,9 +1520,8 @@ function networkVizJS(documentId, userLayoutOptions) {
             }
         });
         if (!preventLayout) {
-            return restart(callback);
+            return restart();
         } else {
-            typeof callback === "function" && callback();
             return Promise.resolve();
         }
     }
