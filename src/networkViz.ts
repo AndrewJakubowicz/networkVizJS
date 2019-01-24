@@ -504,6 +504,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             group.attr("fill", layoutOptions.groupFillColor)
                 .attr("class", d => d.data.class);
 
+
             /////// NODE ///////
             node = node.data(nodes, d => d.index);
             node.exit().remove();
@@ -942,32 +943,35 @@ function networkVizJS(documentId, userLayoutOptions) {
 
     /**
      * Helper function for updating links after node mutations.
-     * Calls a function after links added.
-     * @param callback - function to run on end
      */
-    function createNewLinks(callback) {
-        tripletsDB.get({}, (err, l) => {
-            if (err) {
-                console.error(err);
-            }
+    function createNewLinks() {
+        return new Promise((resolve, reject) => tripletsDB.get({}, (err, l) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(l);
+                }
+            })
+        ).then((l) => {
             // Create edges based on LevelGraph triplets
-            links = l.map(({ subject, object, predicate }) => {
+            links = (<any[]>l).map(({ subject, object, predicate }) => {
                 const source = nodeMap.get(subject);
                 const target = nodeMap.get(object);
                 predicateMap.set(predicate.hash, predicate); // update predicateMap to match new link object
                 return { source, target, predicate };
             });
-            restart(callback);
-        });
+        }).catch((err) => {
+            console.error(err);
+        }).then(restart);
+
     }
 
     /**
      * Take a node object or list of nodes and add them.
      * @param {object | object[]} nodeObjectOrArray
-     * @param callback
      * @param preventLayout
      */
-    function addNode(nodeObjectOrArray, callback, preventLayout) {
+    function addNode(nodeObjectOrArray, preventLayout?: boolean) {
         /** Define helper functions at the top */
         /**
          * Checks if object is an array:
@@ -1026,9 +1030,9 @@ function networkVizJS(documentId, userLayoutOptions) {
         }
         // Draw the changes, and either fire callback or pass it on to restart.
         if (!preventLayout) {
-            restart(callback);
+            return restart();
         } else {
-            typeof callback === "function" && callback();
+            return Promise.resolve();
         }
     }
 
@@ -1067,10 +1071,9 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Adds a triplet object. Adds the node if it's not already added.
      * Otherwise it just adds the edge
      * @param {object} tripletObject
-     * @param callback
      * @param preventLayout
      */
-    function addTriplet(tripletObject, callback?, preventLayout?) {
+    function addTriplet(tripletObject, preventLayout?) {
         if (!tripletValidation(tripletObject)) {
             return Promise.reject("Invalid triplet");
         }
@@ -1145,7 +1148,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     createConstraint(tripletObject.predicate.constraint);
                 }
                 if (!preventLayout) {
-                    createNewLinks(callback);
+                    return createNewLinks();
                 }
                 return Promise.resolve();
             })
@@ -1158,10 +1161,9 @@ function networkVizJS(documentId, userLayoutOptions) {
     /**
      * Removes a triplet object. Silently fails if edge doesn't exist.
      * @param {object} tripletObject
-     * @param callback
-     * @returns {Promise<void>}
+     * @param preventLayout - prevent restart from occuring
      */
-    function removeTriplet(tripletObject, callback) {
+    function removeTriplet(tripletObject, preventLayout?: boolean) {
         if (!tripletValidation(tripletObject)) {
             return;
         }
@@ -1180,7 +1182,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                 removeConstraint(tripletObject.predicate.constraint);
             }
             simulation.stop();
-            createNewLinks(callback);
+            if (!preventLayout) {
+                return createNewLinks();
+            }
         });
     }
 
@@ -1242,7 +1246,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         unGroup({ nodes: [nodeHash] }, true);
                     }
                     nodeMap.delete(nodeHash);
-                    createNewLinks(callback);
+                    createNewLinks();
                     return;
                 }
                 tripletsDB.del([...l1, ...l2], function (err) {
@@ -1263,7 +1267,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     simulation.stop();
                     nodes.splice(nodeIndex, 1);
                     nodeMap.delete(nodeHash);
-                    createNewLinks(callback);
+                    createNewLinks();
                 });
             });
         });
@@ -1505,6 +1509,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         if (nodesWithParentsID.length > 0) {
             unGroup({ nodes: nodesWithParentsID }, true);
         }
+
 
         // get target group, if does not exist, create new group
         simulation.stop();
