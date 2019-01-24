@@ -197,6 +197,46 @@ function networkVizJS(documentId, userLayoutOptions) {
 
 
     createColorArrow_1.default(defs, "#409EFF");
+    createColorArrow_1.default(defs, "#4D4D4D");
+    createColorArrow_1.default(defs, "#333333");
+    createColorArrow_1.default(defs, "#000000");
+    createColorArrow_1.default(defs, "#999999");
+    createColorArrow_1.default(defs, "#808080");
+    createColorArrow_1.default(defs, "#666666");
+    createColorArrow_1.default(defs, "#FFFFFF");
+    createColorArrow_1.default(defs, "#CCCCCC");
+    createColorArrow_1.default(defs, "#B3B3B3");
+    createColorArrow_1.default(defs, "#F44E3B");
+    createColorArrow_1.default(defs, "#D33115");
+    createColorArrow_1.default(defs, "#9F0500");
+    createColorArrow_1.default(defs, "#FE9200");
+    createColorArrow_1.default(defs, "#E27300");
+    createColorArrow_1.default(defs, "#C45100");
+    createColorArrow_1.default(defs, "#F6ECAF");
+    createColorArrow_1.default(defs, "#FCDC00");
+    createColorArrow_1.default(defs, "#FCC400");
+    createColorArrow_1.default(defs, "#DBDF00");
+    createColorArrow_1.default(defs, "#B0BC00");
+    createColorArrow_1.default(defs, "#808900");
+    createColorArrow_1.default(defs, "#A4DD00");
+    createColorArrow_1.default(defs, "#AADCDC");
+    createColorArrow_1.default(defs, "#194D33");
+    createColorArrow_1.default(defs, "#68CCCA");
+    createColorArrow_1.default(defs, "#16A5A5");
+    createColorArrow_1.default(defs, "#0C797D");
+    createColorArrow_1.default(defs, "#73D8FF");
+    createColorArrow_1.default(defs, "#009CE0");
+    createColorArrow_1.default(defs, "#0062B1");
+    createColorArrow_1.default(defs, "#AEA1FF");
+    createColorArrow_1.default(defs, "#7B64FF");
+    createColorArrow_1.default(defs, "#653294");
+    createColorArrow_1.default(defs, "#FDA1FF");
+    createColorArrow_1.default(defs, "#FA28FF");
+    createColorArrow_1.default(defs, "#AB149E");
+    // add all colors into the defs
+    // for (let color = 0x0; color <= 0xFFFFFF; color++) {
+    //     createColorArrow_1.default(defs, "#" + color);
+    // }
     // Define svg groups for storing the visuals.
     const g = svg.append("g")
         .classed("svg-graph", true);
@@ -686,11 +726,12 @@ function networkVizJS(documentId, userLayoutOptions) {
                     if (d.predicate.class.includes("highlight")) {
                         return "url(#arrow-409EFF)";
                     }
-                    return `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.edgeData)})`;
+                    return `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.predicate)})`;
                 })
                 .attr("class", d => "line-front " + d.predicate.class)
                 .attr("stroke-width", d => d.predicate.strokeWidth)
-                .attr("stroke-dasharray", d => d.predicate.strokeDasharray);
+                .attr("stroke-dasharray", d => d.predicate.strokeDasharray)
+                .attr("stroke", d => d.predicate.stroke ? d.predicate.stroke : "black");
             return resolve();
         });
     }
@@ -1286,6 +1327,11 @@ function networkVizJS(documentId, userLayoutOptions) {
             }
             case "dash": {
                 editEdgeHelper("strokeDasharray");
+                restart();
+                break;
+            }
+            case "color": {
+                editEdgeHelper("stroke");
                 restart();
                 break;
             }
