@@ -649,7 +649,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                     const e = d3.event;
                     // IMPORTANT, without this vuegraph will crash in SWARM. bug caused by blur event handled by medium editor.
                     e.stopPropagation();
-                    layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
+                    // layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
                     setTimeout(() => {
                         layoutOptions.dblclickEdge(d, elem, e);
                     }, 50);
