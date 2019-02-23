@@ -54,6 +54,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         nodeStrokeWidth: () => 1,
         nodeStrokeColor: () => "grey",
         edgeColor: "black",
+        edgeArrowhead: "R",
         edgeStroke: 2,
         edgeStrokePad: 20,
         edgeDasharray: 0,
@@ -152,6 +153,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         internalOptions.isDragging = true;
         // TODO find permanent solution in vuegraph
         if (layoutOptions.isSelect && layoutOptions.isSelect()) {
+            console.log(d);
             d.class += " highlight";
             updateStyles();
         }
@@ -193,9 +195,11 @@ function networkVizJS(documentId, userLayoutOptions) {
         .attr("d", "M 50 0 L 50 40 L 0 20 Z")
         .attr("fill", "rgb(150,150,150)");
     createColorArrow_1.default(defs, "#409EFF");
+    createColorArrow_1.default(defs, "#409EFF", true);
     // Add all colors into the defs
     for (let i = 0; i < layoutOptions.palette.length; i++) {
         createColorArrow_1.default(defs, layoutOptions.palette[i]);
+        createColorArrow_1.default(defs, layoutOptions.palette[i], true);
     }
     // Define svg groups for storing the visuals.
     const g = svg.append("g")
@@ -591,7 +595,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr("stroke-width", layoutOptions.edgeStroke)
                 .attr("stroke", layoutOptions.edgeColor)
                 .attr("fill", "none")
-                .attr("marker-end", d => `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.edgeData)})`);
+                .attr("marker-end", d => `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.edgeData)}-end)`);
             linkEnter
                 .on("mouseenter", function (d) {
                 console.log(d, d3.select(this), d3.event);
@@ -650,15 +654,33 @@ function networkVizJS(documentId, userLayoutOptions) {
                 });
             }
             link.select(".line-front")
-                .attr("marker-end", d => {
-                if (d.predicate.class.includes("highlight")) {
-                    return "url(#arrow-409EFF)";
+                .attr("marker-start", d => {
+                if (typeof layoutOptions.edgeArrowhead != "string") {
+                    if (layoutOptions.edgeArrowhead(d.predicate) == "L" || layoutOptions.edgeArrowhead(d.predicate) == "B") {
+                        if (d.predicate.class.includes("highlight")) {
+                            return "url(#arrow-409EFF-start)";
+                        }
+                        return `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.predicate)}-start)`;
+                    }
+                    return "none";
                 }
-                return `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.predicate)})`;
+                return `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.predicate)}-start)`;
             })
-                .attr("class", d => "line-front " + d.predicate.class)
-                .attr("stroke-width", d => layoutOptions.edgeStroke == "string" ? layoutOptions.edgeStroke : layoutOptions.edgeStroke(d.predicate))
-                .attr("stroke-dasharray", d => layoutOptions.edgeDasharray == "string" ? layoutOptions.edgeDasharray : layoutOptions.edgeDasharray(d.predicate))
+                .attr("marker-end", d => {
+                if (typeof layoutOptions.edgeArrowhead != "string") {
+                    if (layoutOptions.edgeArrowhead(d.predicate) == "R" || layoutOptions.edgeArrowhead(d.predicate) == "B") {
+                        if (d.predicate.class.includes("highlight")) {
+                            return "url(#arrow-409EFF-end)";
+                        }
+                        return `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.predicate)}-end)`;
+                    }
+                    return "none";
+                }
+                return `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.predicate)}-end)`;
+            })
+                .attr("class", d => "line-front " + d.predicate.class.replace("highlight", "highlight-edge"))
+                .attr("stroke-width", d => typeof layoutOptions.edgeStroke == "string" ? layoutOptions.edgeStroke : layoutOptions.edgeStroke(d.predicate))
+                .attr("stroke-dasharray", d => typeof layoutOptions.edgeDasharray == "string" ? layoutOptions.edgeDasharray : layoutOptions.edgeDasharray(d.predicate))
                 .attr("stroke", d => d.predicate.stroke ? d.predicate.stroke : "black");
             return resolve();
         });
@@ -1241,6 +1263,11 @@ function networkVizJS(documentId, userLayoutOptions) {
         switch (prop) {
             case "text": {
                 editEdgeHelper("text");
+                restart();
+                break;
+            }
+            case "arrow": {
+                editEdgeHelper("arrowhead");
                 restart();
                 break;
             }
