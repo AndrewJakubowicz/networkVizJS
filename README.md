@@ -67,7 +67,7 @@ Optionally you can define `x` and `y`.
 
 ```javascript
 var node = {
-    hash: "1",
+    hash: "uniqueString", // Hash must be unique
     shortname: "Node1",
 }
 ```
@@ -77,7 +77,7 @@ To define an edge you use a triplet with the shape:
 ```javascript
 var someEdge = {
     subject: { /* Node to start at */ }
-    predicate: { type: "someType" } // This allows different coloured edges.
+    predicate: { type: "someType", hash: 'uniqueString' } // Type allows different coloured edges. Hash must be unique
     object: { /* Node to finish at */ }
 }
 ```
@@ -124,7 +124,6 @@ Just pass in the ones you want.
 
 ```javascript
 interface OptionsObject {
-    canDrag: boolean;           // True: You can drag nodes, False: You can't
     databaseName: string;       // Force the database name
     layoutType: string;         // "linkDistance" | "flowLayout" | "jaccardLinkLengths"
     jaccardModifier: number;    // Modifier for jaccardLinkLengths, number between 0 and 1
@@ -132,13 +131,15 @@ interface OptionsObject {
     handleDisconnected: boolean;// False by default, clumps disconnected nodes
     flowDirection: string;      // If flowLayout: "x" | "y"
     enableEdgeRouting: boolean; // Edges route around nodes
-    nodeShape: string;          // Set node shape: "rect" | "circle"
+    nodeShape: string;          // Set default node shape: "rect" | "circle"
     width: number;              // SVG width
     height: number;             // SVG height
-    pad: number;
-    margin: number;
+    pad: number;                // Padding outside of nodes 
+    margin: number;             // Margin inside of nodes
+    canDrag: boolean;           // True: You can drag nodes, False: You can't
     nodeDragStart(): void;      // Called when drag event triggers
-    edgeLabelText: string | {(d?: any, i?: number): string};    // Todo: EdgeLabels in predicate.
+    nodeDragEnd(): void;      // Called when drag event ends
+    edgeLabelText: string | {(d?: any, i?: number): string};
 
     // mouse handlers on nodes.
     mouseDownNode(nodeObject?: any, d3Selection?: Selection): void;
@@ -150,16 +151,32 @@ interface OptionsObject {
     clickEdge(edgeObject?: any, d3Selection?: Selection): void;
     
     clickAway(): void;          // Triggers on zooming or clicking on the svg canvas.
+    
 
     // These options allow you to define a selector to create dynamic attributes
     // based on the nodes properties.
+    nodeToPin: boolean | {(d?: any, i?: number): boolean};
     nodeToColor: string | {(d?: any, i?: number): string};     // Return a valid css colour.
     nodeStrokeWidth: number | {(d?: any, i?: number): number};
     nodeStrokeColor: string | {(d?: any, i?: number): string};
 
+
     edgeColor: string | {(d?: any, i?: number): string};
     edgeStroke: number | {(d?: any, i?: number): number};
+    edgeStrokePad: number | {(d?: any, i?: number): number}; // size of clickable area behind edge
     edgeLength: number | {(d?: any, i?: number): number};
+    edgeSmoothness: number | {(d?: any, i?: number): number}; // amount of smoothing applied to vertices in edges
+    
+    mouseOverRadial()   // To be depreceated
+    mouseOutRadial()    // To be depreceated
+    
+     snapToAlignment: boolean;          // Enable snap to alignment whilst dragging
+     snapThreshold: number;             // Snap to alignment threshold
+     zoomScale(scale: number): void;    // Triggered when zooming
+     isSelect(): boolean;               // Is tool in selection mode
+     nodeSizeChange(): void;            // Triggers when node dimensions update
+     selection(): any;                  // Returns current selection from select tool
+     imgResize(bool: boolean): void;    // Toggle when resizing image
 }
 ```
 
@@ -170,22 +187,40 @@ interface OptionsObject {
 hasNode(nodeHash: string): Boolean
 // Public access to the levelgraph db.
 getDB(): levelGraphDB
-// Get Stringified representation of the graph.
-saveGraph(): string
+// Get node from nodeMap
+getNode(nodeHash): Object
+// Get nodes and edges by coordinates
+selectByCoords(boundary: { x: number, X: number, y: number, Y: number }): {nodes:[] edges:[]}
+// Get edge predicate from predicateMap
+getPredicate(edgeHash): Object
+// Get Layout options
+getLayoutOptions: () => layoutOptions,
 // Get SVG element. If you want the node use `graph.getSVGElement().node();`
 getSVGElement(): d3SVGSelection
+// Get Stringified representation of the graph.
+saveGraph(): string
 // add a directed edge
 addTriplet(tripletObject, preventLayout?: Boolean)
 // remove an edge
 removeTriplet(tripletObject),
+// update edge data in database
+updateTriplet(tripletObject),
 // EXPERIMENTAL - DON'T USE YET.
 mergeNodeToGroup,
 // remove a node and all edges connected to it.
 removeNode(node),
 // add a node or array of nodes.
-addNode(node | nodeArray, preventLayout?: Boolean),
+addNode(node | nodeArray, preventLayout?: Boolean);
+// edit node property
+editNode({ property: string, id:(string|string[]), value: (any|any[]) });
+// edit edge property
+editEdge({ property: string, id:(string|string[]), value: (any|any[]) });
 // Restart styles or layout.
 restart.styles()
 restart.layout()
+restart.textAlign()     // Aligns text to centre of node
+restart.redrawEdges()     // Redraw the edges
+restart.handleDisconnects()     // Handle disconnected graph components
+
 ```
 
