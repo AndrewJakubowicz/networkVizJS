@@ -1,7 +1,5 @@
 # Easy, interactive graphs with networkVizJS
 
-> This project is powered by Github 🌟's. Each star matters, [thank you!](https://github.com/SpyR1014/networkVizJS/stargazers)
-
 <p align="center">
 <img src="https://media.giphy.com/media/xUA7b6EQrHg94qkynC/giphy.gif" alt="Interacting with diagram">
 </p>
@@ -10,8 +8,6 @@
 
 - [Easy Dynamically changing graph](https://bl.ocks.org/SpyR1014/d82570c509028e6b0a519ef885ab58f0)
 - [Very simple graph editor](http://mind-map-prototype.surge.sh/)
-
-_... more to come or contribute your own_
 
 ## Why this project exists
 
@@ -43,13 +39,6 @@ things that matter.
 
 >> Adding a node is as easy as `graph.addNode(<your node object>)`!
 
-
-## Development status
-
-> In early development but very usable.
-> Contributions in the form of pull requests and issues extremely welcome.
-
-Lets make prototyping graphs faster and more interactive!
 
 ## Quickstart using Webpack or another bundler
 

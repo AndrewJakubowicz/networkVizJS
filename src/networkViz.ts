@@ -43,6 +43,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         mouseUpNode: undefined,
         mouseOverGroup: undefined,
         mouseOutGroup: undefined,
+        mouseOverEdge: undefined,
+        mouseOutEdge: undefined,
         clickGroup: undefined,
         dblclickGroup: () => undefined,
         clickNode: () => undefined,
@@ -56,14 +58,14 @@ function networkVizJS(documentId, userLayoutOptions) {
         nodeStrokeWidth: () => 1,
         nodeStrokeColor: () => "grey",
         edgeColor: "black",
+        edgeArrowhead: "R",
         edgeStroke: 2,
         edgeStrokePad: 20,
+        edgeDasharray: 0,
         edgeLength: () => 150,
         edgeSmoothness: 0,
         edgeRemove: undefined,
         groupFillColor: () => "#F6ECAF",
-        mouseOverRadial: undefined, // TODO move edge hover menu to graphviz
-        mouseOutRadial: undefined, //
         snapToAlignment: true,
         snapThreshold: 10,
         zoomScale: undefined,
@@ -71,6 +73,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         nodeSizeChange: undefined,
         selection: undefined,
         imgResize: undefined,
+        palette: undefined,
     };
 
     const internalOptions = {
@@ -154,6 +157,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         internalOptions.isDragging = true;
         // TODO find permanent solution in vuegraph
         if (layoutOptions.isSelect && layoutOptions.isSelect()) {
+            console.log(d);
             d.class += " highlight";
             updateStyles();
         }
@@ -198,6 +202,12 @@ function networkVizJS(documentId, userLayoutOptions) {
 
 
     createColorArrow_1.default(defs, "#409EFF");
+    createColorArrow_1.default(defs, "#409EFF", true);
+    // Add all colors into the defs
+    for (let i = 0; i < layoutOptions.palette.length; i++) {
+        createColorArrow_1.default(defs, layoutOptions.palette[i]);
+        createColorArrow_1.default(defs, layoutOptions.palette[i], true);
+    }
     // Define svg groups for storing the visuals.
     const g = svg.append("g")
         .classed("svg-graph", true);
@@ -306,8 +316,6 @@ function networkVizJS(documentId, userLayoutOptions) {
      */
     function updatePathDimensions() {
         layoutOptions.nodeSizeChange && layoutOptions.nodeSizeChange();
-        hoverMenuRemoveIcons(); // hover menu does not automatically change size with node
-        layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial();
         node.select("path")
             .attr("d", function (d) {
                 return layoutOptions.nodePath(d);
@@ -477,19 +485,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                     return "hidden";
                 }
             });
-    }
-
-    /**
-     * This function remove the icons from
-     * the hover menu
-     * @param parent element's parent
-     */
-    function hoverMenuRemoveIcons(parent?) {
-        if (parent) {
-            parent.selectAll(".edge-hover-menu").remove();
-        } else {
-            d3.selectAll(".edge-hover-menu").remove();
-        }
     }
 
     /**
@@ -711,20 +706,19 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr("stroke-width", layoutOptions.edgeStroke)
                 .attr("stroke", layoutOptions.edgeColor)
                 .attr("fill", "none")
-                .attr("marker-end", d => `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.edgeData)})`);
+                .attr("marker-end", d => `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.edgeData)}-end)`);
             linkEnter
                 .on("mouseenter", function (d) {
-                    addEdgeHoverMenu(d, this);
+                    layoutOptions.mouseOverEdge && layoutOptions.mouseOverEdge(d, d3.select(this), d3.event);
                 })
                 .on("mouseleave", function (d) {
-                    deleteEdgeHoverMenu(d, this);
+                    layoutOptions.mouseOutEdge && layoutOptions.mouseOutEdge();
                 })
                 .on("dblclick", function (d) {
                     const elem = d3.select(this);
                     const e = d3.event;
                     // IMPORTANT, without this vuegraph will crash in SWARM. bug caused by blur event handled by medium editor.
                     e.stopPropagation();
-                    // layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
                     setTimeout(() => {
                         layoutOptions.dblclickEdge(d, elem, e);
                     }, 50);
@@ -766,13 +760,34 @@ function networkVizJS(documentId, userLayoutOptions) {
                 });
             }
             link.select(".line-front")
-                .attr("marker-end", d => {
-                    if (d.predicate.class.includes("highlight")) {
-                        return "url(#arrow-409EFF)";
+                .attr("marker-start", d => {
+                    if (typeof layoutOptions.edgeArrowhead != "string") {
+                        if (layoutOptions.edgeArrowhead(d.predicate) == "L" || layoutOptions.edgeArrowhead(d.predicate) == "B") {
+                            if (d.predicate.class.includes("highlight")) {
+                                return "url(#arrow-409EFF-start)";
+                            }
+                            return `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.predicate)}-start)`;
+                        }
+                        return "none";
                     }
-                    return `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.edgeData)})`;
+                    return `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.predicate)}-start)`;
                 })
-                .attr("class", d => "line-front " + d.predicate.class);
+                .attr("marker-end", d => {
+                    if (typeof layoutOptions.edgeArrowhead != "string") {
+                        if (layoutOptions.edgeArrowhead(d.predicate) == "R" || layoutOptions.edgeArrowhead(d.predicate) == "B") {
+                            if (d.predicate.class.includes("highlight")) {
+                                return "url(#arrow-409EFF-end)";
+                            }
+                            return `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.predicate)}-end)`;
+                        }
+                        return "none";
+                    }
+                    return `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.predicate)}-end)`;
+                })
+                .attr("class", d => "line-front " + d.predicate.class.replace("highlight", "highlight-edge"))
+                .attr("stroke-width", d => typeof layoutOptions.edgeStroke == "string" ? layoutOptions.edgeStroke : layoutOptions.edgeStroke(d.predicate))
+                .attr("stroke-dasharray", d => typeof layoutOptions.edgeDasharray == "string" ? layoutOptions.edgeDasharray : layoutOptions.edgeDasharray(d.predicate))
+                .attr("stroke", d => d.predicate.stroke ? d.predicate.stroke : "black");
             return resolve();
         });
     }
@@ -1135,6 +1150,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                  * If a predicate type already has a color,
                  * it is not redefined.
                  */
+                // arrowhead change
                 const edgeColor = typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(predicate);
                 if (!predicateTypeToColorMap.has(edgeColor)) {
                     predicateTypeToColorMap.set(edgeColor, true);
@@ -1360,6 +1376,26 @@ function networkVizJS(documentId, userLayoutOptions) {
         switch (prop) {
             case "text": {
                 editEdgeHelper("text");
+                restart();
+                break;
+            }
+            case "arrow": {
+                editEdgeHelper("arrowhead");
+                restart();
+                break;
+            }
+            case "weight": {
+                editEdgeHelper("strokeWidth");
+                restart();
+                break;
+            }
+            case "dash": {
+                editEdgeHelper("strokeDasharray");
+                restart();
+                break;
+            }
+            case "color": {
+                editEdgeHelper("stroke");
                 restart();
                 break;
             }
@@ -1681,74 +1717,6 @@ function networkVizJS(documentId, userLayoutOptions) {
         });
         groups = newGroupObject;
         restart(callback);
-    }
-
-    function deleteEdgeHoverMenu(d, me) {
-        d3.event.preventDefault();
-        hoverMenuRemoveIcons(d3.select(me.parentNode));
-    }
-
-    function addEdgeHoverMenu(d, me) {
-        hoverMenuRemoveIcons();
-        const element = d3.select(me);
-        const parent = d3.select(me.parentNode);
-        const textBox = element.select("text");
-        const textFo = element.select(".edge-foreign-object");
-        const array = simulation.routeEdge(d, undefined, undefined);
-        const middleIndex = Math.floor(array.length / 2) - 1;
-        const xMid = (array[middleIndex].x + array[middleIndex + 1].x) / 2;
-        const yMid = (array[middleIndex].y + array[middleIndex + 1].y) / 2;
-        const textWidth = textBox.node().offsetWidth;
-        const textHeight = textBox.node().offsetHeight; // NB when text is empty = 26 i.e. 1 line height
-        const menuGroup = element.insert("g", "foreignObject")
-            .attr("class", "edge-hover-menu");
-        menuGroup.append("rect")
-            .classed("menu-hover-box", true)
-            .attr("width", () => {
-                const minWidth = 30;
-                return textWidth < minWidth ? minWidth : textWidth;
-            })
-            .attr("height", () => {
-                const minHeight = 30;
-                return textHeight === 0 ? 10 + minHeight : textHeight + minHeight;
-            })
-            .attr("x", function () {
-                const width = d3.select(this).attr("width");
-                return xMid - width / 2;
-            })
-            .attr("y", yMid - textHeight / 2)
-            .attr("fill", "rgba(0,0,0,0)")
-            .attr("stroke", "none")
-            .on("mouseover", function () {
-                layoutOptions.mouseOverRadial && layoutOptions.mouseOverRadial(d);
-            })
-            .on("mouseleave", function () {
-                layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
-            });
-        // CREATE TRASH ICON
-        const foTrash = menuGroup
-            .append("foreignObject")
-            .attr("x", xMid - 11)
-            .attr("y", yMid + textHeight / 2 + 5)
-            .attr("class", "menu-trash")
-            .attr("width", 22)
-            .attr("height", 27)
-            .style("overflow", "visible")
-            .on("click", function () {
-                const e = d3.event;
-                e.stopPropagation();
-                const edge = {
-                    subject: d.source,
-                    predicate: d.predicate,
-                    object: d.target
-                };
-                layoutOptions.edgeRemove && layoutOptions.edgeRemove(edge, d3.select(this), e);
-                layoutOptions.mouseOutRadial && layoutOptions.mouseOutRadial(d);
-            });
-        foTrash.append("xhtml:div")
-            .append("div")
-            .attr("class", "icon-wrapper")
-            .html("<i class=\"fa fa-trash-o custom-icon\"></i>");
     }
 
     /**
