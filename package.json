@@ -41,6 +41,6 @@
     "interactjs": "^1.3.4",
     "level-browserify": "^2.0.0",
     "levelgraph": "2.1.1",
-    "webcola": "3.3.8"
+    "webcola": "git+https://github.com/theya222/WebCola.git#a3fafa758a80017cf4cfbf1148b7f057351672fb"
   }
 }

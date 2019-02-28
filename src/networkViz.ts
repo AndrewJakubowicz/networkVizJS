@@ -31,6 +31,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         height: 600,
         pad: 15,
         margin: 10,
+        groupPad: 0,
         canDrag: () => true,
         nodeDragStart: undefined,
         nodeDragEnd: undefined,
@@ -43,6 +44,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         mouseOverGroup: undefined,
         mouseOutGroup: undefined,
         clickGroup: undefined,
+        dblclickGroup: () => undefined,
         clickNode: () => undefined,
         dblclickNode: () => undefined,
         clickEdge: () => undefined,
@@ -420,6 +422,64 @@ function networkVizJS(documentId, userLayoutOptions) {
     }
 
     /**
+     * center group text in group and adjust padding values to create text area.
+     */
+    function repositionGroupText() {
+        group.select("text")
+            .style("width", function (d) {
+                return `${d.bounds.width()}px`;
+            });
+        group.select("foreignObject")
+            .attr("x", function (d) {
+                // center FO in middle of group
+                const textWidth = d3.select(this).select("text").node().offsetWidth;
+                if (d.bounds) {
+                    return (d.bounds.width() - textWidth) / 2;
+                }
+                return 0;
+            })
+            .attr("y", function (d) {
+                const textNode = d3.select(this).select("text").node();
+                let textHeight;
+                const text = textNode.outerText.trim();
+                if ((!text || text.length === 0) && !d.data.expandText) {
+                    textHeight = 0;
+                } else {
+                    textHeight = textNode.offsetHeight;
+                }
+                const pad = textHeight + 5;
+                // TODO if padding is unsymmetrical by more than double the node size, things break. (defualt size 136)
+                const opPad = Math.max(pad - 136, 0);
+                switch (typeof d.padding) {
+                    case "number": {
+                        const padI = d.padding;
+                        d.padding = { x: padI, X: padI, y: pad, Y: opPad };
+                        break;
+                    }
+                    case "object": {
+                        d.padding.y = pad;
+                        d.padding.Y = opPad;
+                        break;
+                    }
+                    default: {
+                        const p = layoutOptions.groupPad ? layoutOptions.groupPad : 0;
+                        d.padding = { x: p, X: p, y: pad, Y: opPad };
+                    }
+                }
+            });
+        group.select(".text-bar")
+            .style("visibility", function (d) {
+                const textNode = d3.select(this.parentNode).select("text").node();
+                const text = textNode.outerText.trim();
+                if ((!text || text.length === 0) && !d.data.expandText) {
+                    return "visible";
+                } else {
+                    return "hidden";
+                }
+            });
+    }
+
+    /**
      * This function remove the icons from
      * the hover menu
      * @param parent element's parent
@@ -442,12 +502,13 @@ function networkVizJS(documentId, userLayoutOptions) {
             group = group.data(groups);
             group.exit().remove();
             const groupEnter = group.enter()
-                .append("rect");
-            groupEnter.attr("rx", 8)
+                .append("g")
+                .call(simulation.drag);
+            groupEnter.append("rect")
+                .attr("rx", 8)
                 .attr("ry", 8)
-                .attr("class", "group")
+                .attr("class", d => `group ${d.data.class}`)
                 .attr("stroke", "black")
-                .call(simulation.drag)
                 .on("mouseover", function (d) {
                     layoutOptions.mouseOverGroup && layoutOptions.mouseOverGroup(d, d3.select(this), d3.event);
                 })
@@ -456,11 +517,52 @@ function networkVizJS(documentId, userLayoutOptions) {
                 })
                 .on("click", function (d) {
                     layoutOptions.clickGroup && layoutOptions.clickGroup(d, d3.select(this), d3.event);
+                })
+                .on("dblclick", function (d) {
+                    layoutOptions.dblclickGroup && layoutOptions.dblclickGroup(d, d3.select(this), d3.event);
                 });
+            groupEnter.append("rect")
+                .attr("y", 2)
+                .attr("rx", 15)
+                .attr("ry", 1)
+                .attr("height", 4)
+                .attr("class", "text-bar")
+                .attr("fill", "rgba(0,0,0,0.2)")
+                .attr("cursor", "text")
+                .attr("pointer-events", "none");
+            // add text to group
+            groupEnter
+                .append("foreignObject")
+                .attr("y", 5)
+                .attr("pointer-events", "none")
+                .attr("width", 1)
+                .attr("height", 1)
+                .style("overflow", "visible")
+                .append("xhtml:div")
+                .attr("xmlns", "http://www.w3.org/1999/xhtml")
+                .append("text")
+                .attr("pointer-events", "none")
+                .classed("editable", true)
+                .attr("contenteditable", "true")
+                .attr("tabindex", "-1")
+                .style("display", "inline-block")
+                .style("text-align", "center")
+                .style("font-weight", "100")
+                .style("font-size", "22px")
+                .style("font-family", "\"Source Sans Pro\", sans-serif")
+                .style("white-space", "pre-wrap")
+                .style("word-break", "break-word")
+                .html(d => d.data.text ? d.data.text : "");
             group = group.merge(groupEnter);
 
-            group.attr("fill", layoutOptions.groupFillColor)
-                .attr("class", d => d.data.class);
+            group.select(".group")
+                .attr("fill", layoutOptions.groupFillColor)
+                .attr("class", d => `group ${d.data.class}`);
+
+            // allow for text updating
+            group.select("text")
+                .style("color", d => computeTextColor(d.data.color))
+                .html(d => d.data.text ? d.data.text : "");
 
 
             /////// NODE ///////
@@ -543,22 +645,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .html(function (d) {
                     return d.shortname || d.hash;
                 })
-                .style("color", d => {
-                    // select text colour based on background brightness
-                    let color = "#000000";
-                    if (d.color) {
-                        if (d.color.length === 7 && d.color[0] === "#") {
-                            const r = parseInt(d.color.substring(1, 3), 16);
-                            const g = parseInt(d.color.substring(3, 5), 16);
-                            const b = parseInt(d.color.substring(5, 7), 16);
-                            const brightness = Math.sqrt(0.299 * r * r + 0.587 * g * g + 0.114 * b * b);
-                            if (brightness <= 170) {
-                                color = "#FFFFFF";
-                            }
-                        }
-                    }
-                    return color;
-                })
+                .style("color", d => computeTextColor(d.color))
                 .style("max-width", d => d.fixedWidth ? d.width - layoutOptions.pad * 2 + layoutOptions.margin + "px" : "none")
                 .style("word-break", d => d.fixedWidth ? "break-word" : "normal")
                 .style("white-space", d => d.fixedWidth ? "pre-wrap" : "pre");
@@ -593,10 +680,10 @@ function networkVizJS(documentId, userLayoutOptions) {
                     layoutOptions.mouseOutNode && layoutOptions.mouseOutNode(d, d3.select(this));
                 })
                 .on("dblclick", function (d) {
-                    layoutOptions.dblclickNode(d, d3.select(this), d3.event);
+                    layoutOptions.dblclickNode && layoutOptions.dblclickNode(d, d3.select(this), d3.event);
                 })
                 .on("click", function (d) {
-                    layoutOptions.clickNode(d, d3.select(this), d3.event);
+                    layoutOptions.clickNode && layoutOptions.clickNode(d, d3.select(this), d3.event);
                 })
                 .on("mouseup", function (d) {
                     layoutOptions.mouseUpNode && layoutOptions.mouseUpNode(d, d3.select(this));
@@ -855,15 +942,14 @@ function networkVizJS(documentId, userLayoutOptions) {
                             }
                             return (route.sourceIntersection.y + route.targetIntersection.y - textHeight) / 2;
                         });
-                    group.attr("x", function (d) {
-                        return d.bounds.x;
-                    })
-                        .attr("y", function (d) {
-                            return d.bounds.y;
-                        })
+
+                    group.attr("transform", d => `translate(${d.bounds.x},${d.bounds.y})`);
+                    repositionGroupText();
+                    group.selectAll("rect")
                         .attr("width", function (d) {
                             return d.bounds.width();
-                        })
+                        });
+                    group.select(".group")
                         .attr("height", function (d) {
                             return d.bounds.height();
                         });
@@ -878,6 +964,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 node.attr("transform", d => d.innerBounds ?
                     `translate(${d.innerBounds.x},${d.innerBounds.y})`
                     : `translate(${d.x},${d.y})`);
+                repositionGroupText();
             })
             .then(() => typeof callback === "function" && callback());
     }
@@ -1423,7 +1510,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         const nodeId = children.nodes;
         const subGroupId = children.groups;
         // check minimum size
-        if (nodeId.length === 0 || (subGroupId && subGroupId.length <= 1)) {
+        if (nodeId.length === 0 && (subGroupId && subGroupId.length <= 1)) {
             throw new Error("Minimum 1 node or two subgroups");
         }
         // check nodes
@@ -1470,6 +1557,9 @@ function networkVizJS(documentId, userLayoutOptions) {
         groupObj.leaves = groupObj.leaves.concat(nodeIndices);
         groupObj.groups = groupObj.groups.concat(groupIndices);
         if (!preventLayout) {
+            if (groupObj.data.text) {
+                return restart().then(() => repositionGroupText());
+            }
             return restart();
         } else {
             return Promise.resolve();
@@ -1717,8 +1807,10 @@ function networkVizJS(documentId, userLayoutOptions) {
                         triplets: l.map(v => ({ subject: v.subject, predicate: v.predicate, object: v.object })),
                         nodes: nodes.map(v => ({ hash: v.hash, x: v.x, y: v.y })),
                         groups: groups.map(v => ({
-                            nodes: v.leaves.map(d => d.id),
-                            groups: v.groups.map(g => g.id),
+                            children: {
+                                nodes: v.leaves.map(d => d.id),
+                                groups: v.groups.map(g => g.id),
+                            },
                             id: v.id,
                             data: v.data
                         })),
@@ -2227,6 +2319,28 @@ function networkVizJS(documentId, userLayoutOptions) {
     }
 
     /**
+     * Given background color, return if foreground colour should be black or white based on colour brightness
+     * defaults to black
+     * @param {string} color - background color in hexadecimal format
+     */
+    function computeTextColor(color: string) {
+        // select text colour based on background brightness
+        let c = "#000000";
+        if (color) {
+            if (color.length === 7 && color[0] === "#") {
+                const r = parseInt(color.substring(1, 3), 16);
+                const g = parseInt(color.substring(3, 5), 16);
+                const b = parseInt(color.substring(5, 7), 16);
+                const brightness = Math.sqrt(0.299 * r * r + 0.587 * g * g + 0.114 * b * b);
+                if (brightness <= 170) {
+                    c = "#FFFFFF";
+                }
+            }
+        }
+        return c;
+    }
+
+    /**
      * These exist to prevent errors when the user
      * tabs away from the graph.
      */
@@ -2287,6 +2401,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             redrawEdges: createNewLinks,
             layout: restart,
             handleDisconnects: handleDisconnects,
+            repositionGroupText: repositionGroupText,
         },
         canvasOptions: {
             setWidth: (width) => {
@@ -2313,6 +2428,11 @@ function networkVizJS(documentId, userLayoutOptions) {
             },
             setDblClickEdge: (callback) => {
                 layoutOptions.dblclickEdge = callback;
+            }
+        },
+        groupOptions: {
+            setDblClickGroup: (callback) => {
+                layoutOptions.dblclickGroup = callback;
             }
         },
         // Change layouts on the fly.
