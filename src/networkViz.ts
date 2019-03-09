@@ -211,13 +211,6 @@ function networkVizJS(documentId, userLayoutOptions) {
         return "url(#arrow-" + color + (backwards ? "-start)" : "-end)");
     }
 
-    // createColorArrow_1.default(defs, "#409EFF");
-    // createColorArrow_1.default(defs, "#409EFF", true);
-    // Add all colors into the defs
-    // for (let i = 0; i < layoutOptions.palette.length; i++) {
-    //     createColorArrow_1.default(defs, layoutOptions.palette[i]);
-    //     createColorArrow_1.default(defs, layoutOptions.palette[i], true);
-    // }
     // Define svg groups for storing the visuals.
     const g = svg.append("g")
         .classed("svg-graph", true);
