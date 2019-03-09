@@ -58,7 +58,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         nodeStrokeWidth: () => 1,
         nodeStrokeColor: () => "grey",
         edgeColor: "black",
-        edgeArrowhead: "R",
+        // edgeArrowhead: 0 - None, 1 - Right, -1 - Left, 2 - Bidirectional
+        edgeArrowhead: 1,
         edgeStroke: 2,
         edgeStrokePad: 20,
         edgeDasharray: 0,
@@ -200,14 +201,23 @@ function networkVizJS(documentId, userLayoutOptions) {
         .attr("d", "M 50 0 L 50 40 L 0 20 Z")
         .attr("fill", "rgb(150,150,150)");
 
-
-    createColorArrow_1.default(defs, "#409EFF");
-    createColorArrow_1.default(defs, "#409EFF", true);
-    // Add all colors into the defs
-    for (let i = 0; i < layoutOptions.palette.length; i++) {
-        createColorArrow_1.default(defs, layoutOptions.palette[i]);
-        createColorArrow_1.default(defs, layoutOptions.palette[i], true);
+    const arrowDefsDict = {};
+    function addArrowDefs(defs: any, color: String, backwards: boolean) {
+        const key = color + "-" + (backwards ? "start" : "end");
+        if (!arrowDefsDict[key]) {
+            arrowDefsDict[key] = true;
+            createColorArrow_1.default(defs, "#" + color, backwards);
+        }
+        return "url(#arrow-" + color + (backwards ? "-start)" : "-end)");
     }
+
+    // createColorArrow_1.default(defs, "#409EFF");
+    // createColorArrow_1.default(defs, "#409EFF", true);
+    // Add all colors into the defs
+    // for (let i = 0; i < layoutOptions.palette.length; i++) {
+    //     createColorArrow_1.default(defs, layoutOptions.palette[i]);
+    //     createColorArrow_1.default(defs, layoutOptions.palette[i], true);
+    // }
     // Define svg groups for storing the visuals.
     const g = svg.append("g")
         .classed("svg-graph", true);
@@ -761,28 +771,30 @@ function networkVizJS(documentId, userLayoutOptions) {
             }
             link.select(".line-front")
                 .attr("marker-start", d => {
-                    if (typeof layoutOptions.edgeArrowhead != "string") {
-                        if (layoutOptions.edgeArrowhead(d.predicate) == "L" || layoutOptions.edgeArrowhead(d.predicate) == "B") {
+                    const color = typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.predicate);
+                    if (typeof layoutOptions.edgeArrowhead != "number") {
+                        if (layoutOptions.edgeArrowhead(d.predicate) == -1 || layoutOptions.edgeArrowhead(d.predicate) == 2) {
                             if (d.predicate.class.includes("highlight")) {
-                                return "url(#arrow-409EFF-start)";
+                                return addArrowDefs(defs, "409EFF", true);
                             }
-                            return `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.predicate)}-start)`;
+                            return addArrowDefs(defs, color, true);
                         }
                         return "none";
                     }
-                    return `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.predicate)}-start)`;
+                    return addArrowDefs(defs, color, true);
                 })
                 .attr("marker-end", d => {
-                    if (typeof layoutOptions.edgeArrowhead != "string") {
-                        if (layoutOptions.edgeArrowhead(d.predicate) == "R" || layoutOptions.edgeArrowhead(d.predicate) == "B") {
+                    const color = typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.predicate);
+                    if (typeof layoutOptions.edgeArrowhead != "number") {
+                        if (layoutOptions.edgeArrowhead(d.predicate) == 1 || layoutOptions.edgeArrowhead(d.predicate) == 2) {
                             if (d.predicate.class.includes("highlight")) {
-                                return "url(#arrow-409EFF-end)";
+                                return addArrowDefs(defs, "409EFF", false);
                             }
-                            return `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.predicate)}-end)`;
+                            return addArrowDefs(defs, color, false);
                         }
                         return "none";
                     }
-                    return `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.predicate)}-end)`;
+                    return addArrowDefs(defs, color, false);
                 })
                 .attr("class", d => "line-front " + d.predicate.class.replace("highlight", "highlight-edge"))
                 .attr("stroke-width", d => typeof layoutOptions.edgeStroke == "string" ? layoutOptions.edgeStroke : layoutOptions.edgeStroke(d.predicate))
