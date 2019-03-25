@@ -202,6 +202,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         .attr("fill", "rgb(150,150,150)");
 
     const arrowDefsDict = {};
+
     function addArrowDefs(defs: any, color: String, backwards: boolean) {
         const key = color + "-" + (backwards ? "start" : "end");
         if (!arrowDefsDict[key]) {
@@ -708,8 +709,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .attr("class", "line-front")
                 .attr("stroke-width", layoutOptions.edgeStroke)
                 .attr("stroke", layoutOptions.edgeColor)
-                .attr("fill", "none")
-                .attr("marker-end", d => `url(#arrow-${typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.edgeData)}-end)`);
+                .attr("fill", "none");
             linkEnter
                 .on("mouseenter", function (d) {
                     layoutOptions.mouseOverEdge && layoutOptions.mouseOverEdge(d, d3.select(this), d3.event);
@@ -1155,7 +1155,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                  * If a predicate type already has a color,
                  * it is not redefined.
                  */
-                // arrowhead change
+                    // arrowhead change
                 const edgeColor = typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(predicate);
                 if (!predicateTypeToColorMap.has(edgeColor)) {
                     predicateTypeToColorMap.set(edgeColor, true);
