@@ -1160,7 +1160,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 if (!predicateTypeToColorMap.has(edgeColor)) {
                     predicateTypeToColorMap.set(edgeColor, true);
                     // Create an arrow head for the new color
-                    createColorArrow_1.default(defs, edgeColor);
+                    createColorArrow_1.default(defs, "#" + edgeColor);
                 }
                 /**
                  * Put the triplet into the LevelGraph database
