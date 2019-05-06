@@ -158,7 +158,6 @@ function networkVizJS(documentId, userLayoutOptions) {
         internalOptions.isDragging = true;
         // TODO find permanent solution in vuegraph
         if (layoutOptions.isSelect && layoutOptions.isSelect()) {
-            console.log(d);
             d.class += " highlight";
             updateStyles();
         }
@@ -450,15 +449,9 @@ function networkVizJS(documentId, userLayoutOptions) {
                 }
                 return 0;
             })
-            .attr("y", function (d) {
+            .each(function (d) {
                 const textNode = d3.select(this).select("text").node();
-                let textHeight;
-                const text = textNode.outerText.trim();
-                if ((!text || text.length === 0) && !d.data.expandText) {
-                    textHeight = 0;
-                } else {
-                    textHeight = textNode.offsetHeight;
-                }
+                const textHeight = textNode.innerText === "" ? 0 : textNode.offsetHeight;
                 const pad = textHeight + 5;
                 // TODO if padding is unsymmetrical by more than double the node size, things break. (defualt size 136)
                 const opPad = Math.max(pad - 136, 0);
@@ -477,16 +470,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                         const p = layoutOptions.groupPad ? layoutOptions.groupPad : 0;
                         d.padding = { x: p, X: p, y: pad, Y: opPad };
                     }
-                }
-            });
-        group.select(".text-bar")
-            .style("visibility", function (d) {
-                const textNode = d3.select(this.parentNode).select("text").node();
-                const text = textNode.outerText.trim();
-                if ((!text || text.length === 0) && !d.data.expandText) {
-                    return "visible";
-                } else {
-                    return "hidden";
                 }
             });
     }
@@ -520,15 +503,6 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .on("dblclick", function (d) {
                     layoutOptions.dblclickGroup && layoutOptions.dblclickGroup(d, d3.select(this), d3.event);
                 });
-            groupEnter.append("rect")
-                .attr("y", 2)
-                .attr("rx", 15)
-                .attr("ry", 1)
-                .attr("height", 4)
-                .attr("class", "text-bar")
-                .attr("fill", "rgba(0,0,0,0.2)")
-                .attr("cursor", "text")
-                .attr("pointer-events", "none");
             // add text to group
             groupEnter
                 .append("foreignObject")
@@ -551,7 +525,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .style("font-family", "\"Source Sans Pro\", sans-serif")
                 .style("white-space", "pre-wrap")
                 .style("word-break", "break-word")
-                .html(d => d.data.text ? d.data.text : "");
+                .html((d) => d.data.text || "");
             group = group.merge(groupEnter);
 
             group.select(".group")
@@ -561,7 +535,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             // allow for text updating
             group.select("text")
                 .style("color", d => computeTextColor(d.data.color))
-                .html(d => d.data.text ? d.data.text : "");
+                .html(d => d.data.text || "");
 
 
             /////// NODE ///////
@@ -965,11 +939,10 @@ function networkVizJS(documentId, userLayoutOptions) {
 
                     group.attr("transform", d => `translate(${d.bounds.x},${d.bounds.y})`);
                     repositionGroupText();
-                    group.selectAll("rect")
+                    group.select("rect")
                         .attr("width", function (d) {
                             return d.bounds.width();
-                        });
-                    group.select(".group")
+                        })
                         .attr("height", function (d) {
                             return d.bounds.height();
                         });
@@ -1536,7 +1509,10 @@ function networkVizJS(documentId, userLayoutOptions) {
         layoutOptions.mouseOutNode = mouseOutCallback;
     }
 
-    // Function called when mousedown on node.
+    /**
+     * Function called when mousedown on node.
+     * @param mouseDownCallback - callback function
+     */
     function setMouseDown(mouseDownCallback) {
         layoutOptions.mouseDownNode = mouseDownCallback;
     }
@@ -1658,70 +1634,6 @@ function networkVizJS(documentId, userLayoutOptions) {
         } else {
             return Promise.resolve();
         }
-    }
-
-    /**
-     * Merges a node into another group.
-     * If this node was in another group previously it removes it from the prior group.
-     */
-    function mergeNodeToGroup(nodeInGroupHash, nodeToMergeHash, callback) {
-        console.error("THIS FEATURE IS NOT READY");
-        console.error("USE AT YOUR OWN RISK!");
-        /**
-         * Groups need to be defined using indexes.
-         */
-        let indexOfGroupNode = -1;
-        let indexOfNodeToMerge = -1;
-        for (let i = 0; i < nodes.length; i++) {
-            if (nodes[i].hash == nodeInGroupHash) {
-                indexOfGroupNode = i;
-            }
-            if (nodes[i].hash == nodeToMergeHash) {
-                indexOfNodeToMerge = i;
-            }
-            if (indexOfGroupNode !== -1 && indexOfNodeToMerge !== -1) {
-                break;
-            }
-        }
-        // Verify that the initial node exists.
-        if (indexOfGroupNode == -1) {
-            return console.error("You're trying to merge with a node that doesn't exist. Check that the node hash is correct.");
-        }
-        if (indexOfNodeToMerge == -1) {
-            return console.error("The node you are trying to merge doesn't exist. Check the node hash is correct or add the node to the graph.");
-        }
-        // Find the set that the merge node is part of.
-        // Also remove the node we're merging from any sets it might be in.
-        let indexInSets = -1;
-        groupByHashes.forEach((set, index) => {
-            if (set.has(nodeInGroupHash)) {
-                indexInSets = index;
-                set.add(nodeToMergeHash);
-            }
-            if (set.has(nodeToMergeHash) && !set.has(nodeInGroupHash)) {
-                set.delete(nodeToMergeHash);
-            }
-        });
-        if (indexInSets === -1) {
-            // Create a new grouping.
-            groupByHashes.push(new Set([nodeToMergeHash, nodeInGroupHash]));
-        }
-        simulation.stop();
-        // Here we create a new group object with the updated group unions.
-        const newGroupObject = [];
-        groupByHashes.forEach(set => {
-            const indexOfSet = [];
-            const setArray = [...set];
-            let nodeIndex;
-            for (let i = 0; i < setArray.length; i++) {
-                nodeIndex = nodeMap.get(setArray[i]).index;
-                indexOfSet.push(nodeIndex);
-            }
-            // Create and push an object with the indexes of the nodes.
-            newGroupObject.push({ leaves: indexOfSet });
-        });
-        groups = newGroupObject;
-        restart(callback);
     }
 
     /**
@@ -2314,6 +2226,67 @@ function networkVizJS(documentId, userLayoutOptions) {
     }
 
     /**
+     * creates temporary pop up for group text
+     * Can be removed by passing show as false, or by restarting
+     * @param show - true show text, false hide
+     * @param groupId - id of group
+     * @param text - dummy text defaults as "New"
+     */
+    function groupTextPreview(show: boolean, groupId: string | string[], text?: string) {
+        const groupArr = Array.isArray(groupId) ? groupId : [groupId];
+        let groupSel = group.select("text");
+        if (groupId) {
+            groupSel = groupSel.filter(d => groupArr.includes(d.id));
+        }
+        groupSel.html((d) => {
+            if ((!d.data.text || d.data.text == "") && show) {
+                return text || "New";
+            } else {
+                return d.data.text;
+            }
+        });
+        return restart(undefined, true);
+    }
+
+    /**
+     * Update classes of all elements without updating other properties.
+     */
+    function updateHighlighting() {
+        group.select(".group")
+            .attr("class", d => `group ${d.data.class}`);
+        node.select("path")
+            .attr("class", d => d.class);
+        link.select(".line-front")
+            .attr("marker-start", d => {
+                const color = typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.predicate);
+                if (typeof layoutOptions.edgeArrowhead != "number") {
+                    if (layoutOptions.edgeArrowhead(d.predicate) == -1 || layoutOptions.edgeArrowhead(d.predicate) == 2) {
+                        if (d.predicate.class.includes("highlight")) {
+                            return addArrowDefs(defs, "409EFF", true);
+                        }
+                        return addArrowDefs(defs, color, true);
+                    }
+                    return "none";
+                }
+                return addArrowDefs(defs, color, true);
+            })
+            .attr("marker-end", d => {
+                const color = typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.predicate);
+                if (typeof layoutOptions.edgeArrowhead != "number") {
+                    if (layoutOptions.edgeArrowhead(d.predicate) == 1 || layoutOptions.edgeArrowhead(d.predicate) == 2) {
+                        if (d.predicate.class.includes("highlight")) {
+                            return addArrowDefs(defs, "409EFF", false);
+                        }
+                        return addArrowDefs(defs, color, false);
+                    }
+                    return "none";
+                }
+                return addArrowDefs(defs, color, false);
+            })
+            .attr("class", d => "line-front " + d.predicate.class.replace("highlight", "highlight-edge"))
+    }
+
+    /**
      * These exist to prevent errors when the user
      * tabs away from the graph.
      */
@@ -2367,6 +2340,8 @@ function networkVizJS(documentId, userLayoutOptions) {
         addToGroup,
         // Remove nodes or groups from group
         unGroup,
+        // Show or hide group text popup
+        groupTextPreview,
         // Restart styles or layout.
         restart: {
             styles: updateStyles,
@@ -2375,6 +2350,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             layout: restart,
             handleDisconnects: handleDisconnects,
             repositionGroupText: repositionGroupText,
+            highlight: updateHighlighting,
         },
         canvasOptions: {
             setWidth: (width) => {
