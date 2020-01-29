@@ -9,7 +9,7 @@
 - [Very simple graph editor](http://mind-map-prototype.surge.sh/)
 ### vue-graphViz
 A fully functional graph editor built using networkVizJS
-- [Demo Link](https://github.com/AndrewJakubowicz/vue-graphViz)
+- [Demo Link](https://andrewjakubowicz.github.io/vue-graphViz/)
 - [Github Project Link](https://github.com/AndrewJakubowicz/vue-graphViz)
 
 
