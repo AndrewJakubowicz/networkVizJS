@@ -6,8 +6,12 @@
 
 ## Examples
 
-- [Easy Dynamically changing graph](https://bl.ocks.org/SpyR1014/d82570c509028e6b0a519ef885ab58f0)
 - [Very simple graph editor](http://mind-map-prototype.surge.sh/)
+### vue-graphViz
+A fully functional graph editor built using networkVizJS
+- [Demo Link](https://github.com/AndrewJakubowicz/vue-graphViz)
+- [Github Project Link](https://github.com/AndrewJakubowicz/vue-graphViz)
+
 
 ## Why this project exists
 
@@ -131,27 +135,42 @@ interface OptionsObject {
     handleDisconnected: boolean;// False by default, clumps disconnected nodes
     flowDirection: string;      // If flowLayout: "x" | "y"
     enableEdgeRouting: boolean; // Edges route around nodes
-    nodeShape: string;          // Set default node shape: "rect" | "circle"
+    nodeShape: string;          // default node shape text description
+    nodePath: (nodeObject) => string;   // function returns node path from shape descriptor
     width: number;              // SVG width
     height: number;             // SVG height
     pad: number;                // Padding outside of nodes 
     margin: number;             // Margin inside of nodes
+    groupPad: number;           // padding around group
+
     canDrag: boolean;           // True: You can drag nodes, False: You can't
     nodeDragStart(): void;      // Called when drag event triggers
-    nodeDragEnd(): void;      // Called when drag event ends
+    nodeDragEnd(d,elements[i]): void;      // Called when drag event ends
     edgeLabelText: string | {(d?: any, i?: number): string};
 
-    // mouse handlers on nodes.
-    mouseDownNode(nodeObject?: any, d3Selection?: Selection): void;
-    mouseOverNode(nodeObject?: any, d3Selection?: Selection): void;
-    mouseOutNode(nodeObject?: any, d3Selection?: Selection): void;
-    mouseUpNode(nodeObject?: any, d3Selection?: Selection): void;
-    clickNode(nodeObject?: any, d3Selection?: Selection): void;
+    // Mouse event handlers //
+    clickAway(): void;  // Triggers on zooming or clicking on the svg canvas.
 
-    clickEdge(edgeObject?: any, d3Selection?: Selection): void;
-    
-    clickAway(): void;          // Triggers on zooming or clicking on the svg canvas.
-    
+    // Nodes
+    mouseDownNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    mouseOverNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    mouseOutNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    mouseUpNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    clickNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    dblclickNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+
+    // Groups
+    mouseOverGroup(groupObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    mouseOutGroup(groupObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    clickGroup(groupObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    dblclickGroup(groupObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+
+    // Edges
+    mouseOverEdge(edgeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    mouseOutEdge(edgeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    clickEdge(edgeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    dblclickEdge(edgeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+        
 
     // These options allow you to define a selector to create dynamic attributes
     // based on the nodes properties.
@@ -162,22 +181,23 @@ interface OptionsObject {
 
 
     edgeColor: string | {(d?: any, i?: number): string};
+    edgeArrowhead: number;  // edgeArrowhead: 0 - None, 1 - Right, -1 - Left, 2 - Bidirectional
     edgeStroke: number | {(d?: any, i?: number): number};
     edgeStrokePad: number | {(d?: any, i?: number): number}; // size of clickable area behind edge
+    edgeDasharray: number;
     edgeLength: number | {(d?: any, i?: number): number};
     edgeSmoothness: number | {(d?: any, i?: number): number}; // amount of smoothing applied to vertices in edges
-    
-    mouseOverRadial()   // To be depreceated
-    mouseOutRadial()    // To be depreceated
-    
-     snapToAlignment: boolean;          // Enable snap to alignment whilst dragging
-     snapThreshold: number;             // Snap to alignment threshold
-     zoomScale(scale: number): void;    // Triggered when zooming
-     isSelect(): boolean;               // Is tool in selection mode
-     nodeSizeChange(): void;            // Triggers when node dimensions update
-     selection(): any;                  // Returns current selection from select tool
-     imgResize(bool: boolean): void;    // Toggle when resizing image
-}
+    groupFillColor: string;
+    snapToAlignment: boolean;          // Enable snap to alignment whilst dragging
+    snapThreshold: number;             // Snap to alignment threshold
+    palette: string[];                          // colour palette selection
+
+    zoomScale(scale: number): void;    // Triggered when zooming
+    isSelect(): boolean;               // Is tool in selection mode
+    nodeSizeChange(): void;            // Triggers when node dimensions update
+    selection(): any;                  // Returns current selection from select tool
+    imgResize(bool: boolean): void;    // Toggle when resizing image
+
 ```
 
 ## Methods on graph object
@@ -189,6 +209,8 @@ hasNode(nodeHash: string): Boolean
 getDB(): levelGraphDB
 // Get node from nodeMap
 getNode(nodeHash): Object
+// Get Group from groupMap
+getGroup(groupHash): Object,
 // Get nodes and edges by coordinates
 selectByCoords(boundary: { x: number, X: number, y: number, Y: number }): {nodes:[] edges:[]}
 // Get edge predicate from predicateMap
@@ -205,8 +227,6 @@ addTriplet(tripletObject, preventLayout?: Boolean)
 removeTriplet(tripletObject),
 // update edge data in database
 updateTriplet(tripletObject),
-// EXPERIMENTAL - DON'T USE YET.
-mergeNodeToGroup,
 // remove a node and all edges connected to it.
 removeNode(node),
 // add a node or array of nodes.
@@ -215,12 +235,20 @@ addNode(node | nodeArray, preventLayout?: Boolean);
 editNode({ property: string, id:(string|string[]), value: (any|any[]) });
 // edit edge property
 editEdge({ property: string, id:(string|string[]), value: (any|any[]) });
+// Add nodes or groups to group
+addToGroup,
+// Remove nodes or groups from group
+unGroup,
+// Show or hide group text popup
+groupTextPreview,
 // Restart styles or layout.
 restart.styles()
 restart.layout()
 restart.textAlign()     // Aligns text to centre of node
 restart.redrawEdges()     // Redraw the edges
 restart.handleDisconnects()     // Handle disconnected graph components
+restart.repositionGroupText() // Aligns group text
+restart.upateHighlighting()  //refreshes highlightes objects
 
 ```
 
