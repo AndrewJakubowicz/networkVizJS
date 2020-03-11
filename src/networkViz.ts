@@ -537,6 +537,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .style("color", d => computeTextColor(d.data.color))
                 .html(d => d.data.text || "");
 
+            // order groups correctly in DOM
+            group.sort((a, b) => (a.data.level || 0) - (b.data.level || 0));
 
             /////// NODE ///////
             node = node.data(nodes, d => d.index);
@@ -1080,7 +1082,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         }
         // Node needs a unique hash associated with it.
         const subject = tripletObject.subject, predicate = tripletObject.predicate, object = tripletObject.object;
-        if (!(subject && predicate && object && true)) {
+        if (!(subject && predicate && object)) {
             throw new Error("Triplets added need to include all three fields.");
         }
         // Check that hash exists
@@ -1524,29 +1526,33 @@ function networkVizJS(documentId, userLayoutOptions) {
      * @param preventLayout - prevent layout restart from occuring
      */
     function addToGroup(group, children: { nodes?: string[], groups?: string[] }, preventLayout?: boolean) {
-        const nodeId = children.nodes;
-        const subGroupId = children.groups;
-        // check minimum size
-        if (nodeId.length === 0 && (subGroupId && subGroupId.length <= 1)) {
-            throw new Error("Minimum 1 node or two subgroups");
-        }
+        const nodeId = children.nodes || [];
+        const subGroupId = children.groups || [];
+        // check minimum size TODO: investigate min size ~ya
+        // if (nodeId.length === 0 && (subGroupId && subGroupId.length <= 1)) {
+        //     return Promise.reject(new Error("Minimum 1 node or two subgroups"));
+        // }
         // check nodes
         const nodeIndices: number[] = nodeId.map(id => nodes.findIndex(d => d.id === id));
         if (!nodeIndices.every(i => i >= 0)) {
-            throw new Error("One or more nodes do not exist. Check node hash is correct");
+            return Promise.reject(new Error("One or more nodes do not exist. Check node hash is correct"));
         }
         // check subGroups
         let groupIndices = [];
-        if (subGroupId) {
-            groupIndices = subGroupId.map(id => groups.findIndex(g => g.id === id));
-            if (!groupIndices.every(i => i < groups.length && i >= 0)) {
-                throw new Error("One or more groups do not exist.");
-            }
+        groupIndices = subGroupId.map(id => groups.findIndex(g => g.id === id));
+        if (!groupIndices.every(i => i < groups.length && i >= 0)) {
+            return Promise.reject(new Error("One or more groups do not exist."));
         }
+
 
         const nodesWithParentsID = nodeId.filter(id => nodeMap.get(id).parent);
         if (nodesWithParentsID.length > 0) {
             unGroup({ nodes: nodesWithParentsID }, true);
+        }
+
+        const groupsWithParentsID = subGroupId.filter(id => groupMap.get(id).parent);
+        if (groupsWithParentsID.length > 0) {
+            unGroup({ groups: groupsWithParentsID });
         }
 
 
@@ -1559,7 +1565,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 id: groupId,
                 leaves: [],
                 groups: [],
-                data: group.data ? group.data : { color: layoutOptions.groupFillColor(), }
+                data: group.data ? group.data : { color: layoutOptions.groupFillColor(), level: 0 }
             };
             groups.push(groupObj);
             groupMap.set(groupId, groupObj);
@@ -1573,6 +1579,10 @@ function networkVizJS(documentId, userLayoutOptions) {
         }
         groupObj.leaves = groupObj.leaves.concat(nodeIndices);
         groupObj.groups = groupObj.groups.concat(groupIndices);
+        subGroupId.forEach((id) => {
+            const g = groupMap.get(id);
+            g.data.level = (groupObj.data.level || 0) + 1;
+        });
         if (!preventLayout) {
             if (groupObj.data.text) {
                 return restart().then(() => repositionGroupText());
@@ -1611,6 +1621,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                 subGroups.forEach(g => {
                     if (g.parent) {
                         g.parent.groups = g.parent.groups.filter(sibling => sibling.id !== g.id);
+                        delete g.parent;
+                        g.data.level = 0;
                     }
                 });
             }
@@ -2283,7 +2295,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 }
                 return addArrowDefs(defs, color, false);
             })
-            .attr("class", d => "line-front " + d.predicate.class.replace("highlight", "highlight-edge"))
+            .attr("class", d => "line-front " + d.predicate.class.replace("highlight", "highlight-edge"));
     }
 
     /**
@@ -2296,6 +2308,21 @@ function networkVizJS(documentId, userLayoutOptions) {
     window.onblur = function () {
         simulation.stop();
     };
+
+    // TODO document ~ya
+    function getNode(id?: string) {
+        return typeof id !== "undefined" ? nodeMap.get(id) : [...nodeMap.values()];
+    }
+
+    function getGroup(id?: string) {
+        return typeof id !== "undefined" ? groupMap.get(id) : [...groupMap.values()];
+    }
+
+    function getPredicate(id?: string) {
+        return typeof id !== "undefined" ? predicateMap.get(id) : [...predicateMap.values()];
+    }
+
+
     // Public api
     /**
      * TODO:
@@ -2309,13 +2336,13 @@ function networkVizJS(documentId, userLayoutOptions) {
         // Public access to the levelgraph db.
         getDB: () => tripletsDB,
         // Get node from nodeMap
-        getNode: (hash) => nodeMap.get(hash),
+        getNode,
         // Get Group from groupMap
-        getGroup: (hash) => groupMap.get(hash),
+        getGroup,
         // Get nodes and edges by coordinates
         selectByCoords,
         // Get edge from predicateMap
-        getPredicate: (hash) => predicateMap.get(hash),
+        getPredicate,
         // Get Layout options
         getLayoutOptions: () => layoutOptions,
         // Get SVG element. If you want the node use `graph.getSVGElement().node();`
