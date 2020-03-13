@@ -11,7 +11,8 @@ module.exports = {
     },
     "plugins": [
         "@typescript-eslint",
-        "@typescript-eslint/tslint"
+        "@typescript-eslint/tslint",
+        "no-null"
     ],
     "rules": {
         "@typescript-eslint/class-name-casing": "error",

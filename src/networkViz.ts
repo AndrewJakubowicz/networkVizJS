@@ -284,7 +284,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * @param {Number} boundary.Y
      * @returns {{nodes: any[]; edges: any[]}} - object containing node array and edge array
      */
-    function selectByCoords(boundary: { x: number, X: number, y: number, Y: number }) {
+    function selectByCoords(boundary: { x: number; X: number; y: number; Y: number }) {
         const nodeSelect = [];
         const groupSelect = [];
         const x = Math.min(boundary.x, boundary.X);
@@ -540,7 +540,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             // order groups correctly in DOM
             group.sort((a, b) => (a.data.level || 0) - (b.data.level || 0));
 
-            /////// NODE ///////
+            // ///// NODE ///////
             node = node.data(nodes, d => d.index);
             node.exit().remove();
             const nodeEnter = node.enter()
@@ -579,8 +579,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .style("display", "inline-block");
 
             /** Choose the node shape and style. */
-            let nodeShape;
-            nodeShape = nodeEnter.insert("path", "foreignObject");
+            const nodeShape = nodeEnter.insert("path", "foreignObject");
             nodeShape.attr("d", layoutOptions.nodePath);
             nodeShape
                 .attr("vector-effect", "non-scaling-stroke")
@@ -885,70 +884,72 @@ function networkVizJS(documentId, userLayoutOptions) {
                         });
                 };
                 // Restart the simulation.
-                simulation.links(links) // Required because we create new link lists
+                simulation
+                    .links(links) // Required because we create new link lists
                     .groups(groups)
-                    .start(10, 15, 20).on("tick", function () {
-                    node.each((d) => {
-                        if (d.bounds) {
-                            // Initiate the innerBounds, and create it based on the width and height
-                            // of the node.
-                            d.innerBounds = d.bounds.inflate(0);
-                            d.innerBounds.X = d.innerBounds.x + d.width;
-                            d.innerBounds.Y = d.innerBounds.y + d.height;
-                        }
-                    });
-                    node.attr("transform", d => d.innerBounds ?
-                        `translate(${d.innerBounds.x},${d.innerBounds.y})`
-                        : `translate(${d.x},${d.y})`);
-                    updatePathDimensions();
-                    link.selectAll("path").attr("d", d => {
-                        let route;
-                        try {
-                            route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
-                        } catch (err) {
-                            console.error(err);
-                            return;
-                        }
-                        return lineFunction([route.sourceIntersection, route.arrowStart]);
-                    });
-                    if (isIE())
-                        link.each(function (d) {
-                            this.parentNode.insertBefore(this, this);
+                    .start(10, 15, 20)
+                    .on("tick", function () {
+                        node.each((d) => {
+                            if (d.bounds) {
+                                // Initiate the innerBounds, and create it based on the width and height
+                                // of the node.
+                                d.innerBounds = d.bounds.inflate(0);
+                                d.innerBounds.X = d.innerBounds.x + d.width;
+                                d.innerBounds.Y = d.innerBounds.y + d.height;
+                            }
                         });
-                    link.select(".edge-foreign-object")
-                        .attr("x", function (d) {
-                            const textWidth = d3.select(this).select("text").node().offsetWidth;
+                        node.attr("transform", d => d.innerBounds ?
+                            `translate(${d.innerBounds.x},${d.innerBounds.y})`
+                            : `translate(${d.x},${d.y})`);
+                        updatePathDimensions();
+                        link.selectAll("path").attr("d", d => {
                             let route;
                             try {
                                 route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
                             } catch (err) {
                                 console.error(err);
-                                return 0;
+                                return;
                             }
-                            return (route.sourceIntersection.x + route.targetIntersection.x - textWidth) / 2;
-                        })
-                        .attr("y", function (d) {
-                            const textHeight = d3.select(this).select("text").node().offsetHeight;
-                            let route;
-                            try {
-                                route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
-                            } catch (err) {
-                                console.error(err);
-                                return 0;
-                            }
-                            return (route.sourceIntersection.y + route.targetIntersection.y - textHeight) / 2;
+                            return lineFunction([route.sourceIntersection, route.arrowStart]);
                         });
+                        if (isIE())
+                            link.each(function (d) {
+                                this.parentNode.insertBefore(this, this);
+                            });
+                        link.select(".edge-foreign-object")
+                            .attr("x", function (d) {
+                                const textWidth = d3.select(this).select("text").node().offsetWidth;
+                                let route;
+                                try {
+                                    route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                                } catch (err) {
+                                    console.error(err);
+                                    return 0;
+                                }
+                                return (route.sourceIntersection.x + route.targetIntersection.x - textWidth) / 2;
+                            })
+                            .attr("y", function (d) {
+                                const textHeight = d3.select(this).select("text").node().offsetHeight;
+                                let route;
+                                try {
+                                    route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                                } catch (err) {
+                                    console.error(err);
+                                    return 0;
+                                }
+                                return (route.sourceIntersection.y + route.targetIntersection.y - textHeight) / 2;
+                            });
 
-                    group.attr("transform", d => `translate(${d.bounds.x},${d.bounds.y})`);
-                    repositionGroupText();
-                    group.select("rect")
-                        .attr("width", function (d) {
-                            return d.bounds.width();
-                        })
-                        .attr("height", function (d) {
-                            return d.bounds.height();
-                        });
-                }).on("end", routeEdges);
+                        group.attr("transform", d => `translate(${d.bounds.x},${d.bounds.y})`);
+                        repositionGroupText();
+                        group.select("rect")
+                            .attr("width", function (d) {
+                                return d.bounds.width();
+                            })
+                            .attr("height", function (d) {
+                                return d.bounds.height();
+                            });
+                    }).on("end", routeEdges);
 
                 function isIE() {
                     return ((navigator.appName == "Microsoft Internet Explorer") || ((navigator.appName == "Netscape") && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined)));
@@ -978,7 +979,8 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Helper function for updating links after node mutations.
      */
     function createNewLinks() {
-        return new Promise((resolve, reject) => tripletsDB.get({}, (err, l) => {
+        return new Promise((resolve, reject) => tripletsDB.get({},
+            (err, l) => {
                 if (err) {
                     reject(err);
                 } else {
@@ -1130,8 +1132,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                  * If a predicate type already has a color,
                  * it is not redefined.
                  */
-                    // arrowhead change
                 const edgeColor = typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(predicate);
+                // arrowhead change
                 if (!predicateTypeToColorMap.has(edgeColor)) {
                     predicateTypeToColorMap.set(edgeColor, true);
                     // Create an arrow head for the new color
@@ -1525,7 +1527,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * @param children - object containing nodes and/or groups property. they are arrays of ID values
      * @param preventLayout - prevent layout restart from occuring
      */
-    function addToGroup(group, children: { nodes?: string[], groups?: string[] }, preventLayout?: boolean) {
+    function addToGroup(group, children: { nodes?: string[]; groups?: string[] }, preventLayout?: boolean) {
         const nodeId = children.nodes || [];
         const subGroupId = children.groups || [];
         // check minimum size TODO: investigate min size ~ya
@@ -1538,8 +1540,7 @@ function networkVizJS(documentId, userLayoutOptions) {
             return Promise.reject(new Error("One or more nodes do not exist. Check node hash is correct"));
         }
         // check subGroups
-        let groupIndices = [];
-        groupIndices = subGroupId.map(id => groups.findIndex(g => g.id === id));
+        const groupIndices = subGroupId.map(id => groups.findIndex(g => g.id === id));
         if (!groupIndices.every(i => i < groups.length && i >= 0)) {
             return Promise.reject(new Error("One or more groups do not exist."));
         }
@@ -1598,7 +1599,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * @param children - object containing nodes and/or groups property. they are arrays of ID values
      * @param preventLayout - prevent layout restart from occuring
      */
-    function unGroup(children: { nodes?: string[], groups?: string[] } | [{ nodes?: string[], groups?: string[] }], preventLayout?: boolean) {
+    function unGroup(children: { nodes?: string[]; groups?: string[] } | [{ nodes?: string[]; groups?: string[] }], preventLayout?: boolean) {
         simulation.stop();
         const childArray = Array.isArray(children) ? children : [children];
         childArray.forEach(child => {
@@ -2309,15 +2310,26 @@ function networkVizJS(documentId, userLayoutOptions) {
         simulation.stop();
     };
 
-    // TODO document ~ya
+    /**
+     * Get node object
+     * @param id? - node id, leave blank for all nodes
+     */
     function getNode(id?: string) {
         return typeof id !== "undefined" ? nodeMap.get(id) : [...nodeMap.values()];
     }
 
+    /**
+     * Get group object
+     * @param id? - group id, leave blank for all groups
+     */
     function getGroup(id?: string) {
         return typeof id !== "undefined" ? groupMap.get(id) : [...groupMap.values()];
     }
 
+    /**
+     * Get edge  object
+     * @param id? - edge id, leave blank for all edges
+     */
     function getPredicate(id?: string) {
         return typeof id !== "undefined" ? predicateMap.get(id) : [...predicateMap.values()];
     }

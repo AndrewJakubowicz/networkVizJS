@@ -14,6 +14,6 @@ export default function createColorArrow(defElement: any, color: string, backwar
         .attr("fill", color)
         .attr("orient", "auto")
         .append("path")
-            .attr("d", (backwards ? "M16,-5L6,0L16,5" : "M0,-5L10,0L0,5"))
-            .attr("class", "arrowHead");
+        .attr("d", (backwards ? "M16,-5L6,0L16,5" : "M0,-5L10,0L0,5"))
+        .attr("class", "arrowHead");
 }

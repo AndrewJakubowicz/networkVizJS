@@ -1,15 +1,17 @@
 import * as cola from "webcola";
 import * as d3 from "d3";
 import * as I from "./interfaces";
+
 /**
  * Function for updating webcola options.
  * Returns a new simulation and uses the defined layout variable.
  */
 export function updateColaLayout(layoutOptions: I.LayoutOptions) {
-    let tempSimulation = cola.d3adaptor(d3)
-                        .size([layoutOptions.width, layoutOptions.height])
-                        .avoidOverlaps(layoutOptions.avoidOverlaps)
-                        .handleDisconnected(layoutOptions.handleDisconnected);
+    let tempSimulation = cola
+        .d3adaptor(d3)
+        .size([layoutOptions.width, layoutOptions.height])
+        .avoidOverlaps(layoutOptions.avoidOverlaps)
+        .handleDisconnected(layoutOptions.handleDisconnected);
 
     // TODO: Work out what's up with the edge length.
     switch (layoutOptions.layoutType) {
