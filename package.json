@@ -26,10 +26,10 @@
   "devDependencies": {
     "@types/d3": "^5.7.2",
     "@types/jasmine": "^3.5.9",
-    "@types/node": "^13.9.1",
-    "@typescript-eslint/eslint-plugin": "^2.23.0",
-    "@typescript-eslint/eslint-plugin-tslint": "^2.23.0",
-    "@typescript-eslint/parser": "^2.23.0",
+    "@types/node": "^13.9.2",
+    "@typescript-eslint/eslint-plugin": "^2.24.0",
+    "@typescript-eslint/eslint-plugin-tslint": "^2.24.0",
+    "@typescript-eslint/parser": "^2.24.0",
     "eslint": "^6.8.0",
     "eslint-plugin-no-null": "^1.0.2",
     "jasmine-core": "^3.5.0",
@@ -42,8 +42,8 @@
     "typescript": "^3.8.3"
   },
   "dependencies": {
-    "d3": "^4.13.0",
-    "interactjs": "^1.9.4",
+    "d3": "^5.15.0",
+    "interactjs": "^1.9.7",
     "level-browserify": "^2.0.0",
     "levelgraph": "2.1.1",
     "webcola": "git+https://github.com/theya222/WebCola.git#a3fafa758a80017cf4cfbf1148b7f057351672fb"
