@@ -1,4 +1,4 @@
-import * as d3 from "d3";
+import { select } from "d3";
 
 export default class AlignElemContainer {
     templateLine;
@@ -13,7 +13,7 @@ export default class AlignElemContainer {
      * @param parentNode: parent node to append lines to.
      */
     constructor(parentNode) {
-        this.templateLine = d3.select(document.createElementNS("http://www.w3.org/2000/svg", "line"))
+        this.templateLine = select(document.createElementNS("http://www.w3.org/2000/svg", "line"))
             .attr("style", "stroke:rgb(150,150,150);stroke-width:1")
             .attr("shape-rendering", "crispEdges")
             .attr("stroke-dasharray", "4 3")
@@ -45,7 +45,7 @@ export default class AlignElemContainer {
 
     create(axis: string, bounds) {
         if (axis === "x" || axis === "y") {
-            d3.select(this[axis])
+            select(this[axis])
                 .attr("y1", bounds.y)
                 .attr("y2", bounds.Y)
                 .attr("x1", bounds.x)
@@ -56,7 +56,7 @@ export default class AlignElemContainer {
             bounds.projection.forEach((bound) => {
                 const el = this.templateLine.cloneNode();
                 this[axis].push(el);
-                d3.select(el)
+                select(el)
                     .attr("y1", bound.y)
                     .attr("y2", bound.Y)
                     .attr("x1", bound.x)
@@ -66,7 +66,7 @@ export default class AlignElemContainer {
             bounds.dimension.forEach((bound) => {
                 const el = this.templateLine.cloneNode();
                 this[axis].push(el);
-                d3.select(el)
+                select(el)
                     .attr("y1", bound.y)
                     .attr("y2", bound.Y)
                     .attr("x1", bound.x)
