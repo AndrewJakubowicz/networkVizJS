@@ -64,13 +64,13 @@ export interface LayoutOptions {
     nodeStrokeWidth: number | { (d?: any, i?: number): number };
     nodeStrokeColor: string | { (d?: any, i?: number): string };
     edgeColor: string | { (d?: any, i?: number): string };
-    edgeArrowhead: number;  // edgeArrowhead: 0 - None, 1 - Right, -1 - Left, 2 - Bidirectional
+    edgeArrowhead: number | { (d?: any, i?: number): number };  // edgeArrowhead: 0 - None, 1 - Right, -1 - Left, 2 - Bidirectional
     edgeStroke: number | { (d?: any, i?: number): number };
     edgeStrokePad: number | { (d?: any, i?: number): number };
-    edgeDasharray: number;
+    edgeDasharray: number | { (d?: any): number };
     edgeLength: number | { (d?: any, i?: number): number };
-    edgeSmoothness: number | { (d?: any, i?: number): number };
-    groupFillColor: string;
+    edgeSmoothness: number;
+    groupFillColor: string | { (g?: any): string };
     snapToAlignment: boolean;
     snapThreshold: number;
     palette: string[]; // colour palette selection

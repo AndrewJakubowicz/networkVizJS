@@ -4,6 +4,7 @@ import AlignElemContainer from "./util/AlignElemContainer";
 import updateColaLayout from "./updateColaLayout";
 import createColorArrow from "./util/createColorArrow";
 import * as cola from "webcola";
+import * as I from "./interfaces";
 
 // TODO fix the type errors
 // import * as d3 from "d3";
@@ -18,7 +19,7 @@ function networkVizJS(documentId, userLayoutOptions) {
     /**
      * Default options for webcola and graph
      */
-    const defaultLayoutOptions = {
+    const defaultLayoutOptions: I.LayoutOptions = {
         databaseName: `Userdb-${Math.random() * 100}-${Math.random() * 100}-${Math.random() * 100}-${Math.random() * 100}`,
         layoutType: "flowLayout",
         jaccardModifier: 0.7,
@@ -77,7 +78,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         nodeSizeChange: undefined,
         selection: undefined,
         imgResize: undefined,
-        palette: undefined,
+        palette: undefined, // TODO remove? think this is only part of vuegraph not networkviz
     };
 
     const internalOptions = {
@@ -88,7 +89,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Create the layoutOptions object with the users options
      * overriding the default options.
      */
-    const layoutOptions = Object.assign({}, defaultLayoutOptions, userLayoutOptions);
+    const layoutOptions: I.LayoutOptions = Object.assign({}, defaultLayoutOptions, userLayoutOptions);
     /**
      * Check that the user has provided a valid documentId
      * and check that the id exists.
@@ -421,7 +422,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                 d3.selectAll("#graph .node").each(function (d) {
                     const node = d3.select(this);
                     const foOnNode = node.selectAll(".node-status-icons");
-                    const pinned = layoutOptions.nodeToPin && layoutOptions.nodeToPin(d);
+                    const pinned = (layoutOptions.nodeToPin &&
+                        ((typeof layoutOptions.nodeToPin === "function" && layoutOptions.nodeToPin(d)) || layoutOptions.nodeToPin));
                     if (pinned) {
                         foOnNode
                             .attr("x", d => d.width / 2 || 0)
@@ -729,15 +731,18 @@ function networkVizJS(documentId, userLayoutOptions) {
                 .style("font-family", "\"Source Sans Pro\", sans-serif")
                 .style("white-space", "pre")
                 .style("background-color", "rgba(255,255,255,0.85")
-                .html(d => layoutOptions.edgeLabelText(d.predicate));
+                .html(d => typeof layoutOptions.edgeLabelText === "function" ?
+                    layoutOptions.edgeLabelText(d.predicate) : layoutOptions.edgeLabelText);
             link = link.merge(linkEnter);
             /** Optional label text */
             if (typeof layoutOptions.edgeLabelText === "function") {
                 link.select("text").html((d) => {
                     if (typeof d.predicate.hash === "string") {
-                        return layoutOptions.edgeLabelText(predicateMap.get(d.predicate.hash));
+                        return typeof layoutOptions.edgeLabelText === "function" ?
+                            layoutOptions.edgeLabelText(predicateMap.get(d.predicate.hash)) : layoutOptions.edgeLabelText;
                     }
-                    return layoutOptions.edgeLabelText(d.predicate);
+                    return typeof layoutOptions.edgeLabelText === "function" ?
+                        layoutOptions.edgeLabelText(d.predicate) : layoutOptions.edgeLabelText;
                 });
             }
             link.select(".line-front")
@@ -768,8 +773,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                     return addArrowDefs(defs, color, false);
                 })
                 .attr("class", d => "line-front " + d.predicate.class.replace("highlight", "highlight-edge"))
-                .attr("stroke-width", d => typeof layoutOptions.edgeStroke == "string" ? layoutOptions.edgeStroke : layoutOptions.edgeStroke(d.predicate))
-                .attr("stroke-dasharray", d => typeof layoutOptions.edgeDasharray == "string" ? layoutOptions.edgeDasharray : layoutOptions.edgeDasharray(d.predicate))
+                .attr("stroke-width", d => typeof layoutOptions.edgeStroke === "number" ? layoutOptions.edgeStroke : layoutOptions.edgeStroke(d.predicate))
+                .attr("stroke-dasharray", d => typeof layoutOptions.edgeDasharray === "number" ? layoutOptions.edgeDasharray : layoutOptions.edgeDasharray(d.predicate))
                 .attr("stroke", d => d.predicate.stroke ? d.predicate.stroke : "black");
             return resolve();
         });
@@ -1564,12 +1569,17 @@ function networkVizJS(documentId, userLayoutOptions) {
         simulation.stop();
         const groupId = typeof (group) === "string" ? group : group.id;
         let groupObj = groupMap.get(groupId);
+        const data = group.data
+            ? group.data : {
+                level: 0,
+                color: typeof layoutOptions.groupFillColor === "function" && layoutOptions.groupFillColor() || layoutOptions.groupFillColor,
+            };
         if (!groupObj) {
             groupObj = {
                 id: groupId,
                 leaves: [],
                 groups: [],
-                data: group.data ? group.data : { color: layoutOptions.groupFillColor(), level: 0 }
+                data,
             };
             groups.push(groupObj);
             groupMap.set(groupId, groupObj);
@@ -1743,7 +1753,8 @@ function networkVizJS(documentId, userLayoutOptions) {
             return;
         }
         // Snap to alignment
-        if (layoutOptions.nodeToPin(d) && layoutOptions.snapToAlignment) {
+        if (layoutOptions.snapToAlignment &&
+            ((typeof layoutOptions.nodeToPin === "function" && layoutOptions.nodeToPin(d)) || layoutOptions.nodeToPin)) {
             alignElements.remove();
             const threshold = layoutOptions.snapThreshold;
             const xOffset = d.width / 2;
@@ -2275,7 +2286,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         link.select(".line-front")
             .attr("marker-start", d => {
                 const color = typeof layoutOptions.edgeColor == "string" ? layoutOptions.edgeColor : layoutOptions.edgeColor(d.predicate);
-                if (typeof layoutOptions.edgeArrowhead != "number") {
+                if (typeof layoutOptions.edgeArrowhead === "function") {
                     if (layoutOptions.edgeArrowhead(d.predicate) == -1 || layoutOptions.edgeArrowhead(d.predicate) == 2) {
                         if (d.predicate.class.includes("highlight")) {
                             return addArrowDefs(defs, "409EFF", true);
