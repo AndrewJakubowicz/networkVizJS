@@ -6,7 +6,7 @@ import * as I from "./interfaces";
  * Function for updating webcola options.
  * Returns a new simulation and uses the defined layout variable.
  */
-export function updateColaLayout(layoutOptions: I.LayoutOptions) {
+export default function updateColaLayout(layoutOptions: I.LayoutOptions) {
     let tempSimulation = cola
         .d3adaptor(d3)
         .size([layoutOptions.width, layoutOptions.height])

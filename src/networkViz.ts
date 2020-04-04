@@ -1,13 +1,16 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 import AlignElemContainer from "./util/AlignElemContainer";
+import updateColaLayout from "./updateColaLayout";
+import createColorArrow from "./util/createColorArrow";
+import * as cola from "webcola";
 
+// TODO fix the type errors
+// import * as d3 from "d3";
 const d3 = require("d3");
-const cola = require("webcola");
+
 const levelgraph = require("levelgraph");
 const level = require("level-browserify");
-const updateColaLayout_1 = require("./updateColaLayout");
-const createColorArrow_1 = require("./util/createColorArrow");
 const interact = require("interactjs");
 
 
@@ -142,7 +145,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * The helper function updateColaLayout allows for restarting
      * the simulation whenever the layout is changed.
      */
-    let simulation = updateColaLayout_1.updateColaLayout(layoutOptions)
+    let simulation = updateColaLayout(layoutOptions)
         .nodes(nodes)
         .links(links)
         .constraints(constraints)
@@ -206,7 +209,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         const key = color + "-" + (backwards ? "start" : "end");
         if (!arrowDefsDict[key]) {
             arrowDefsDict[key] = true;
-            createColorArrow_1.default(defs, "#" + color, backwards);
+            createColorArrow(defs, "#" + color, backwards);
         }
         return "url(#arrow-" + color + (backwards ? "-start)" : "-end)");
     }
@@ -1137,7 +1140,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 if (!predicateTypeToColorMap.has(edgeColor)) {
                     predicateTypeToColorMap.set(edgeColor, true);
                     // Create an arrow head for the new color
-                    createColorArrow_1.default(defs, "#" + edgeColor);
+                    createColorArrow(defs, "#" + edgeColor);
                 }
                 /**
                  * Put the triplet into the LevelGraph database
@@ -2433,7 +2436,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
                     } else {
                         layoutOptions.layoutType = "flowLayout";
-                        simulation = updateColaLayout_1.updateColaLayout(layoutOptions);
+                        simulation = updateColaLayout(layoutOptions);
                     }
                     restart(callback);
                 },
@@ -2443,7 +2446,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                         simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
                     } else {
                         layoutOptions.layoutType = "flowLayout";
-                        simulation = updateColaLayout_1.updateColaLayout(layoutOptions);
+                        simulation = updateColaLayout(layoutOptions);
                     }
                     restart(callback);
                 }

@@ -17,6 +17,7 @@ yarn-error.log*
 
 src/**/*.map
 src/**/*.js
-!src/util/*.js
+src/util/*.js
 /networkVizJS.iml
 /dist/
+/__tests__/networkViz.test.js
