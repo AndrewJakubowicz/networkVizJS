@@ -25,11 +25,11 @@
   "homepage": "https://github.com/SpyR1014/networkVizJS#readme",
   "devDependencies": {
     "@types/d3": "^5.7.2",
-    "@types/jasmine": "^3.5.9",
-    "@types/node": "^13.9.2",
-    "@typescript-eslint/eslint-plugin": "^2.24.0",
-    "@typescript-eslint/eslint-plugin-tslint": "^2.24.0",
-    "@typescript-eslint/parser": "^2.24.0",
+    "@types/jasmine": "^3.5.10",
+    "@types/node": "^13.11.0",
+    "@typescript-eslint/eslint-plugin": "^2.26.0",
+    "@typescript-eslint/eslint-plugin-tslint": "^2.26.0",
+    "@typescript-eslint/parser": "^2.26.0",
     "eslint": "^6.8.0",
     "eslint-plugin-no-null": "^1.0.2",
     "jasmine-core": "^3.5.0",
@@ -38,12 +38,12 @@
     "karma-ie-launcher": "1.0.0",
     "karma-jasmine": "^3.1.1",
     "karma-typescript": "^5.0.1",
-    "tslint": "^6.1.0",
+    "tslint": "^6.1.1",
     "typescript": "^3.8.3"
   },
   "dependencies": {
-    "d3": "^5.15.0",
-    "interactjs": "^1.9.7",
+    "d3": "^5.15.1",
+    "interactjs": "^1.9.8",
     "level-browserify": "^2.0.0",
     "levelgraph": "2.1.1",
     "webcola": "git+https://github.com/theya222/WebCola.git#a3fafa758a80017cf4cfbf1148b7f057351672fb"
