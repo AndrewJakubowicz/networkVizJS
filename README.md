@@ -126,8 +126,8 @@ Below is the rest of the API.
 These options are all optional.
 Just pass in the ones you want.
 
-```javascript
-interface OptionsObject {
+```typescript
+interface LayoutOptions {
     databaseName: string;       // Force the database name
     layoutType: string;         // "linkDistance" | "flowLayout" | "jaccardLinkLengths"
     jaccardModifier: number;    // Modifier for jaccardLinkLengths, number between 0 and 1
@@ -197,58 +197,122 @@ interface OptionsObject {
     nodeSizeChange(): void;            // Triggers when node dimensions update
     selection(): any;                  // Returns current selection from select tool
     imgResize(bool: boolean): void;    // Toggle when resizing image
-
+}
 ```
 
 ## Methods on graph object
 
-```javascript
-// Check if node is drawn.
-hasNode(nodeHash: string): Boolean
-// Public access to the levelgraph db.
-getDB(): levelGraphDB
-// Get node from nodeMap
-getNode(nodeHash): Object
-// Get Group from groupMap
-getGroup(groupHash): Object,
-// Get nodes and edges by coordinates
-selectByCoords(boundary: { x: number, X: number, y: number, Y: number }): {nodes:[] edges:[]}
-// Get edge predicate from predicateMap
-getPredicate(edgeHash): Object
-// Get Layout options
-getLayoutOptions: () => layoutOptions,
-// Get SVG element. If you want the node use `graph.getSVGElement().node();`
-getSVGElement(): d3SVGSelection
-// Get Stringified representation of the graph.
-saveGraph(): string
-// add a directed edge
-addTriplet(tripletObject, preventLayout?: Boolean)
-// remove an edge
-removeTriplet(tripletObject),
-// update edge data in database
-updateTriplet(tripletObject),
-// remove a node and all edges connected to it.
-removeNode(node),
-// add a node or array of nodes.
-addNode(node | nodeArray, preventLayout?: Boolean);
-// edit node property
-editNode({ property: string, id:(string|string[]), value: (any|any[]) });
-// edit edge property
-editEdge({ property: string, id:(string|string[]), value: (any|any[]) });
-// Add nodes or groups to group
-addToGroup,
-// Remove nodes or groups from group
-unGroup,
-// Show or hide group text popup
-groupTextPreview,
-// Restart styles or layout.
-restart.styles()
-restart.layout()
-restart.textAlign()     // Aligns text to centre of node
-restart.redrawEdges()     // Redraw the edges
-restart.handleDisconnects()     // Handle disconnected graph components
-restart.repositionGroupText() // Aligns group text
-restart.upateHighlighting()  //refreshes highlightes objects
+```typescript
+interface Graph {
+    // Check if node is drawn.
+    hasNode(id: Id): boolean;
+
+    // Public access to the levelgraph db.
+    getDB(): any;
+
+    // Get node from nodeMap
+    getNode(id?: Id): Node | Node[];
+
+    // Get Group from groupMap
+    getGroup(id?: Id): Group | Group[];
+
+    // Get nodes and edges by coordinates
+    selectByCoords(boundary: { x: number; X: number; y: number; Y: number }): { nodes: Node[]; edges: Edge[]; groups: Group[] };
+
+    // Get edge from predicateMap
+    getPredicate(id?: Id): Edge | Edge[];
+
+    // Get Layout options
+    getLayoutOptions(): LayoutOptions;
+
+    // Get SVG element. If you want the node use `graph.getSVGElement().node();`
+    getSVGElement(): d3Selection<SVGElement, Node, HTMLElement, any>;
+
+    // Get Stringified representation of the graph.
+    saveGraph(): Promise<string>;
+
+    // add a directed edge
+    addTriplet(tripletObject: Edge, preventLayout?: boolean): Promise<void>;
+
+    // remove an edge
+    removeTriplet(tripletObject: Edge, preventLayout?: boolean): Promise<void>;
+
+    // update edge data in database
+    updateTriplet(tripletObject: Edge): void;
+
+    // remove a node and all edges connected to it.
+    removeNode(nodeHash: Id): void;
+
+    // add a node or array of nodes.
+    addNode(nodeObjectOrArray: Node | Node[], preventLayout?: boolean): Promise<void>;
+
+    // edit node property
+    editNode(action: { property: string; id: Id | Id[]; value: any | any[] }): void;
+
+    // edit edge property
+    editEdge(action: { property: string; id: Id | Id[]; value: any | any[] }): void;
+
+    // Add nodes or groups to group
+    addToGroup(group: Group | Id, children: { nodes?: Id[]; groups?: Id[] }, preventLayout?: boolean): void;
+
+    // Remove nodes or groups from group
+    unGroup(children: { nodes?: Id[]; groups?: Id[] } | [{ nodes?: Id[]; groups?: Id[] }], preventLayout?: boolean): void;
+
+    // Create new constraint or add nodes to an existing alignment constraint
+    constrain;
+
+    // remove nodes from an existing alignment constraint; remove all nodes to remove constraint
+    unconstrain(nodeId: Id | Id[], constraint?: Constraint): void;
+
+    // Show or hide group text popup
+    groupTextPreview(show: boolean, groupId: Id | Id[], text?: string): void;
+
+    // Restart styles or layout.
+    restart: {
+        // Redraw without changing layout
+        styles(): Promise<void>;
+        // Aligns text to centre of node
+        textAlign(): Promise<void>;
+        // Redraw the edges
+        redrawEdges(): Promise<void>;
+        // restart simulation and redraw layout
+        layout(callback: () => void, preventLayout?: boolean): Promise<void>;
+        // Handle disconnected graph components
+        handleDisconnects(): void;
+        // Aligns group text
+        repositionGroupText(): void;
+        // Refresh highlighted elements
+        highlight(): void;
+    };
+    canvasOptions: {
+        setWidth(width: number): void;
+        setHeight(height: number): void;
+    };
+    // Set event handlers for node.
+    nodeOptions: {
+        setDblClickNode;
+        setClickNode;
+        setMouseOver;
+        setMouseOut;
+        setMouseDown;
+    };
+    // Handler for clicking on the edge.
+    edgeOptions: {
+        setClickEdge;
+        setDblClickEdge;
+    };
+    groupOptions: {
+        setDblClickGroup;
+    };
+    // Change layouts on the fly.
+    // May be a webcola memory leak if you change the layout too many times.
+    colaOptions: {
+        flowLayout: {
+            down(callback: () => void): void;
+            right(callback: () => void): void;
+        };
+    };
+}
 
 ```
 

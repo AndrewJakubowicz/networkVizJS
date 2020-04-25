@@ -13,7 +13,7 @@ import {
     SeparationConstraint,
     Constraint,
     Group,
-    Node
+    Node, Graph
 } from "./interfaces";
 
 import { addConstraintToNode, computeTextColor } from "./util/utils";
@@ -27,7 +27,7 @@ const level = require("level-browserify");
 const interact = require("interactjs");
 
 
-function networkVizJS(documentId, userLayoutOptions) {
+function networkVizJS(documentId, userLayoutOptions): Graph {
     /**
      * Default options for webcola and graph
      */
@@ -296,7 +296,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * @param {Number} boundary.X
      * @param {Number} boundary.y
      * @param {Number} boundary.Y
-     * @returns {{nodes: any[]; edges: any[]}} - object containing node array and edge array
+     * @returns {{nodes: Node[]; edges: any[], groups:Groups[]}} - object containing node array and edge array
      */
     function selectByCoords(boundary: { x: number; X: number; y: number; Y: number }) {
         const nodeSelect = [];
@@ -492,7 +492,7 @@ function networkVizJS(documentId, userLayoutOptions) {
     /**
      * Update the d3 visuals without layout changes.
      */
-    function updateStyles() {
+    function updateStyles(): Promise<void> {
         return new Promise((resolve, reject) => {
 
             /** GROUPS */
@@ -801,10 +801,6 @@ function networkVizJS(documentId, userLayoutOptions) {
             .then(() => {
                 if (!preventLayout) {
                     return updateStyles();
-                }
-                if (callback === "NOUPDATE") {
-                    console.error("WARNING OLD CODE");
-                    return;
                 }
             })
             .then(repositionText)
@@ -1270,9 +1266,8 @@ function networkVizJS(documentId, userLayoutOptions) {
     /**
      * Removes the node and all triplets associated with it.
      * @param {String} nodeHash hash of the node to remove.
-     * @param callback
      */
-    function removeNode(nodeHash: Id, callback) {
+    function removeNode(nodeHash: Id) {
         tripletsDB.get({ subject: nodeHash }, function (err, l1) {
             if (err) {
                 return console.error(err);
@@ -1882,11 +1877,12 @@ function networkVizJS(documentId, userLayoutOptions) {
     }
 
     /**
+     * // TODO update this documentation
      * Serialize the graph.
      * scheme: triplets: subj:hash-predicateType-obj:hash[]
      *         nodes: hash[]
      */
-    function saveGraph() {
+    function saveGraph(): Promise<string> {
         d3.selectAll(".radial-menu").remove();
         const svg = d3.select(".svg-content-responsive");
         const t = d3.zoomIdentity.translate(0, 0).scale(1);
@@ -2521,7 +2517,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      */
     return {
         // Check if node is drawn.
-        hasNode: (nodeHash: Id) => nodes.filter(v => v.hash == nodeHash).length === 1,
+        hasNode: (id: Id) => nodes.filter(v => v.hash == id).length === 1,
         // Public access to the levelgraph db.
         getDB: () => tripletsDB,
         // Get node from nodeMap
