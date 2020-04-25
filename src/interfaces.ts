@@ -2,26 +2,26 @@ import type { Group as colaGroup, Link, Node as colaNode, Rectangle } from "webc
 import type { Selection as d3Selection } from "d3";
 
 export interface LayoutOptions {
-    databaseName: string;
-    layoutType: string;
-    jaccardModifier: number;
-    avoidOverlaps: boolean;
-    handleDisconnected: boolean;
-    flowDirection: string;
-    enableEdgeRouting: boolean;
-    nodeShape: string;  // default node shape text description
+    databaseName: string;               // Force the database name
+    layoutType: "linkDistance" | "flowLayout" | "jaccardLinkLengths";
+    jaccardModifier: number;            // Modifier for jaccardLinkLengths, number between 0 and 1
+    avoidOverlaps: boolean;             // True: No overlaps, False: Overlaps
+    handleDisconnected: boolean;        // False by default, clumps disconnected nodes
+    flowDirection: "x" | "y";
+    enableEdgeRouting: boolean;         // Edges route around nodes
+    nodeShape: string;                  // default node shape text description
     nodePath: (nodeObject) => string;   // function returns node path from shape descriptor
-    width: number;
-    height: number;
-    pad: number;
-    margin: number;
-    groupPad: number;
+    width: number;                      // SVG width
+    height: number;                     // SVG height
+    pad: number;                        // Padding outside of nodes
+    margin: number;                     // Margin inside of nodes
+    groupPad: number;                   // padding around group
 
-    canDrag(): boolean;
+    canDrag(): boolean;                 // True: You can drag nodes, False: You can't
 
-    nodeDragStart(d: any, element: any): void;    // This callback is called when a drag event starts on a node.
+    nodeDragStart(d: any, element: any): void;      // This callback is called when a drag event starts on a node.
 
-    nodeDragEnd(d: any, element: any): void;
+    nodeDragEnd(d: any, element: any): void;        // Called when drag event ends
 
     edgeLabelText: string | { (d?: any, i?: number): string };
 
@@ -63,29 +63,29 @@ export interface LayoutOptions {
 
     // These are "live options"
     nodeToPin: boolean | { (d?: any, i?: number): boolean };
-    nodeToColor: string | { (d?: any, i?: number): string };
+    nodeToColor: string | { (d?: any, i?: number): string };        // Return a valid hexadecimal colour.
     nodeStrokeWidth: number | { (d?: any, i?: number): number };
     nodeStrokeColor: string | { (d?: any, i?: number): string };
     edgeColor: string | { (d?: any, i?: number): string };
     edgeArrowhead: number | { (d?: any, i?: number): number };  // edgeArrowhead: 0 - None, 1 - Right, -1 - Left, 2 - Bidirectional
     edgeStroke: number | { (d?: any, i?: number): number };
-    edgeStrokePad: number | { (d?: any, i?: number): number };
+    edgeStrokePad: number | { (d?: any, i?: number): number };  // size of clickable area behind edge
     edgeDasharray: number | { (d?: any): number };
     edgeLength: number | { (d?: any, i?: number): number };
-    edgeSmoothness: number;
+    edgeSmoothness: number;                                 // amount of smoothing applied to vertices in edges
     groupFillColor: string | { (g?: any): string };
-    snapToAlignment: boolean;
-    snapThreshold: number;
-    palette: string[]; // colour palette selection
+    snapToAlignment: boolean;                               // Enable snap to alignment whilst dragging
+    snapThreshold: number;                                  // Snap to alignment threshold
+    palette: string[];  // colour palette selection
 
-    zoomScale(scale: number): void;
+    zoomScale(scale: number): void;     // Triggered when zooming
 
     isSelect(): boolean; // is tool in selection mode
-    nodeSizeChange(): void;
+    nodeSizeChange(): void; // Triggers when node dimensions update
 
-    selection(): any;
+    selection(): any;   // Returns current selection from select tool
 
-    imgResize(bool: boolean): void;
+    imgResize(bool: boolean): void;  // Toggle when resizing image
 
     edgeRemove(edgeObject?: any, d3Selection?: Selection, event?: MouseEvent): void; // TODO -ya defunct?
 
@@ -155,19 +155,19 @@ interface GroupData {
     level: number;
 }
 
+
 export interface Node extends colaNode {
     id: Id;
-    hash: Id;
+    hash: Id;   // deprecated
     shortname: string;
     bounds: Rectangle;
     constraint?: Constraint[];
     parent?: Group;
     class: string;
     nodeShape: string;
-    img: any;
-    isSnip: boolean;
+    img?: any;
     color: string;
-    fixedWidth: any;
+    fixedWidth?: number | boolean;
     textPosition: number;
     px: any;
     py: any;

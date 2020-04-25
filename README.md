@@ -62,19 +62,41 @@ var networkVizJS = require('networkVizJS').default;
 Given we have an div with id `graph1`, we can initiate
 a graph in that div using:
 
-```javascript
+```typescript
 const graph = networkVizJS('graph1', options?);
 ```
 
 Node must have at least these two properties:
 Optionally you can define `x` and `y`.
 
-```javascript
-var node = {
-    hash: "uniqueString", // Hash must be unique
-    shortname: "Node1",
+### Adding and removing nodes
+```typescript
+const node = {
+    id: "uniqueString", // id must be unique
+    hash: "uniqueString",   // see notes below
+    shortname: "New Node",
+    class: "",
+    fixed: true,
+    // optional properties
+    nodeShape: "rect",
+    color: '#aadcdc',
+    img: false,
+    fixedWidth: false,
 }
 ```
+`addNode` takes a node object or a list of nodes.
+They'll be immediately drawn to the svg canvas!
+
+```javascript
+graph.addNode(node);
+```
+`removeNode` just takes a node hash.
+It deletes the node and all edges that include that node.
+```javascript
+graph.removeNode("uniqueString");
+```
+
+### Adding and removing triplets (or edges between nodes)
 
 To define an edge you use a triplet with the shape:
 
@@ -86,33 +108,6 @@ var someEdge = {
 }
 ```
 
-With the node shape and edge shape we can now add and remove nodes and edges.
-
-### Adding and removing nodes
-
-`addNode` takes a node object or a list of nodes.
-They'll be immediately drawn to the svg canvas!
-
-```javascript
-let node = {
-    hash: "2",
-    shortname: "a fun node!",
-}
-graph.addNode(node);
-```
-
-`removeNode` just takes a node hash.
-It deletes the node and all edges that include that node.
-It also takes an optional callback which triggers when the node is deleted.
-
-```javascript
-// Called after the node with the hash "2" is deleted.
-const afterDelete = () => console.log("Node deleted!");
-graph.removeNode("2", afterDelete);
-```
-
-### Adding and removing triplets (or edges between nodes)
-
 ```javascript
 graph.addTriplet(triplet);
 graph.removeTriplet(triplet);
@@ -121,6 +116,48 @@ graph.removeTriplet(triplet);
 You're pretty much good to go!
 Below is the rest of the API.
 
+### Node Object:
+The full node object is defined below
+
+Note: id and hash are the same, hash is depreceated but still needs to be defined for the time being
+
+```typescript
+interface Node {
+// the following options are required as a minimum definition
+    id: Id;                 // unique id string.
+    hash: Id;               // deprecated - still required for compatability
+    shortname: string;      // text to display
+    class: string;          // CSS class to be applied to node element
+    fixed: boolean | number // node has fixed position or will auto layout 
+                // internally is a bitstring in the form of a number but can be used as a simple boolean
+
+// the following will revert to the default specified in layoutOptions
+// valid values are determined by the function defined in layoutOptions
+    nodeShape: string;      // string description of node path
+    color: string;          // node color - use hex color code string
+
+// optional properties
+    img?: any;              // image data inside node
+    fixedWidth?: number | boolean;  // Set to number to manually set node width or false
+
+// properties set internally
+    constraint?: Constraint[];  // list of constraints applying to this node
+    parent?: Group;             // Group node is contained in
+    width?: number;             // specify a width and height of the node's bounding box if you turn on avoidOverlaps
+    height?: number;            // specify a width and height of the node's bounding box if you turn on avoidOverlaps
+    index?: number,             // index in nodes array, this is initialized by Layout.start()         
+    bounds: Rectangle;          // Rectangle of node bounds
+    innerBounds: Rectangle;     // Rectangle of node bounds
+    textPosition: number;       // TODO may be deprecated
+
+// positioning is set internally but may be overwritten
+    px: number;
+    py: number;
+    x:number;
+    y:number;
+}
+```
+
 ## Options object:
 
 These options are all optional.
@@ -128,80 +165,98 @@ Just pass in the ones you want.
 
 ```typescript
 interface LayoutOptions {
-    databaseName: string;       // Force the database name
-    layoutType: string;         // "linkDistance" | "flowLayout" | "jaccardLinkLengths"
-    jaccardModifier: number;    // Modifier for jaccardLinkLengths, number between 0 and 1
-    avoidOverlaps: boolean;     // True: No overlaps, False: Overlaps
-    handleDisconnected: boolean;// False by default, clumps disconnected nodes
-    flowDirection: string;      // If flowLayout: "x" | "y"
-    enableEdgeRouting: boolean; // Edges route around nodes
-    nodeShape: string;          // default node shape text description
+    databaseName: string;               // Force the database name
+    layoutType: "linkDistance" | "flowLayout" | "jaccardLinkLengths";
+    jaccardModifier: number;            // Modifier for jaccardLinkLengths, number between 0 and 1
+    avoidOverlaps: boolean;             // True: No overlaps, False: Overlaps
+    handleDisconnected: boolean;        // False by default, clumps disconnected nodes
+    flowDirection: "x" | "y";
+    enableEdgeRouting: boolean;         // Edges route around nodes
+    nodeShape: string;                  // default node shape text description
     nodePath: (nodeObject) => string;   // function returns node path from shape descriptor
-    width: number;              // SVG width
-    height: number;             // SVG height
-    pad: number;                // Padding outside of nodes 
-    margin: number;             // Margin inside of nodes
-    groupPad: number;           // padding around group
+    width: number;                      // SVG width
+    height: number;                     // SVG height
+    pad: number;                        // Padding outside of nodes
+    margin: number;                     // Margin inside of nodes
+    groupPad: number;                   // padding around group
 
-    canDrag: boolean;           // True: You can drag nodes, False: You can't
-    nodeDragStart(): void;      // Called when drag event triggers
-    nodeDragEnd(d,elements[i]): void;      // Called when drag event ends
-    edgeLabelText: string | {(d?: any, i?: number): string};
+    canDrag(): boolean;                 // True: You can drag nodes, False: You can't
 
-    // Mouse event handlers //
-    clickAway(): void;  // Triggers on zooming or clicking on the svg canvas.
+    nodeDragStart(d: any, element: any): void;      // This callback is called when a drag event starts on a node.
+
+    nodeDragEnd(d: any, element: any): void;        // Called when drag event ends
+
+    edgeLabelText: string | { (d?: any, i?: number): string };
+
+    // Mouse event handlers
+
+    clickAway(): void;
 
     // Nodes
     mouseDownNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+
     mouseOverNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+
     mouseOutNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+
     mouseUpNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+
     clickNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+
     dblclickNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
 
     // Groups
     mouseOverGroup(groupObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+
     mouseOutGroup(groupObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+
     clickGroup(groupObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+
     dblclickGroup(groupObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
 
     // Edges
     mouseOverEdge(edgeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+
     mouseOutEdge(edgeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+
     clickEdge(edgeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+
     dblclickEdge(edgeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
-        
-
-    // These options allow you to define a selector to create dynamic attributes
-    // based on the nodes properties.
-    nodeToPin: boolean | {(d?: any, i?: number): boolean};
-    nodeToColor: string | {(d?: any, i?: number): string};     // Return a valid css colour.
-    nodeStrokeWidth: number | {(d?: any, i?: number): number};
-    nodeStrokeColor: string | {(d?: any, i?: number): string};
 
 
-    edgeColor: string | {(d?: any, i?: number): string};
-    edgeArrowhead: number;  // edgeArrowhead: 0 - None, 1 - Right, -1 - Left, 2 - Bidirectional
-    edgeStroke: number | {(d?: any, i?: number): number};
-    edgeStrokePad: number | {(d?: any, i?: number): number}; // size of clickable area behind edge
-    edgeDasharray: number;
-    edgeLength: number | {(d?: any, i?: number): number};
-    edgeSmoothness: number | {(d?: any, i?: number): number}; // amount of smoothing applied to vertices in edges
-    groupFillColor: string;
-    snapToAlignment: boolean;          // Enable snap to alignment whilst dragging
-    snapThreshold: number;             // Snap to alignment threshold
-    palette: string[];                          // colour palette selection
+    // These are "live options"
+    nodeToPin: boolean | { (d?: any, i?: number): boolean };
+    nodeToColor: string | { (d?: any, i?: number): string };        // Return a valid hexadecimal colour.
+    nodeStrokeWidth: number | { (d?: any, i?: number): number };
+    nodeStrokeColor: string | { (d?: any, i?: number): string };
+    edgeColor: string | { (d?: any, i?: number): string };
+    edgeArrowhead: number | { (d?: any, i?: number): number };  // edgeArrowhead: 0 - None, 1 - Right, -1 - Left, 2 - Bidirectional
+    edgeStroke: number | { (d?: any, i?: number): number };
+    edgeStrokePad: number | { (d?: any, i?: number): number };  // size of clickable area behind edge
+    edgeDasharray: number | { (d?: any): number };
+    edgeLength: number | { (d?: any, i?: number): number };
+    edgeSmoothness: number;                                 // amount of smoothing applied to vertices in edges
+    groupFillColor: string | { (g?: any): string };
+    snapToAlignment: boolean;                               // Enable snap to alignment whilst dragging
+    snapThreshold: number;                                  // Snap to alignment threshold
+    palette: string[];  // colour palette selection
 
-    zoomScale(scale: number): void;    // Triggered when zooming
-    isSelect(): boolean;               // Is tool in selection mode
-    nodeSizeChange(): void;            // Triggers when node dimensions update
-    selection(): any;                  // Returns current selection from select tool
-    imgResize(bool: boolean): void;    // Toggle when resizing image
+    zoomScale(scale: number): void;     // Triggered when zooming
+
+    isSelect(): boolean; // is tool in selection mode
+    nodeSizeChange(): void; // Triggers when node dimensions update
+
+    selection(): any;   // Returns current selection from select tool
+
+    imgResize(bool: boolean): void;  // Toggle when resizing image
+
+    edgeRemove(edgeObject?: any, d3Selection?: Selection, event?: MouseEvent): void; // TODO -ya defunct?
+
 }
 ```
 
 ## Methods on graph object
-
+These are the API options available on each instance of a graph
 ```typescript
 interface Graph {
     // Check if node is drawn.
@@ -313,7 +368,6 @@ interface Graph {
         };
     };
 }
-
 ```
 
 ## Todo
