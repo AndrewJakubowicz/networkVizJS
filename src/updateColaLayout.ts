@@ -1,6 +1,6 @@
 import * as cola from "webcola";
 import * as d3 from "d3";
-import { LayoutOptions } from "./interfaces";
+import type { LayoutOptions } from "./interfaces";
 
 /**
  * Function for updating webcola options.

@@ -4,7 +4,19 @@ import AlignElemContainer from "./util/AlignElemContainer";
 import updateColaLayout from "./updateColaLayout";
 import createColorArrow from "./util/createColorArrow";
 import * as cola from "webcola";
-import * as I from "./interfaces";
+import {
+    LayoutOptions,
+    Id,
+    InputAlignConstraint,
+    AlignConstraint,
+    InputSeparationConstraint,
+    SeparationConstraint,
+    Constraint,
+    Group,
+    Node
+} from "./interfaces";
+
+import { addConstraintToNode, computeTextColor } from "./util/utils";
 
 // TODO fix the type errors
 // import * as d3 from "d3";
@@ -19,7 +31,7 @@ function networkVizJS(documentId, userLayoutOptions) {
     /**
      * Default options for webcola and graph
      */
-    const defaultLayoutOptions: I.LayoutOptions = {
+    const defaultLayoutOptions: LayoutOptions = {
         databaseName: `Userdb-${Math.random() * 100}-${Math.random() * 100}-${Math.random() * 100}-${Math.random() * 100}`,
         layoutType: "flowLayout",
         jaccardModifier: 0.7,
@@ -30,7 +42,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         // groupCompactness: 5e-6,
         // convergenceThreshold: 0.1,
         nodeShape: "rect",
-        nodePath: (d) => "M16 48 L48 48 L48 16 L16 16 Z",
+        nodePath: () => "M16 48 L48 48 L48 16 L16 16 Z",
         width: 900,
         height: 600,
         pad: 15,
@@ -89,7 +101,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Create the layoutOptions object with the users options
      * overriding the default options.
      */
-    const layoutOptions: I.LayoutOptions = Object.assign({}, defaultLayoutOptions, userLayoutOptions);
+    const layoutOptions: LayoutOptions = Object.assign({}, defaultLayoutOptions, userLayoutOptions);
     /**
      * Check that the user has provided a valid documentId
      * and check that the id exists.
@@ -103,7 +115,7 @@ function networkVizJS(documentId, userLayoutOptions) {
     /**
      * In memory stores of the nodes and predicates.
      */
-    const nodeMap = new Map();
+    const nodeMap = new Map<Id, Node>();
     const predicateTypeToColorMap = new Map();
     const predicateMap = new Map();
     const groupMap = new Map();
@@ -121,13 +133,11 @@ function networkVizJS(documentId, userLayoutOptions) {
     /**
      * These represent the data that d3 will visualize.
      */
-    const nodes = [];
-    const constraints = [];
+    const nodes: Node[] = [];
+    const constraints: Constraint[] = [];
     let links = [];
-    let groups = [];
-    const groupByHashes = [];
-    const width = layoutOptions.width, height = layoutOptions.height, margin = layoutOptions.margin,
-        pad = layoutOptions.pad;
+    let groups: Group[] = [];
+
     /**
      * Create svg canvas that is responsive to the page.
      * This will try to fill the div that it's placed in.
@@ -137,7 +147,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         .classed("svg-container", true)
         .append("svg")
         .attr("preserveAspectRatio", "xMinYMin meet")
-        .attr("viewBox", `0 0 ${width} ${height}`)
+        .attr("viewBox", `0 0 ${layoutOptions.width} ${layoutOptions.height}`)
         .style("background-color", "white")
         .classed("svg-content-responsive", true);
     svg.on("click", layoutOptions.clickAway);
@@ -206,7 +216,7 @@ function networkVizJS(documentId, userLayoutOptions) {
 
     const arrowDefsDict = {};
 
-    function addArrowDefs(defs: any, color: String, backwards: boolean) {
+    function addArrowDefs(defs: any, color: string, backwards: boolean) {
         const key = color + "-" + (backwards ? "start" : "end");
         if (!arrowDefsDict[key]) {
             arrowDefsDict[key] = true;
@@ -458,7 +468,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 const textNode = d3.select(this).select("text").node();
                 const textHeight = textNode.innerText === "" ? 0 : textNode.offsetHeight;
                 const pad = textHeight + 5;
-                // TODO if padding is unsymmetrical by more than double the node size, things break. (defualt size 136)
+                // TODO if padding is unsymmetrical by more than double the node size, things break. (default size 136)
                 const opPad = Math.max(pad - 136, 0);
                 switch (typeof d.padding) {
                     case "number": {
@@ -867,7 +877,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                                 this.parentNode.insertBefore(this, this);
                             });
                     } catch (err) {
-                        console.log(err);
+                        console.error(err);
                         return;
                     }
                     link.select(".edge-foreign-object")
@@ -1188,7 +1198,8 @@ function networkVizJS(documentId, userLayoutOptions) {
                     nodeMap.set(object.hash, object);
                 }
                 if (tripletObject.predicate.constraint) {
-                    createConstraint(tripletObject.predicate.constraint);
+                    const nodePair = [tripletObject.predicate.constraint.leftIndex, tripletObject.predicate.constraint.rightIndex];
+                    constrain(tripletObject.predicate.constraint, nodePair);
                 }
                 if (!preventLayout) {
                     return createNewLinks();
@@ -1242,7 +1253,7 @@ function networkVizJS(documentId, userLayoutOptions) {
         const subject = tripletObject.subject, predicate = tripletObject.predicate, object = tripletObject.object;
         tripletsDB.del({ subject: subject.hash, object: object.hash }, (err) => {
             if (err) {
-                console.log(err);
+                console.error(err);
             }
             tripletsDB.put({
                 subject: subject.hash,
@@ -1250,7 +1261,7 @@ function networkVizJS(documentId, userLayoutOptions) {
                 object: object.hash
             }, (err) => {
                 if (err) {
-                    console.log(err);
+                    console.error(err);
                 }
             });
         });
@@ -1261,7 +1272,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * @param {String} nodeHash hash of the node to remove.
      * @param callback
      */
-    function removeNode(nodeHash, callback) {
+    function removeNode(nodeHash: Id, callback) {
         tripletsDB.get({ subject: nodeHash }, function (err, l1) {
             if (err) {
                 return console.error(err);
@@ -1284,12 +1295,18 @@ function networkVizJS(documentId, userLayoutOptions) {
                         return console.error("There is no node");
                     }
                     simulation.stop();
+                    const node = nodeMap.get(nodeHash);
+                    // constraints are based on node index constraint MUST be deleted first
+                    if (node.constraint) {
+                        unconstrain(nodeHash);
+                    }
                     nodes.splice(nodeIndex, 1);
-                    if (nodeMap.get(nodeHash).parent) {
+                    if (node.parent) {
                         unGroup({ nodes: [nodeHash] }, true);
                     }
                     nodeMap.delete(nodeHash);
                     createNewLinks();
+                    updateConstraintIndexing();
                     return;
                 }
                 tripletsDB.del([...l1, ...l2], function (err) {
@@ -1399,11 +1416,11 @@ function networkVizJS(documentId, userLayoutOptions) {
         const newTripletsArray = predicateArray.map(p => ({ subject: p.subject, predicate: p, object: p.object }));
         tripletsDB.del(subObjArray, (err) => {
             if (err) {
-                console.log(err);
+                console.error(err);
             }
             tripletsDB.put(newTripletsArray, (err) => {
                 if (err) {
-                    console.log(err);
+                    console.error(err);
                 }
             });
         });
@@ -1535,7 +1552,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * @param children - object containing nodes and/or groups property. they are arrays of ID values
      * @param preventLayout - prevent layout restart from occuring
      */
-    function addToGroup(group, children: { nodes?: string[]; groups?: string[] }, preventLayout?: boolean) {
+    function addToGroup(group, children: { nodes?: Id[]; groups?: Id[] }, preventLayout?: boolean) {
         const nodeId = children.nodes || [];
         const subGroupId = children.groups || [];
         // check minimum size TODO: investigate min size ~ya
@@ -1612,7 +1629,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * @param children - object containing nodes and/or groups property. they are arrays of ID values
      * @param preventLayout - prevent layout restart from occuring
      */
-    function unGroup(children: { nodes?: string[]; groups?: string[] } | [{ nodes?: string[]; groups?: string[] }], preventLayout?: boolean) {
+    function unGroup(children: { nodes?: Id[]; groups?: Id[] } | [{ nodes?: Id[]; groups?: Id[] }], preventLayout?: boolean) {
         simulation.stop();
         const childArray = Array.isArray(children) ? children : [children];
         childArray.forEach(child => {
@@ -1663,38 +1680,205 @@ function networkVizJS(documentId, userLayoutOptions) {
     }
 
     /**
-     * Helper function to add  a constraint to simulation
+     * Function to remove a constraint from simulation
+     * Internal use only for removing constraints
      * requires restarting simulation after
      * @param constraint
      */
-    function createConstraint(constraint) {
-        const leftIndex = nodes.map(v => v.id).indexOf(constraint.leftID);
-        const rightIndex = nodes.map(v => v.id).indexOf(constraint.rightID);
-        if (leftIndex === -1 || rightIndex === -1) {
-            console.warn("Cannot create constraint, Node does not exist.", constraint);
+    function removeConstraint(constraint: Constraint) {
+        const index = constraints.findIndex(c => c === constraint);
+        if (index === -1) {
+            console.warn("Cannot delete constraint, does not exist.", constraint);
             return;
         }
-        constraints.push(Object.assign({}, constraint, { left: leftIndex, right: rightIndex }));
+        let constrainedNodes;
+        if (constraint.type === "separation") {
+            constrainedNodes = [nodeMap.get(constraint.leftID), nodeMap.get(constraint.rightID)];
+        } else {
+            constrainedNodes = constraint.nodeOffsets.map(({ id }) => nodeMap.get(id));
+        }
+        // remove constraints from nodes
+        constrainedNodes.forEach(d => {
+            if (d.constraint) {
+                d.constraint = d.constraint.filter(c => c !== constraint);
+            }
+        });
+        constraints.splice(index, 1);
         simulation
             .constraints(constraints);
     }
 
     /**
-     * Helper function to remove a constraint from simulation
+     * Create a new constraint or add nodes to existing constraint
+     * constraints between a pair of nodes e.g. separation constraint cannot be modified, only delete and create
+     * see: https://github.com/tgdwyer/WebCola/wiki/Constraints for constraint documentation
+     * note: 'left' and 'right' refer to left and right side of equality equations, not directions
      * requires restarting simulation after
-     * @param constraint
+     *
+     * @param consData - constraint object. see interfaces.ts for structure, does not need to contain nodes for input
+     * @param targets - array of node Ids to be added to constraint, either a tuple for separation constraints or object list for alignment
+     * @param preventLayout? - optional, set true to prevent layout restart at end of function, default will restart layout
      */
-    function removeConstraint(constraint) {
-        const index = constraints
-            .map(c => JSON.stringify({ l: c.leftID, r: c.rightID }))
-            .indexOf(JSON.stringify({ l: constraint.leftID, r: constraint.rightID }));
-        if (index === -1) {
-            console.warn("Cannot delete constraint, does not exist.", constraint);
-            return;
+    function constrain(consData: InputAlignConstraint | AlignConstraint, targets: { id: Id; offset: number }[]);
+    function constrain(consData: InputSeparationConstraint, targets: [Id, Id]);
+    function constrain(
+        consData: InputAlignConstraint | AlignConstraint | InputSeparationConstraint,
+        targets: [Id, Id] | { id: Id; offset: number }[]) {
+        if (consData.type === "separation") {
+            const idPair = <[Id, Id]>targets;
+            // separation constraint cannot be edited.
+            if (idPair.length !== 2) {
+                throw `Cannot create constraint ${consData}, incorrect number of nodes ${idPair}`;
+            }
+
+            const [leftID, rightID] = idPair;
+            const [left, right] = idPair.map(id => nodes.findIndex(d => d.id === id));
+            if (left === -1 || right === -1) {
+                throw `Cannot create constraint ${consData}, Node does not exist. ${idPair}`;
+            }
+
+            // create constraint
+            const constraint: SeparationConstraint = { ...consData, left, right, leftID, rightID };
+            constraints.push(constraint);
+
+            // add constraint property on nodes
+            idPair
+                .map(id => nodeMap.get(id))
+                .forEach(node => addConstraintToNode(constraint, node));
+        } else if (consData.type === "alignment") {
+            // alignment constraint is either new constraint, or editing existing constraint
+
+            const nodeOffsetsD = <Array<{ id: Id; offset: number }>>targets;
+            // remove duplicate targets
+            let nodeOffsets = [...new Set(nodeOffsetsD)];
+            // remove targets already in constraint
+            // check if constraint exists first
+            if (constraints.includes(<AlignConstraint>consData)) {
+                // remove already constrained nodes
+                nodeOffsets = nodeOffsets.filter(nO => !consData.nodeOffsets.includes(nO));
+                // break if no nodes left
+                console.warn("Nodes already constrained", consData, targets);
+                return;
+            }
+
+            //  calculate node offset indices from node IDs
+            const offsets = nodeOffsets.map(({ id, offset }) => {
+                const i = nodes.findIndex(d => d.id === id);
+                if (i === -1) {
+                    console.warn(consData);
+                    throw new Error("Cannot create constraint, Node does not exist.");
+                }
+                return { node: i, offset };
+            });
+            // modify consData object instead of creating new object because constraint might already exist
+            // update constraint
+            if (consData.offsets) {
+                consData.offsets.push(...offsets);
+                consData.nodeOffsets.push(...nodeOffsets);
+            } else {
+                consData.offsets = offsets;
+                consData.nodeOffsets = nodeOffsets;
+            }
+
+            if (!constraints.includes(<AlignConstraint>consData)) {
+                constraints.push(<AlignConstraint>consData);
+            }
+
+            // add reference to constraint on node
+            nodeOffsets.forEach(({ id }) => {
+                const node = nodeMap.get(id);
+                if (node.constraint) {
+                    node.constraint.push(<AlignConstraint>consData);
+                } else {
+                    node.constraint = [<AlignConstraint>consData];
+                }
+            });
+        } else {
+            console.warn("Unknown constraint type, default action executed.");
+            constraints.push(consData);
         }
-        constraints.splice(index, 1);
         simulation
             .constraints(constraints);
+    }
+
+    /**
+     * Function to remove nodes from constraints
+     * to delete a constraint, remove all its nodes
+     * requires restarting simulation after
+     *
+     * @param nodeId - list of node IDs
+     * @param constraint? - optional remove node only from this constraint - default is to remove all constraints on node
+     */
+    function unconstrain(nodeId: Id | Id[], constraint?: Constraint) {
+        const nodeIdArr = Array.isArray(nodeId) ? nodeId : [nodeId];
+        const node = nodeIdArr.map(id => nodeMap.get(id));
+        const nodeIndex = nodeIdArr.map(target => nodes.findIndex(({ id }) => id === target));
+        let removeConst: Constraint[];
+
+        if (constraint) {
+            // in the case of a given constraint only constraint to remove is given one
+            removeConst = [constraint];
+        } else {
+            // remove all constraints on nodes
+            // get constraints, remove undefined, flatten, filter unique
+            const removeSet = node.reduce((acc, cur) => {
+                cur.constraint && cur.constraint.forEach(c => acc.add(c));
+                return acc;
+            }, new Set<Constraint>());
+            // array of unique constraints that will have some/all nodes removed
+            removeConst = [...removeSet];
+        }
+        // remove nodes from constraints
+        removeConst.forEach(c => {
+            if (c.type === "separation") {
+                // removing a node from a separation constraint is the same as deleting the whole constraint
+                removeConstraint(c);
+            } else if (c.type === "alignment") {
+                c.nodeOffsets = c.nodeOffsets.filter(idOffset => !nodeIdArr.includes(idOffset.id));
+                c.offsets = c.offsets.filter(offset => !nodeIndex.includes(offset.node));
+            }
+        });
+
+        // remove constraints from nodes
+        node.forEach(d => {
+            if (d.constraint) {
+                d.constraint = d.constraint.filter(c => !removeConst.includes(c));
+            }
+        });
+
+        // delete empty alignment constraints
+        const emptyConst = removeConst.filter((c) => c.type === "alignment" && c.offsets.length <= 1);
+        emptyConst.forEach(removeConstraint);
+    }
+
+    /**
+     * Must be triggered on deleting nodes, or if nodes array is reordered
+     * TODO: consider smart updating that only checks nodes that could have changed index
+     */
+    function updateConstraintIndexing() {
+        constraints.forEach(c => {
+            if (c.type === "separation") {
+                const left = nodes.findIndex((d => d.id === c.leftID));
+                const right = nodes.findIndex((d => d.id === c.rightID));
+                if (left === -1 || right === -1) {
+                    console.warn("Node went missing, deleting constraint", c);
+                    removeConstraint(c);
+                }
+            } else {
+                const missingNodes = [];
+                c.nodeOffsets.forEach(({ id }, i) => {
+                    const index = nodes.findIndex(d => d.id === id);
+                    if (index === -1) {
+                        missingNodes.push(id);
+                    }
+                    c.offsets[i].node = index;
+                });
+                if (missingNodes.length > 0) {
+                    console.warn("Nodes went missing, removing constraints", missingNodes);
+                    unconstrain(missingNodes);
+                }
+            }
+        });
     }
 
     /**
@@ -2230,27 +2414,6 @@ function networkVizJS(documentId, userLayoutOptions) {
         }
     }
 
-    /**
-     * Given background color, return if foreground colour should be black or white based on colour brightness
-     * defaults to black
-     * @param {string} color - background color in hexadecimal format
-     */
-    function computeTextColor(color: string) {
-        // select text colour based on background brightness
-        let c = "#000000";
-        if (color) {
-            if (color.length === 7 && color[0] === "#") {
-                const r = parseInt(color.substring(1, 3), 16);
-                const g = parseInt(color.substring(3, 5), 16);
-                const b = parseInt(color.substring(5, 7), 16);
-                const brightness = Math.sqrt(0.299 * r * r + 0.587 * g * g + 0.114 * b * b);
-                if (brightness <= 170) {
-                    c = "#FFFFFF";
-                }
-            }
-        }
-        return c;
-    }
 
     /**
      * creates temporary pop up for group text
@@ -2259,7 +2422,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * @param groupId - id of group
      * @param text - dummy text defaults as "New"
      */
-    function groupTextPreview(show: boolean, groupId: string | string[], text?: string) {
+    function groupTextPreview(show: boolean, groupId: Id | Id[], text?: string) {
         const groupArr = Array.isArray(groupId) ? groupId : [groupId];
         let groupSel = group.select("text");
         if (groupId) {
@@ -2328,7 +2491,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Get node object
      * @param id? - node id, leave blank for all nodes
      */
-    function getNode(id?: string) {
+    function getNode(id?: Id) {
         return typeof id !== "undefined" ? nodeMap.get(id) : [...nodeMap.values()];
     }
 
@@ -2336,7 +2499,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Get group object
      * @param id? - group id, leave blank for all groups
      */
-    function getGroup(id?: string) {
+    function getGroup(id?: Id) {
         return typeof id !== "undefined" ? groupMap.get(id) : [...groupMap.values()];
     }
 
@@ -2344,7 +2507,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      * Get edge  object
      * @param id? - edge id, leave blank for all edges
      */
-    function getPredicate(id?: string) {
+    function getPredicate(id?: Id) {
         return typeof id !== "undefined" ? predicateMap.get(id) : [...predicateMap.values()];
     }
 
@@ -2358,7 +2521,7 @@ function networkVizJS(documentId, userLayoutOptions) {
      */
     return {
         // Check if node is drawn.
-        hasNode: (nodeHash) => nodes.filter(v => v.hash == nodeHash).length === 1,
+        hasNode: (nodeHash: Id) => nodes.filter(v => v.hash == nodeHash).length === 1,
         // Public access to the levelgraph db.
         getDB: () => tripletsDB,
         // Get node from nodeMap
@@ -2393,6 +2556,10 @@ function networkVizJS(documentId, userLayoutOptions) {
         addToGroup,
         // Remove nodes or groups from group
         unGroup,
+        // Create new constraint or add nodes to an existing alignment constraint
+        constrain,
+        // remove nodes from an existing alignment constraint, remove all nodes to remove constraint
+        unconstrain,
         // Show or hide group text popup
         groupTextPreview,
         // Restart styles or layout.

@@ -1,3 +1,5 @@
+import type { Group as colaGroup, Link, Node as colaNode, Rectangle } from "webcola";
+
 export interface LayoutOptions {
     databaseName: string;
     layoutType: string;
@@ -93,4 +95,78 @@ export interface Triplet {
     subject: any;
     object: any;
     predicate: any;
+}
+
+export type Id = string;
+
+export interface InputAlignConstraint {
+    type: "alignment";
+    axis: "x" | "y";
+    nodeOffsets?: { id: Id; offset: number }[]; // might not be passed in
+    offsets?: { node: number; offset: number }[]; // computed internally
+}
+
+export interface AlignConstraint extends InputAlignConstraint {
+    // might not be passed in
+    nodeOffsets: { id: Id; offset: number }[];
+    // node index computed internally
+    offsets: { node: number; offset: number }[];
+}
+
+export interface InputSeparationConstraint {
+    type: "separation";
+    axis: "x" | "y";
+    gap: Number;
+    // might not be passed in
+    leftID?: Id;
+    rightID?: Id;
+    // node index computed internally
+    left?: number;
+    right?: number;
+}
+
+export interface SeparationConstraint extends InputSeparationConstraint {
+    // might not be passed in
+    leftID: Id;
+    rightID: Id;
+    // node index computed internally
+    left: number;
+    right: number;
+}
+
+export type Constraint = AlignConstraint | SeparationConstraint;
+
+export interface Group extends colaGroup {
+    id: Id;
+    data: GroupData;
+    parent?: Group;
+    groups?: Group[];
+    leaves?: Node[];
+    padding: any;
+}
+
+interface GroupData {
+    color: string;
+    class: string;
+    text: string;
+    level: number;
+}
+
+export interface Node extends colaNode {
+    id: Id;
+    hash: Id;
+    shortname: string;
+    bounds: Rectangle;
+    constraint?: Constraint[];
+    parent?: Group;
+    class: string;
+    nodeShape: string;
+    img: any;
+    isSnip: boolean;
+    color: string;
+    fixedWidth: any;
+    textPosition: number;
+    px: any;
+    py: any;
+    innerBounds: Rectangle;
 }
