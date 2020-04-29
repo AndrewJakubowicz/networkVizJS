@@ -10,7 +10,7 @@ export interface LayoutOptions {
     flowDirection: "x" | "y";
     enableEdgeRouting: boolean;         // Edges route around nodes
     nodeShape: string;                  // default node shape text description
-    nodePath: (nodeObject) => string;   // function returns node path from shape descriptor
+    nodePath: string | { (nodeObject?: Node): string };   // function returns node path from shape descriptor
     width: number;                      // SVG width
     height: number;                     // SVG height
     pad: number;                        // Padding outside of nodes
@@ -19,61 +19,61 @@ export interface LayoutOptions {
 
     canDrag(): boolean;                 // True: You can drag nodes, False: You can't
 
-    nodeDragStart(d: any, element: any): void;      // This callback is called when a drag event starts on a node.
+    nodeDragStart(d: Node, element: any): void;      // This callback is called when a drag event starts on a node.
 
-    nodeDragEnd(d: any, element: any): void;        // Called when drag event ends
+    nodeDragEnd(d: Node, element: any): void;        // Called when drag event ends
 
-    edgeLabelText: string | { (d?: any, i?: number): string };
+    edgeLabelText: string | { (d?: EdgeData, i?: number): string };
 
     // Mouse event handlers
 
     clickAway(): void;
 
     // Nodes
-    mouseDownNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    mouseDownNode(nodeObject?: Node, d3Selection?: Selection, event?: MouseEvent): void;
 
-    mouseOverNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    mouseOverNode(nodeObject?: Node, d3Selection?: Selection, event?: MouseEvent): void;
 
-    mouseOutNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    mouseOutNode(nodeObject?: Node, d3Selection?: Selection, event?: MouseEvent): void;
 
-    mouseUpNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    mouseUpNode(nodeObject?: Node, d3Selection?: Selection, event?: MouseEvent): void;
 
-    clickNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    clickNode(nodeObject?: Node, d3Selection?: Selection, event?: MouseEvent): void;
 
-    dblclickNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    dblclickNode(nodeObject?: Node, d3Selection?: Selection, event?: MouseEvent): void;
 
     // Groups
-    mouseOverGroup(groupObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    mouseOverGroup(groupObject?: Group, d3Selection?: Selection, event?: MouseEvent): void;
 
-    mouseOutGroup(groupObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    mouseOutGroup(groupObject?: Group, d3Selection?: Selection, event?: MouseEvent): void;
 
-    clickGroup(groupObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    clickGroup(groupObject?: Group, d3Selection?: Selection, event?: MouseEvent): void;
 
-    dblclickGroup(groupObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    dblclickGroup(groupObject?: Group, d3Selection?: Selection, event?: MouseEvent): void;
 
     // Edges
-    mouseOverEdge(edgeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    mouseOverEdge(edgeObject?: Edge, d3Selection?: Selection, event?: MouseEvent): void;
 
-    mouseOutEdge(edgeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    mouseOutEdge(edgeObject?: Edge, d3Selection?: Selection, event?: MouseEvent): void;
 
-    clickEdge(edgeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    clickEdge(edgeObject?: Edge, d3Selection?: Selection, event?: MouseEvent): void;
 
-    dblclickEdge(edgeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    dblclickEdge(edgeObject?: Edge, d3Selection?: Selection, event?: MouseEvent): void;
 
 
     // These are "live options"
-    nodeToPin: boolean | { (d?: any, i?: number): boolean };
-    nodeToColor: string | { (d?: any, i?: number): string };        // Return a valid hexadecimal colour.
-    nodeStrokeWidth: number | { (d?: any, i?: number): number };
-    nodeStrokeColor: string | { (d?: any, i?: number): string };
-    edgeColor: string | { (d?: any, i?: number): string };
-    edgeArrowhead: number | { (d?: any, i?: number): number };  // edgeArrowhead: 0 - None, 1 - Right, -1 - Left, 2 - Bidirectional
-    edgeStroke: number | { (d?: any, i?: number): number };
-    edgeStrokePad: number | { (d?: any, i?: number): number };  // size of clickable area behind edge
-    edgeDasharray: number | { (d?: any): number };
-    edgeLength: number | { (d?: any, i?: number): number };
+    nodeToPin: boolean | { (d?: Node, i?: number): boolean };
+    nodeToColor: string | { (d?: Node, i?: number): string };        // Return a valid hexadecimal colour.
+    nodeStrokeWidth: number | { (d?: Node, i?: number): number };
+    nodeStrokeColor: string | { (d?: Node, i?: number): string };
+    edgeColor: string | { (d?: EdgeData, i?: number): string };
+    edgeArrowhead: number | { (d?: EdgeData, i?: number): number };  // edgeArrowhead: 0 - None, 1 - Right, -1 - Left, 2 - Bidirectional
+    edgeStroke: number | { (d?: EdgeData, i?: number): number };
+    edgeStrokePad: number | { (d?: EdgeData, i?: number): number };  // size of clickable area behind edge
+    edgeDasharray: number | { (d?: EdgeData): number };
+    edgeLength: number | { (d?: Edge, i?: number): number };
     edgeSmoothness: number;                                 // amount of smoothing applied to vertices in edges
-    groupFillColor: string | { (g?: any): string };
+    groupFillColor: string | { (g?: Group): string };
     snapToAlignment: boolean;                               // Enable snap to alignment whilst dragging
     snapThreshold: number;                                  // Snap to alignment threshold
     palette: string[];  // colour palette selection
@@ -87,12 +87,21 @@ export interface LayoutOptions {
 
     imgResize(bool: boolean): void;  // Toggle when resizing image
 
-    edgeRemove(edgeObject?: any, d3Selection?: Selection, event?: MouseEvent): void; // TODO -ya defunct?
+    edgeRemove(edgeObject?: Edge, d3Selection?: Selection, event?: MouseEvent): void; // TODO -ya defunct?
 
 }
 
 // TODO Implement edges
 type Edge = any;
+
+export interface EdgeData {
+    strokeWidth?: number;
+    arrowhead?: -1 | 0 | 1 | 2;
+    stroke?: string;
+    strokeDasharray?: number;
+    strokePad?: number;
+    text?: string;
+}
 
 export interface Triplet {
     subject: any;
@@ -188,7 +197,7 @@ export interface Graph {
     getGroup(id?: Id): Group | Group[];
 
     // Get nodes and edges by coordinates
-    selectByCoords(boundary: { x: number; X: number; y: number; Y: number }): { nodes: Node[]; edges: Edge[]; groups: Group[] };
+    getByCoords(boundary: { x: number; X: number; y: number; Y: number }): { nodes: Node[]; edges: Edge[]; groups: Group[] };
 
     // Get edge from predicateMap
     getPredicate(id?: Id): Edge | Edge[];
@@ -247,7 +256,7 @@ export interface Graph {
         // Redraw the edges
         redrawEdges(): Promise<void>;
         // restart simulation and redraw layout
-        layout(callback: () => void, preventLayout?: boolean): Promise<void>;
+        layout(callback: { (): void }, preventLayout?: boolean): Promise<void>;
         // Handle disconnected graph components
         handleDisconnects(): void;
         // Aligns group text
@@ -279,8 +288,8 @@ export interface Graph {
     // May be a webcola memory leak if you change the layout too many times.
     colaOptions: {
         flowLayout: {
-            down(callback: () => void): void;
-            right(callback: () => void): void;
+            down(callback: { (): void }): void;
+            right(callback: { (): void }): void;
         };
     };
 }

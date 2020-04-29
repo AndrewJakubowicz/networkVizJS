@@ -16,7 +16,7 @@ import {
     Node, Graph
 } from "./interfaces";
 
-import { addConstraintToNode, computeTextColor } from "./util/utils";
+import { addConstraintToNode, computeTextColor, nodePath, boundsOverlap, isIE } from "./util/utils";
 
 // TODO fix the type errors
 // import * as d3 from "d3";
@@ -41,8 +41,8 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         enableEdgeRouting: true,
         // groupCompactness: 5e-6,
         // convergenceThreshold: 0.1,
-        nodeShape: "rect",
-        nodePath: () => "M16 48 L48 48 L48 16 L16 16 Z",
+        nodeShape: "capsule",
+        nodePath: nodePath,
         width: 900,
         height: 600,
         pad: 15,
@@ -51,7 +51,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         canDrag: () => true,
         nodeDragStart: undefined,
         nodeDragEnd: undefined,
-        edgeLabelText: (edgeData) => edgeData.text,
+        edgeLabelText: (edgeData) => edgeData?.text ?? "",
         // Both mouseout and mouseover take data AND the selection (arg1, arg2)
         mouseDownNode: undefined,
         mouseOverNode: undefined,
@@ -69,20 +69,24 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         dblclickEdge: () => undefined,
         clickAway: () => undefined,
         // These are "live options"
-        nodeToPin: () => false,
-        nodeToColor: () => "#ffffff",
+        /** nodeToPin
+         * 1st bit is user set, second bit is set by d3 whilst dragging.
+         * hence check LSB if d.fixed is not bool
+         */
+        nodeToPin: d => (typeof d?.fixed === "boolean" && d.fixed === true) || d?.fixed % 2 === 1,
+        nodeToColor: d => d.color ?? "#AADCDC",
         nodeStrokeWidth: () => 1,
         nodeStrokeColor: () => "grey",
-        edgeColor: "black",
+        edgeColor: p => p?.stroke ?? "#000000",
         // edgeArrowhead: 0 - None, 1 - Right, -1 - Left, 2 - Bidirectional
-        edgeArrowhead: 1,
-        edgeStroke: 2,
+        edgeArrowhead: p => (typeof p?.arrowhead === "number") ? p.arrowhead : 1,
+        edgeStroke: p => p?.strokeWidth ?? 2,
         edgeStrokePad: 20,
-        edgeDasharray: 0,
+        edgeDasharray: p => p?.strokeDasharray ?? 0,
         edgeLength: () => 150,
-        edgeSmoothness: 0,
+        edgeSmoothness: 15,
         edgeRemove: undefined,
-        groupFillColor: () => "#F6ECAF",
+        groupFillColor: g => g?.data?.color ?? "#F6ECAF",
         snapToAlignment: true,
         snapThreshold: 10,
         zoomScale: undefined,
@@ -90,7 +94,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         nodeSizeChange: undefined,
         selection: undefined,
         imgResize: undefined,
-        palette: undefined, // TODO remove? think this is only part of vuegraph not networkviz
+        palette: undefined,
     };
 
     const internalOptions = {
@@ -298,21 +302,14 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
      * @param {Number} boundary.Y
      * @returns {{nodes: Node[]; edges: any[], groups:Groups[]}} - object containing node array and edge array
      */
-    function selectByCoords(boundary: { x: number; X: number; y: number; Y: number }) {
-        const nodeSelect = [];
-        const groupSelect = [];
+    function getByCoords(boundary: { x: number; X: number; y: number; Y: number }) {
         const x = Math.min(boundary.x, boundary.X);
         const X = Math.max(boundary.x, boundary.X);
         const y = Math.min(boundary.y, boundary.Y);
         const Y = Math.max(boundary.y, boundary.Y);
-        const boundsChecker = (d, arr) => {
-            if (Math.max(d.bounds.x, x) <= Math.min(d.bounds.X, X) &&
-                Math.max(d.bounds.y, y) <= Math.min(d.bounds.Y, Y)) {
-                arr.push(d);
-            }
-        };
-        nodes.forEach((d) => boundsChecker(d, nodeSelect));
-        groups.forEach((d) => boundsChecker(d, groupSelect));
+        const boundsChecker = d => boundsOverlap(d.bounds, { x, X, y, Y });
+        const nodeSelect = nodes.filter(d => boundsChecker(d));
+        const groupSelect = groups.filter(d => boundsChecker(d));
         const edges = d3.selectAll(".line")
             .select(".line-front")
             .filter(function () {
@@ -335,7 +332,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         layoutOptions.nodeSizeChange && layoutOptions.nodeSizeChange();
         node.select("path")
             .attr("d", function (d) {
-                return layoutOptions.nodePath(d);
+                return typeof layoutOptions.nodePath === "function" ? layoutOptions.nodePath(d) : layoutOptions.nodePath;
             })
             .attr("transform", function (d) {
                 // Scale appropriately using http://stackoverflow.com/a/9877871/6421793
@@ -791,11 +788,105 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
     }
 
     /**
+     * Helper function for drawing the lines.
+     * Adds quadratic curve to smooth corners in line
+     */
+    const lineFunction = (points) => {
+        if (points.length <= 2 || !layoutOptions.edgeSmoothness || layoutOptions.edgeSmoothness === 0) {
+            // fall back on old method if no need to curve edges
+            return d3.line().x(d => d.x).y(d => d.y)(points);
+        }
+        let path = "M" + points[0].x + "," + points[0].y; // move to start point
+        let dy, dx;
+        for (let n = 1; n < points.length - 1; n++) {
+            const p0 = points[n - 1];
+            const p1 = points[n];
+            const p2 = points[n + 1];
+            const v01 = { x: p1.x - p0.x, y: p1.y - p0.y }; // vector from point 0 to 1
+            const v01abs = Math.sqrt(Math.pow(v01.x, 2) + Math.pow(v01.y, 2)); // |v01|
+            const uv01 = { x: v01.x / v01abs, y: v01.y / v01abs }; // unit vector v01
+            if ((layoutOptions.edgeSmoothness * 2 > v01abs)) {
+                dx = v01.x / 2;
+                dy = v01.y / 2;
+            } else {
+                dx = layoutOptions.edgeSmoothness * uv01.x;
+                dy = layoutOptions.edgeSmoothness * uv01.y;
+            }
+            path += " L" + (p1.x - dx) + "," + (p1.y - dy); // straight line to layoutOptions.edgeSmoothness px before vertex
+            const v12 = { x: p2.x - p1.x, y: p2.y - p1.y }; // vector from point 1 to 2
+            const v12abs = Math.sqrt(Math.pow(v12.x, 2) + Math.pow(v12.y, 2)); // |v12|
+            const uv12 = { x: v12.x / v12abs, y: v12.y / v12abs }; // unit vector v12
+            if ((layoutOptions.edgeSmoothness * 2 > v12abs)) {
+                dx = v12.x / 2;
+                dy = v12.y / 2;
+            } else {
+                dx = layoutOptions.edgeSmoothness * uv12.x;
+                dy = layoutOptions.edgeSmoothness * uv12.y;
+            }
+            path += " Q" + p1.x + "," + p1.y + " " + (p1.x + dx) + "," + (p1.y + dy); // quadratic curve with vertex as control point
+        }
+        path += " L" + points[points.length - 1].x + "," + points[points.length - 1].y; // straight line to end
+        return path;
+    };
+
+    /**
+     * Causes the links to bend around the rectangles.
+     * Source: https://github.com/tgdwyer/WebCola/blob/master/WebCola/examples/unix.html#L140
+     */
+    const routeEdges = function () {
+        if (links.length == 0 || !layoutOptions.enableEdgeRouting) {
+            return;
+        }
+        try {
+            simulation.prepareEdgeRouting();
+        } catch (err) {
+            console.error(err);
+            return;
+        }
+        try {
+            link.selectAll("path")
+                .attr("d", d => lineFunction(simulation.routeEdge(d, undefined, undefined)));
+        } catch (err) {
+            console.error(err);
+            return;
+        }
+        try {
+            if (isIE())
+                link.selectAll("path").each(function (d) {
+                    this.parentNode.insertBefore(this, this);
+                });
+        } catch (err) {
+            console.error(err);
+            return;
+        }
+        link.select(".edge-foreign-object")
+            .attr("x", function (d) {
+                const thisSel = d3.select(this);
+                const textWidth = thisSel.select("text").node().offsetWidth;
+                const arrayX = simulation.routeEdge(d, undefined, undefined);
+                const middleIndex = Math.floor(arrayX.length / 2) - 1;
+                const midpoint = (arrayX[middleIndex].x + arrayX[middleIndex + 1].x - textWidth) / 2;
+                // TODO temporary hack to reduce occurrence of edge text jitter
+                const oldX = thisSel.attr("x");
+                return Math.abs(midpoint - oldX) > 2.5 ? midpoint : oldX;
+            })
+            .attr("y", function (d) {
+                const thisSel = d3.select(this);
+                const textHeight = thisSel.select("text").node().offsetHeight;
+                const arrayY = simulation.routeEdge(d, undefined, undefined);
+                const middleIndex = Math.floor(arrayY.length / 2) - 1;
+                const midpoint = (arrayY[middleIndex].y + arrayY[middleIndex + 1].y - textHeight) / 2;
+                const oldY = thisSel.attr("y");
+                return Math.abs(midpoint - oldY) > 2.5 ? midpoint : oldY;
+            });
+    };
+
+
+    /**
      * restart function adds and removes nodes.
      * It also restarts the simulation.
      * This is where aesthetics can be changed.
      */
-
     function restart(callback?, preventLayout?) {
         return Promise.resolve()
             .then(() => {
@@ -805,98 +896,6 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
             })
             .then(repositionText)
             .then(() => {
-                /**
-                 * Helper function for drawing the lines.
-                 * Adds quadratic curve to smooth corners in line
-                 */
-                const lineFunction = (points) => {
-                    if (points.length <= 2 || !layoutOptions.edgeSmoothness || layoutOptions.edgeSmoothness === 0) {
-                        // fall back on old method if no need to curve edges
-                        return d3.line().x(d => d.x).y(d => d.y)(points);
-                    }
-                    let path = "M" + points[0].x + "," + points[0].y; // move to start point
-                    let dy, dx;
-                    for (let n = 1; n < points.length - 1; n++) {
-                        const p0 = points[n - 1];
-                        const p1 = points[n];
-                        const p2 = points[n + 1];
-                        const v01 = { x: p1.x - p0.x, y: p1.y - p0.y }; // vector from point 0 to 1
-                        const v01abs = Math.sqrt(Math.pow(v01.x, 2) + Math.pow(v01.y, 2)); // |v01|
-                        const uv01 = { x: v01.x / v01abs, y: v01.y / v01abs }; // unit vector v01
-                        if ((layoutOptions.edgeSmoothness * 2 > v01abs)) {
-                            dx = v01.x / 2;
-                            dy = v01.y / 2;
-                        } else {
-                            dx = layoutOptions.edgeSmoothness * uv01.x;
-                            dy = layoutOptions.edgeSmoothness * uv01.y;
-                        }
-                        path += " L" + (p1.x - dx) + "," + (p1.y - dy); // straight line to layoutOptions.edgeSmoothness px before vertex
-                        const v12 = { x: p2.x - p1.x, y: p2.y - p1.y }; // vector from point 1 to 2
-                        const v12abs = Math.sqrt(Math.pow(v12.x, 2) + Math.pow(v12.y, 2)); // |v12|
-                        const uv12 = { x: v12.x / v12abs, y: v12.y / v12abs }; // unit vector v12
-                        if ((layoutOptions.edgeSmoothness * 2 > v12abs)) {
-                            dx = v12.x / 2;
-                            dy = v12.y / 2;
-                        } else {
-                            dx = layoutOptions.edgeSmoothness * uv12.x;
-                            dy = layoutOptions.edgeSmoothness * uv12.y;
-                        }
-                        path += " Q" + p1.x + "," + p1.y + " " + (p1.x + dx) + "," + (p1.y + dy); // quadratic curve with vertex as control point
-                    }
-                    path += " L" + points[points.length - 1].x + "," + points[points.length - 1].y; // straight line to end
-                    return path;
-                };
-                /**
-                 * Causes the links to bend around the rectangles.
-                 * Source: https://github.com/tgdwyer/WebCola/blob/master/WebCola/examples/unix.html#L140
-                 */
-                const routeEdges = function () {
-                    if (links.length == 0 || !layoutOptions.enableEdgeRouting) {
-                        return;
-                    }
-                    try {
-                        simulation.prepareEdgeRouting();
-                    } catch (err) {
-                        console.error(err);
-                        return;
-                    }
-                    try {
-                        link.selectAll("path")
-                            .attr("d", d => lineFunction(simulation.routeEdge(d, undefined, undefined)));
-                    } catch (err) {
-                        console.error(err);
-                        return;
-                    }
-                    try {
-                        if (isIE())
-                            link.selectAll("path").each(function (d) {
-                                this.parentNode.insertBefore(this, this);
-                            });
-                    } catch (err) {
-                        console.error(err);
-                        return;
-                    }
-                    link.select(".edge-foreign-object")
-                        .attr("x", function (d) {
-                            const thisSel = d3.select(this);
-                            const textWidth = thisSel.select("text").node().offsetWidth;
-                            const arrayX = simulation.routeEdge(d, undefined, undefined);
-                            const middleIndex = Math.floor(arrayX.length / 2) - 1;
-                            const midpoint = (arrayX[middleIndex].x + arrayX[middleIndex + 1].x - textWidth) / 2;
-                            // TODO temporary hack to reduce occurrence of edge text jitter
-                            const oldX = thisSel.attr("x");
-                            return Math.abs(midpoint - oldX) > 2.5 ? midpoint : oldX;
-                        })
-                        .attr("y", function (d) {
-                            const thisSel = d3.select(this);
-                            const textHeight = thisSel.select("text").node().offsetHeight;
-                            const arrayY = simulation.routeEdge(d, undefined, undefined);
-                            const middleIndex = Math.floor(arrayY.length / 2) - 1;
-                            const midpoint = (arrayY[middleIndex].y + arrayY[middleIndex + 1].y - textHeight) / 2;
-                            const oldY = thisSel.attr("y");
-                            return Math.abs(midpoint - oldY) > 2.5 ? midpoint : oldY;
-                        });
-                };
                 // Restart the simulation.
                 simulation
                     .links(links) // Required because we create new link lists
@@ -965,9 +964,6 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                             });
                     }).on("end", routeEdges);
 
-                function isIE() {
-                    return ((navigator.appName == "Microsoft Internet Explorer") || ((navigator.appName == "Netscape") && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined)));
-                }
 
                 // After a tick make sure to add translation to the nodes.
                 // Sometimes it wasn"t added in a single tick.
@@ -1467,7 +1463,8 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
             }
             case "nodeShape": {
                 editNodeHelper(prop);
-                const shapePaths = idArray.map(id => layoutOptions.nodePath(nodeMap.get(id)));
+                const shapePaths = idArray.map(id => typeof layoutOptions.nodePath === "function" ?
+                    layoutOptions.nodePath(nodeMap.get(id)) : layoutOptions.nodePath);
                 idArray.forEach((id, i) => {
                     if (multipleValues) {
                         node.filter(d => d.id === id).select("path").attr("d", shapePaths[i]);
@@ -2525,7 +2522,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         // Get Group from groupMap
         getGroup,
         // Get nodes and edges by coordinates
-        selectByCoords,
+        getByCoords,
         // Get edge from predicateMap
         getPredicate,
         // Get Layout options

@@ -158,10 +158,37 @@ interface Node {
 }
 ```
 
+### Group Object
+All properties available on the group object are shown below.
+
+Leaves should be entered as an array of node indices to avoid weird bugs
+webcola will convert the index to the node object internally.
+ 
+```typescript
+interface Group {
+    id: Id;                 // unique ID string
+    data: GroupData;        // Group data see below
+    parent?: Group;         // Parent group
+    groups?: Group[];       // Groups nested in group
+    leaves?: Node[];        // Nodes contained in group
+    bounds?: Rectangle;     // Rectangle of group bounds
+    padding: any;           // number or rectangle of group padding
+}
+
+interface GroupData {
+    color?: string;         // group colour
+    class?: string;         // CSS class to be applied to HTML element
+    text?: string;          // group text label
+    level?: number;         // Group nesting level - set internally
+}
+```
+
 ## Options object:
 
 These options are all optional.
 Just pass in the ones you want.
+This controls default settings of colours/sizes etc... as well as
+behaviour to be performed on user interaction events eg. clickOnNode
 
 ```typescript
 interface LayoutOptions {
@@ -173,7 +200,7 @@ interface LayoutOptions {
     flowDirection: "x" | "y";
     enableEdgeRouting: boolean;         // Edges route around nodes
     nodeShape: string;                  // default node shape text description
-    nodePath: (nodeObject) => string;   // function returns node path from shape descriptor
+    nodePath: string | { (nodeObject?: Node): string };   // function returns node path from shape descriptor
     width: number;                      // SVG width
     height: number;                     // SVG height
     pad: number;                        // Padding outside of nodes
@@ -182,61 +209,61 @@ interface LayoutOptions {
 
     canDrag(): boolean;                 // True: You can drag nodes, False: You can't
 
-    nodeDragStart(d: any, element: any): void;      // This callback is called when a drag event starts on a node.
+    nodeDragStart(d: Node, element: any): void;      // This callback is called when a drag event starts on a node.
 
-    nodeDragEnd(d: any, element: any): void;        // Called when drag event ends
+    nodeDragEnd(d: Node, element: any): void;        // Called when drag event ends
 
-    edgeLabelText: string | { (d?: any, i?: number): string };
+    edgeLabelText: string | { (d?: EdgeData, i?: number): string };
 
     // Mouse event handlers
 
     clickAway(): void;
 
     // Nodes
-    mouseDownNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    mouseDownNode(nodeObject?: Node, d3Selection?: Selection, event?: MouseEvent): void;
 
-    mouseOverNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    mouseOverNode(nodeObject?: Node, d3Selection?: Selection, event?: MouseEvent): void;
 
-    mouseOutNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    mouseOutNode(nodeObject?: Node, d3Selection?: Selection, event?: MouseEvent): void;
 
-    mouseUpNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    mouseUpNode(nodeObject?: Node, d3Selection?: Selection, event?: MouseEvent): void;
 
-    clickNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    clickNode(nodeObject?: Node, d3Selection?: Selection, event?: MouseEvent): void;
 
-    dblclickNode(nodeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    dblclickNode(nodeObject?: Node, d3Selection?: Selection, event?: MouseEvent): void;
 
     // Groups
-    mouseOverGroup(groupObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    mouseOverGroup(groupObject?: Group, d3Selection?: Selection, event?: MouseEvent): void;
 
-    mouseOutGroup(groupObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    mouseOutGroup(groupObject?: Group, d3Selection?: Selection, event?: MouseEvent): void;
 
-    clickGroup(groupObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    clickGroup(groupObject?: Group, d3Selection?: Selection, event?: MouseEvent): void;
 
-    dblclickGroup(groupObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    dblclickGroup(groupObject?: Group, d3Selection?: Selection, event?: MouseEvent): void;
 
     // Edges
-    mouseOverEdge(edgeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    mouseOverEdge(edgeObject?: Edge, d3Selection?: Selection, event?: MouseEvent): void;
 
-    mouseOutEdge(edgeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    mouseOutEdge(edgeObject?: Edge, d3Selection?: Selection, event?: MouseEvent): void;
 
-    clickEdge(edgeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    clickEdge(edgeObject?: Edge, d3Selection?: Selection, event?: MouseEvent): void;
 
-    dblclickEdge(edgeObject?: any, d3Selection?: Selection, event?: MouseEvent): void;
+    dblclickEdge(edgeObject?: Edge, d3Selection?: Selection, event?: MouseEvent): void;
 
 
     // These are "live options"
-    nodeToPin: boolean | { (d?: any, i?: number): boolean };
-    nodeToColor: string | { (d?: any, i?: number): string };        // Return a valid hexadecimal colour.
-    nodeStrokeWidth: number | { (d?: any, i?: number): number };
-    nodeStrokeColor: string | { (d?: any, i?: number): string };
-    edgeColor: string | { (d?: any, i?: number): string };
-    edgeArrowhead: number | { (d?: any, i?: number): number };  // edgeArrowhead: 0 - None, 1 - Right, -1 - Left, 2 - Bidirectional
-    edgeStroke: number | { (d?: any, i?: number): number };
-    edgeStrokePad: number | { (d?: any, i?: number): number };  // size of clickable area behind edge
-    edgeDasharray: number | { (d?: any): number };
-    edgeLength: number | { (d?: any, i?: number): number };
+    nodeToPin: boolean | { (d?: Node, i?: number): boolean };
+    nodeToColor: string | { (d?: Node, i?: number): string };        // Return a valid hexadecimal colour.
+    nodeStrokeWidth: number | { (d?: Node, i?: number): number };
+    nodeStrokeColor: string | { (d?: Node, i?: number): string };
+    edgeColor: string | { (d?: EdgeData, i?: number): string };
+    edgeArrowhead: number | { (d?: EdgeData, i?: number): number };  // edgeArrowhead: 0 - None, 1 - Right, -1 - Left, 2 - Bidirectional
+    edgeStroke: number | { (d?: EdgeData, i?: number): number };
+    edgeStrokePad: number | { (d?: EdgeData, i?: number): number };  // size of clickable area behind edge
+    edgeDasharray: number | { (d?: EdgeData): number };
+    edgeLength: number | { (d?: Edge, i?: number): number };
     edgeSmoothness: number;                                 // amount of smoothing applied to vertices in edges
-    groupFillColor: string | { (g?: any): string };
+    groupFillColor: string | { (g?: Group): string };
     snapToAlignment: boolean;                               // Enable snap to alignment whilst dragging
     snapThreshold: number;                                  // Snap to alignment threshold
     palette: string[];  // colour palette selection
@@ -257,70 +284,114 @@ interface LayoutOptions {
 
 ## Methods on graph object
 These are the API options available on each instance of a graph
-```typescript
-interface Graph {
-    // Check if node is drawn.
-    hasNode(id: Id): boolean;
 
-    // Public access to the levelgraph db.
-    getDB(): any;
+    hasNode(id: Id): boolean
+Check if node is drawn.
+Returns boolean value on existence of node in graph.
 
-    // Get node from nodeMap
-    getNode(id?: Id): Node | Node[];
+    getDB(): any
+Public access to the levelgraph db.Returns the levelgraph db object.
 
-    // Get Group from groupMap
-    getGroup(id?: Id): Group | Group[];
+See https://github.com/levelgraph/levelgraph for documentation
 
-    // Get nodes and edges by coordinates
-    selectByCoords(boundary: { x: number; X: number; y: number; Y: number }): { nodes: Node[]; edges: Edge[]; groups: Group[] };
+    getNode(id?: Id): Node | Node[]
+Returns node object matching id. Leave id blank for all nodes. 
 
-    // Get edge from predicateMap
-    getPredicate(id?: Id): Edge | Edge[];
+    getGroup(id?: Id): Group | Group[]
+Returns group object matching id. Leave id blank for all groups. 
 
-    // Get Layout options
-    getLayoutOptions(): LayoutOptions;
 
-    // Get SVG element. If you want the node use `graph.getSVGElement().node();`
-    getSVGElement(): d3Selection<SVGElement, Node, HTMLElement, any>;
+    getByCoords(boundary: { x: number; X: number; y: number; Y: number }): { nodes: Node[]; edges: Edge[]; groups: Group[] }
+Get nodes, edges, and group objects within defined co-ordinate boundary.
+Nodes and groups are defined to be inside if any overlap occurs between their bounds and target boundary.
+Edges are defined to be inside boundary if at least the middle 2/3rds of the line is within the bounds.
 
-    // Get Stringified representation of the graph.
-    saveGraph(): Promise<string>;
 
-    // add a directed edge
-    addTriplet(tripletObject: Edge, preventLayout?: boolean): Promise<void>;
+    getPredicate(id?: Id): Edge | Edge[]
+Get edge predicate from predicateMap. Leave id blank for all edges.
 
-    // remove an edge
-    removeTriplet(tripletObject: Edge, preventLayout?: boolean): Promise<void>;
+    getLayoutOptions(): LayoutOptions
+Returns layout options object.
 
-    // update edge data in database
-    updateTriplet(tripletObject: Edge): void;
+    getSVGElement(): d3Selection<SVGElement, Node, HTMLElement, any>
+Get d3 selection of the mainSVG element.
+ If you want the HTML node use: `graph.getSVGElement().node();`
 
-    // remove a node and all edges connected to it.
-    removeNode(nodeHash: Id): void;
+    saveGraph(): Promise<string>
+Get stringified representation of the graph.
+Returns a promise containing the serialised graph.
 
-    // add a node or array of nodes.
-    addNode(nodeObjectOrArray: Node | Node[], preventLayout?: boolean): Promise<void>;
+    addTriplet(tripletObject: Edge, preventLayout?: boolean): Promise<void>
+Add an edge to graph. Adds the node if it's not already present otherwise it just adds the edge.
 
-    // edit node property
-    editNode(action: { property: string; id: Id | Id[]; value: any | any[] }): void;
+Set preventLayout flag to true to prevent layout restart from occurring automatically on completion
+Returns promise that resolves on completion.
 
-    // edit edge property
-    editEdge(action: { property: string; id: Id | Id[]; value: any | any[] }): void;
 
-    // Add nodes or groups to group
-    addToGroup(group: Group | Id, children: { nodes?: Id[]; groups?: Id[] }, preventLayout?: boolean): void;
+    removeTriplet(tripletObject: Edge, preventLayout?: boolean): Promise<void>
+Remove an edge from graph. Silently fails if edge doesn't exist.
 
-    // Remove nodes or groups from group
-    unGroup(children: { nodes?: Id[]; groups?: Id[] } | [{ nodes?: Id[]; groups?: Id[] }], preventLayout?: boolean): void;
+Set preventLayout flag to true to prevent layout restart from occurring automatically on completion
+Returns promise that resolves on completion.
 
-    // Create new constraint or add nodes to an existing alignment constraint
-    constrain;
+    updateTriplet(tripletObject: Edge): void
+DEPRECATED. Use editEdge method instead.
+ 
+Update edge data in the triplet database. Fails silently if doesn't exist.
 
-    // remove nodes from an existing alignment constraint; remove all nodes to remove constraint
+    removeNode(nodeHash: Id): void
+Remove a node and all edges connected to it.
+
+
+    addNode(nodeObjectOrArray: Node | Node[], preventLayout?: boolean): Promise<void>
+Add a node or array of nodes to graph.
+
+Set preventLayout flag to true to prevent layout restart from occurring automatically on completion
+Returns promise that resolves on completion.
+
+    editNode(action: { property: string; id: Id | Id[]; value: any | any[] }): void
+Public function to mutate node objects.
+
+Can mutate single nodes or multiple nodes at once. Can mutate multiple nodes to have 1 value, or multiple nodes to each have their own value
+
+for multiple values, value array length==id Array length, first value will be mapped to first id in array etc...
+    
+    editEdge(action: { property: string; id: Id | Id[]; value: any | any[] }): void
+Public function to mutate edge objects.
+
+can mutate single edges or multiple edges at once. can mutate multiple edges to have 1 value, or multiple edges to each have their own value.
+
+for multiple values, value array length==id array length, first value will be mapped to first id in array etc...
+
+    addToGroup(group: Group | Id, children: { nodes?: Id[]; groups?: Id[] }, preventLayout?: boolean): void
+Add nodes or groups to group. 
+
+Set preventLayout flag to true to prevent layout restart from occurring automatically on completion
+Returns promise that resolves on completion.
+
+    unGroup(children: { nodes?: Id[]; groups?: Id[] } | [{ nodes?: Id[]; groups?: Id[] }], preventLayout?: boolean): void
+Remove nodes or groups from group
+
+Set preventLayout flag to true to prevent layout restart from occurring automatically on completion
+Returns promise that resolves on completion.
+
+    constrain(consData: InputAlignConstraint | AlignConstraint, targets: { id: Id; offset: number }[])
+    constrain(consData: InputSeparationConstraint, targets: [Id, Id])
+Create new constraint or add nodes to an existing alignment constraint.
+Constraints between a pair of nodes e.g. separation constraint cannot be modified, only deleted and created.
+
+see: https://github.com/tgdwyer/WebCola/wiki/Constraints for constraint documentation.
+
+requires restarting simulation after completion.
+
     unconstrain(nodeId: Id | Id[], constraint?: Constraint): void;
+remove nodes from an existing alignment constraint; remove all nodes to remove constraint
 
-    // Show or hide group text popup
-    groupTextPreview(show: boolean, groupId: Id | Id[], text?: string): void;
+requires restarting simulation after completion.
+
+    groupTextPreview(show: boolean, groupId: Id | Id[], text?: string): void
+Show or hide group text popup by creating temporary pop up at top of node for text
+Can be removed by passing show as false, or by restarting
 
     // Restart styles or layout.
     restart: {
@@ -368,7 +439,6 @@ interface Graph {
         };
     };
 }
-```
 
 ## Todo
 
