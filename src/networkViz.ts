@@ -23,7 +23,7 @@ import { addConstraintToNode, computeTextColor, nodePath, boundsOverlap, isIE } 
 const d3 = require("d3");
 
 const levelgraph = require("levelgraph");
-const level = require("level-browserify");
+const level = require("level");
 const interact = require("interactjs");
 
 
