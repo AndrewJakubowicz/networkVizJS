@@ -10,9 +10,9 @@ export default class AlignElemContainer {
 
     /**
      * Create container to manage HTML elements for snap-to alignment
-     * @param parentNode: parent node to append lines to.
+     * @param parentNode - parent node to append lines to.
      */
-    constructor(parentNode) {
+    constructor(parentNode: unknown) {
         this.templateLine = select(document.createElementNS("http://www.w3.org/2000/svg", "line"))
             .attr("style", "stroke:rgb(150,150,150);stroke-width:1")
             .attr("shape-rendering", "crispEdges")
@@ -25,7 +25,7 @@ export default class AlignElemContainer {
         this.yDist = [];
     }
 
-    remove(axis?: string) {
+    remove(axis?: string): void {
         if (axis === undefined) {
             this.remove("x");
             this.remove("y");
@@ -43,7 +43,7 @@ export default class AlignElemContainer {
         }
     }
 
-    create(axis: string, bounds) {
+    create(axis: string, bounds): void {
         if (axis === "x" || axis === "y") {
             select(this[axis])
                 .attr("y1", bounds.y)

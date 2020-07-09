@@ -11,11 +11,15 @@ module.exports = {
     },
     "plugins": [
         "@typescript-eslint",
-        "@typescript-eslint/tslint",
-        "no-null"
+        "no-null",
+        "jsdoc"
+    ],
+    "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended",
     ],
     "rules": {
-        "@typescript-eslint/class-name-casing": "error",
+        "@typescript-eslint/naming-convention": ["error", {"selector": "typeLike", "format": ["PascalCase"]}],
         "@typescript-eslint/indent": "error",
         "@typescript-eslint/member-delimiter-style": [
             "error",
@@ -48,27 +52,15 @@ module.exports = {
         "no-var": "error",
         "prefer-const": "error",
         "spaced-comment": "error",
-        "@typescript-eslint/tslint/config": [
-            "error",
-            {
-                "rules": {
-                    "jsdoc-format": true,
-                    "one-line": [
-                        true,
-                        "check-open-brace",
-                        "check-whitespace"
-                    ],
-                    "whitespace": [
-                        true,
-                        "check-branch",
-                        "check-decl",
-                        "check-operator",
-                        "check-module",
-                        "check-separator",
-                        "check-type"
-                    ]
-                }
-            }
-        ]
+        "brace-style": "error",
+        "@typescript-eslint/no-var-requires": "off",
+        "@typescript-eslint/no-unused-vars": "off",
+        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/explicit-module-boundary-types": "off",
+        "jsdoc/check-alignment": 1,
+        "jsdoc/check-syntax": 1,
+        "jsdoc/check-types": 1,
+        "jsdoc/check-param-names": 1,
+        "jsdoc/check-tag-names": 1,
     }
 };

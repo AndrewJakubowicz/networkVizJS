@@ -21,6 +21,7 @@
         "src/networkViz.ts"
     ],
     "include": [
-        "src/**/*"
+        "src/**/*",
+        ".eslintrc.js"
   ]
 }

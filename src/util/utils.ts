@@ -14,7 +14,7 @@ export function addConstraintToNode(constraint: Constraint, node: Node) {
     } else {
         node.constraint = [constraint];
     }
-};
+}
 
 /**
  * Given background color, return if foreground colour should be black or white based on colour brightness
@@ -40,7 +40,7 @@ export function computeTextColor(color: string) {
 
 /**
  * Return SVG node path based on shape descriptor string
- * @param d: Node
+ * @param d - Node
  */
 export const nodePath = (d?: Node): string => {
     // Shapes defined: rect, circle, capsule
@@ -86,8 +86,8 @@ export const nodePath = (d?: Node): string => {
  * Checks if bounds overlap
  * return true if overlap is found between target and bound
  * Ensure that: x < X and y < Y
- * @param target { x: number; X: number; y: number; Y: number }
- * @param bound { x: number; X: number; y: number; Y: number }
+ * @param { x: number, X: number, y: number, Y: number } target
+ * @param { x: number, X: number, y: number, Y: number } bound
  */
 export const boundsOverlap = (target: { x: number; X: number; y: number; Y: number }, bound: { x: number; X: number; y: number; Y: number }) => {
     return Math.max(target.x, bound.x) <= Math.min(target.X, bound.X) &&
@@ -95,5 +95,6 @@ export const boundsOverlap = (target: { x: number; X: number; y: number; Y: numb
 };
 
 export function isIE() {
+    // eslint-disable-next-line
     return ((navigator.appName == "Microsoft Internet Explorer") || ((navigator.appName == "Netscape") && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined)));
 }

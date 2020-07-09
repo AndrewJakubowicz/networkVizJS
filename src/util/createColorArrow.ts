@@ -4,7 +4,7 @@
  * @param color string representation of a valid color.
  * @param backwards reverses arrowhead for backwards facing arrow
  */
-export default function createColorArrow(defElement: any, color: string, backwards?: boolean) {
+export default function createColorArrow(defElement: any, color: string, backwards?: boolean): void {
     defElement.append("marker")
         .attr("id", `arrow-${color.replace(/^#/, "")}-${backwards ? "start" : "end"}`)
         .attr("viewBox", (backwards ? "6 -5 10 10" : "0 -5 10 10"))

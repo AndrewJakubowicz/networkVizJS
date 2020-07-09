@@ -100,6 +100,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
     const internalOptions = {
         isDragging: false,
         isImgResize: false,
+        lastAlign: undefined,
     };
     /**
      * Create the layoutOptions object with the users options
@@ -124,9 +125,9 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
     const predicateMap = new Map();
     const groupMap = new Map();
     /**
-     * Todo:    This is currently a hack. Create a random database on the client
-     *          side to build the networks on top of.
-     *          It's often better to just re-initialize a new db.
+     * Todo: This is currently a hack. Create a random database on the client
+     *  side to build the networks on top of.
+     *  It's often better to just re-initialize a new db.
      */
     if (!layoutOptions.databaseName || typeof layoutOptions.databaseName !== "string") {
         console.error("Make sure databaseName property exists and is a string.");
@@ -295,11 +296,11 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
 
     /**
      * Return nodes and edges within a boundary
-     * @param {Object} boundary - Bounds to search within
-     * @param {Number} boundary.x
-     * @param {Number} boundary.X
-     * @param {Number} boundary.y
-     * @param {Number} boundary.Y
+     * @param {object} boundary - Bounds to search within
+     * @param {number} boundary.x
+     * @param {number} boundary.X
+     * @param {number} boundary.y
+     * @param {number} boundary.Y
      * @returns {{nodes: Node[]; edges: any[], groups:Groups[]}} - object containing node array and edge array
      */
     function getByCoords(boundary: { x: number; X: number; y: number; Y: number }) {
@@ -616,7 +617,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                 .classed("fixed", d => d.fixed || false);
 
             /** Update Node Image Src */
-            const imgSelect = node.select("image")
+            node.select("image")
                 .attr("class", "img-node")
                 .attr("width", d => d.img ? d.img.width : 0)
                 .attr("height", d => d.img ? d.img.width : 0)
@@ -627,7 +628,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                 });
 
             /** Update the text property (allowing dynamically changing text) */
-            const textSelect = node.select("text")
+            node.select("text")
                 .html(function (d) {
                     return d.shortname || d.hash;
                 })
@@ -1021,7 +1022,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         /**
          * Checks if object is an array:
          * http://stackoverflow.com/a/34116242/6421793
-         * @param {object|array} obj
+         * @param {object|Array} obj
          */
         function isArray(obj) {
             return !!obj && obj.constructor === Array;
@@ -1207,7 +1208,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
     /**
      * Removes a triplet object. Silently fails if edge doesn't exist.
      * @param {object} tripletObject
-     * @param preventLayout - prevent restart from occuring
+     * @param preventLayout - prevent restart from occurring
      */
     function removeTriplet(tripletObject, preventLayout?: boolean) {
         if (!tripletValidation(tripletObject)) {
@@ -1235,7 +1236,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
     }
 
     /**
-     *  Update edge data. Fails silently if doesnt exist
+     * Update edge data. Fails silently if doesnt exist
      * @param {object} tripletObject
      */
     function updateTriplet(tripletObject) {
@@ -1261,7 +1262,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
 
     /**
      * Removes the node and all triplets associated with it.
-     * @param {String} nodeHash hash of the node to remove.
+     * @param {string} nodeHash hash of the node to remove.
      */
     function removeNode(nodeHash: Id) {
         tripletsDB.get({ subject: nodeHash }, function (err, l1) {
@@ -1326,7 +1327,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
 
     /**
      * Function that fires when a node is clicked.
-     * @param {function} selectNodeFunc
+     * @param {Function} selectNodeFunc
      */
     function setClickNode(selectNodeFunc) {
         layoutOptions.clickNode = selectNodeFunc;
@@ -1334,7 +1335,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
 
     /**
      * Function that fires when a node is double clicked.
-     * @param {function} selectNodeFunc
+     * @param {Function} selectNodeFunc
      */
     function setDblClickNode(selectNodeFunc) {
         layoutOptions.dblclickNode = selectNodeFunc;
@@ -1515,7 +1516,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
     /**
      * Function to call when mouse over registers on a node.
      * It takes a d3 mouse over event.
-     * @param {function} mouseOverCallback
+     * @param {Function} mouseOverCallback
      */
     function setMouseOver(mouseOverCallback) {
         layoutOptions.mouseOverNode = mouseOverCallback;
@@ -1524,7 +1525,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
     /**
      * Function to call when mouse out registers on a node.
      * It takes a d3 mouse over event.
-     * @param {function} mouseOutCallback
+     * @param {Function} mouseOutCallback
      */
     function setMouseOut(mouseOutCallback) {
         layoutOptions.mouseOutNode = mouseOutCallback;
@@ -1541,8 +1542,10 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
     /**
      * Add a node or a group to a group
      * @param group - target group, either an existing group, or a new group to create
-     * @param children - object containing nodes and/or groups property. they are arrays of ID values
-     * @param preventLayout - prevent layout restart from occuring
+     * @param children - object containing nodes and/or groups property
+     * @param children.nodes - list of node IDs
+     * @param children.groups - list of group IDs
+     * @param preventLayout - prevent layout restart from occurring
      */
     function addToGroup(group, children: { nodes?: Id[]; groups?: Id[] }, preventLayout?: boolean) {
         const nodeId = children.nodes || [];
@@ -1619,7 +1622,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
     /**
      * Remove a group or node from a group
      * @param children - object containing nodes and/or groups property. they are arrays of ID values
-     * @param preventLayout - prevent layout restart from occuring
+     * @param preventLayout - prevent layout restart from occurring
      */
     function unGroup(children: { nodes?: Id[]; groups?: Id[] } | [{ nodes?: Id[]; groups?: Id[] }], preventLayout?: boolean) {
         simulation.stop();
@@ -1709,7 +1712,6 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
      *
      * @param consData - constraint object. see interfaces.ts for structure, does not need to contain nodes for input
      * @param targets - array of node Ids to be added to constraint, either a tuple for separation constraints or object list for alignment
-     * @param preventLayout? - optional, set true to prevent layout restart at end of function, default will restart layout
      */
     function constrain(consData: InputAlignConstraint | AlignConstraint, targets: { id: Id; offset: number }[]);
     function constrain(consData: InputSeparationConstraint, targets: [Id, Id]);
@@ -1799,7 +1801,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
      * requires restarting simulation after
      *
      * @param nodeId - list of node IDs
-     * @param constraint? - optional remove node only from this constraint - default is to remove all constraints on node
+     * @param [constraint] - optional remove node only from this constraint - default is to remove all constraints on node
      */
     function unconstrain(nodeId: Id | Id[], constraint?: Constraint) {
         const nodeIdArr = Array.isArray(nodeId) ? nodeId : [nodeId];
@@ -2030,7 +2032,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
             const findOverlapGroups = ({ bounds, splitThreshold, axis }) => {
                 const invAxis = axis === "X" ? "Y" : "X";
                 const overlapGroups = [];
-                let index: number = -1;
+                let index = -1;
                 const visited: boolean[] = new Array(bounds.length).fill(false);
                 let tempArray = [];
                 let newNode = false;
@@ -2482,7 +2484,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
 
     /**
      * Get node object
-     * @param id? - node id, leave blank for all nodes
+     * @param [id] - node id, leave blank for all nodes
      */
     function getNode(id?: Id) {
         return typeof id !== "undefined" ? nodeMap.get(id) : [...nodeMap.values()];
@@ -2490,7 +2492,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
 
     /**
      * Get group object
-     * @param id? - group id, leave blank for all groups
+     * @param [id] - group id, leave blank for all groups
      */
     function getGroup(id?: Id) {
         return typeof id !== "undefined" ? groupMap.get(id) : [...groupMap.values()];
@@ -2498,7 +2500,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
 
     /**
      * Get edge  object
-     * @param id? - edge id, leave blank for all edges
+     * @param [id] - edge id, leave blank for all edges
      */
     function getPredicate(id?: Id) {
         return typeof id !== "undefined" ? predicateMap.get(id) : [...predicateMap.values()];
@@ -2510,7 +2512,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
      * TODO:
      * Allow reference to the graph in the options object.
      * Solutions?:
-     *  - Maybe have a "this" reference passed into the callbacks.
+     * - Maybe have a "this" reference passed into the callbacks.
      */
     return {
         // Check if node is drawn.

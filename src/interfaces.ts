@@ -1,6 +1,7 @@
 import type { Group as colaGroup, Link, Node as colaNode, Rectangle } from "webcola";
 import type { Selection as d3Selection } from "d3";
-
+// todo fix selection: - mistakenly used Selection instead of d3Selection - selection is DOM text selection
+type Selection = any;
 export interface LayoutOptions {
     databaseName: string;               // Force the database name
     layoutType: "linkDistance" | "flowLayout" | "jaccardLinkLengths";
@@ -128,7 +129,7 @@ export interface AlignConstraint extends InputAlignConstraint {
 export interface InputSeparationConstraint {
     type: "separation";
     axis: "x" | "y";
-    gap: Number;
+    gap: number;
     // might not be passed in
     leftID?: Id;
     rightID?: Id;
