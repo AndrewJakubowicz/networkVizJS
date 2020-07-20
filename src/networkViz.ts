@@ -50,6 +50,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         groupPad: 0,
         canDrag: () => true,
         nodeDragStart: undefined,
+        nodeDragged: undefined,
         nodeDragEnd: undefined,
         edgeLabelText: (edgeData) => edgeData?.text ?? "",
         // Both mouseout and mouseover take data AND the selection (arg1, arg2)
@@ -1715,9 +1716,8 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
      */
     function constrain(consData: InputAlignConstraint | AlignConstraint, targets: { id: Id; offset: number }[]);
     function constrain(consData: InputSeparationConstraint, targets: [Id, Id]);
-    function constrain(
-        consData: InputAlignConstraint | AlignConstraint | InputSeparationConstraint,
-        targets: [Id, Id] | { id: Id; offset: number }[]) {
+    function constrain(consData: InputAlignConstraint | AlignConstraint | InputSeparationConstraint,
+                       targets: [Id, Id] | { id: Id; offset: number }[]) {
         if (consData.type === "separation") {
             const idPair = <[Id, Id]>targets;
             // separation constraint cannot be edited.
@@ -1742,17 +1742,23 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         } else if (consData.type === "alignment") {
             // alignment constraint is either new constraint, or editing existing constraint
 
-            const nodeOffsetsD = <Array<{ id: Id; offset: number }>>targets;
+            const nodeOffsetsID = <Array<{ id: Id; offset: number }>>targets;
             // remove duplicate targets
-            let nodeOffsets = [...new Set(nodeOffsetsD)];
+            let nodeOffsets = [...new Set(nodeOffsetsID)];
             // remove targets already in constraint
             // check if constraint exists first
             if (constraints.includes(<AlignConstraint>consData)) {
+                const initLen = nodeOffsets.length;
                 // remove already constrained nodes
                 nodeOffsets = nodeOffsets.filter(nO => !consData.nodeOffsets.includes(nO));
+                // warn message if nodes excluded
+                if (nodeOffsets.length < initLen) {
+                    console.warn("Nodes already constrained", consData, targets);
+                }
                 // break if no nodes left
-                console.warn("Nodes already constrained", consData, targets);
-                return;
+                if (nodeOffsets.length === 0) {
+                    return;
+                }
             }
 
             //  calculate node offset indices from node IDs
@@ -1953,20 +1959,32 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
             };
 
             const mapHelper = (mapObj, key, value) => {
-                value = [].concat(value);
                 mapObj.has(key) ? mapObj.set(key, mapObj.get(key).concat([value])) : mapObj.set(key, [value]);
             };
 
-            nodes.forEach((node) => {
-                if (node.hash !== d.hash) {
+            nodes
+                .filter(({ id }) => id !== d.id) // exclude target node
+                .filter((node) => {
+                    // exclude nodes that have an alignment constraint to target node.
+                    if (d.constraint) {
+                        const alignedIDs: Id[] = d.constraint
+                            .filter(cons => cons.type === "alignment")
+                            .map(({ nodeOffsets }) =>
+                                nodeOffsets.map(({ id }) => id))
+                            .flat();
+                        return !alignedIDs.includes(node.hash);
+                    } else {
+                        return true;
+                    }
+                })
+                .forEach((node) => {
                     // create map of possible alignment coordinates
                     const yCoords = [node.bounds.y, node.bounds.Y];
                     const xCoords = [node.bounds.x, node.bounds.X];
-                    xCoords.forEach(x => mapHelper(gridX, Math.round(x * 2) / 2, yCoords));
-                    yCoords.forEach(y => mapHelper(gridY, Math.round(y * 2) / 2, xCoords));
-                    mapHelper(gridCX, Math.round(node.bounds.cx() * 2) / 2, yCoords);
-                    mapHelper(gridCY, Math.round(node.bounds.cy() * 2) / 2, xCoords);
-
+                    xCoords.forEach(x => mapHelper(gridX, Math.round(x * 2) / 2, { id: node.hash, data: yCoords }));
+                    yCoords.forEach(y => mapHelper(gridY, Math.round(y * 2) / 2, { id: node.hash, data: xCoords }));
+                    mapHelper(gridCX, Math.round(node.bounds.cx() * 2) / 2, { id: node.hash, data: yCoords });
+                    mapHelper(gridCY, Math.round(node.bounds.cy() * 2) / 2, { id: node.hash, data: xCoords });
                     // find all overlapping node boundaries
                     if (node.bounds.overlapX(dBoundsInflate) > 0) {
                         xOverlapNodes.push(node.bounds);
@@ -1974,8 +1992,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                     if (node.bounds.overlapY(dBoundsInflate) > 0) {
                         yOverlapNodes.push(node.bounds);
                     }
-                }
-            });
+                });
 
             const findAligns = ({ centreMap, edgeMap, offset, threshold, position }) => {
                 // check for centre alignments
@@ -2001,7 +2018,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
             const xAlign = findAligns({ centreMap: gridCX, edgeMap: gridX, offset: xOffset, threshold, position: e.x });
             const yAlign = findAligns({ centreMap: gridCY, edgeMap: gridY, offset: yOffset, threshold, position: e.y });
             if (xAlign.coord) { // if X alignment found
-                const yarr = xAlign.array.reduce((acc, curr) => acc.concat(curr), []);
+                const yarr = xAlign.array.reduce((acc, curr) => acc.concat(curr.data), []);
                 alignElements.create("x", {
                     x: xAlign.coord,
                     X: xAlign.coord,
@@ -2012,7 +2029,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                 foundAlignment.x = true;
             }
             if (yAlign.coord) { // if Y alignment found
-                const xarr = yAlign.array.reduce((acc, curr) => acc.concat(curr), []);
+                const xarr = yAlign.array.reduce((acc, curr) => acc.concat(curr.data), []);
                 alignElements.create("y", {
                     x: Math.min(...xarr, d.bounds.x) - 4,
                     X: Math.max(...xarr, d.bounds.X) + 4,
@@ -2024,6 +2041,14 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                 d.py = yAlign.coord - offset;
                 foundAlignment.y = true;
             }
+
+            // only include found alignments
+            const foundAligns = foundAlignment.y || foundAlignment.x ? {
+                ...(foundAlignment.x && { x: xAlign }),
+                ...(foundAlignment.y && { y: yAlign })
+            } : false;
+            layoutOptions?.nodeDragged?.(d, undefined, foundAligns);
+
 
             // Sort overlapping boundaries by position in increasing order
             xOverlapNodes.sort((a, b) => (a.y - b.y));

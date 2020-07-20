@@ -22,6 +22,8 @@ export interface LayoutOptions {
 
     nodeDragStart(d: Node, element: any): void;      // This callback is called when a drag event starts on a node.
 
+    nodeDragged(d: Node, element: any, alignment: any): void;      // conveys alignment information during each drag event
+
     nodeDragEnd(d: Node, element: any): void;        // Called when drag event ends
 
     edgeLabelText: string | { (d?: EdgeData, i?: number): string };
