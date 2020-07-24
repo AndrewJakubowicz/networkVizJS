@@ -16,9 +16,10 @@ import {
     Node, Graph
 } from "./interfaces";
 
-import { addConstraintToNode, computeTextColor, nodePath, boundsOverlap, isIE } from "./util/utils";
+import { addConstraintToNode, computeTextColor, nodePath, boundsOverlap, isIE, asArray } from "./util/utils";
 
 // TODO fix the type errors
+import type { Selection as d3Selection } from "d3";
 // import * as d3 from "d3";
 const d3 = require("d3");
 
@@ -48,6 +49,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         pad: 15,
         margin: 10,
         groupPad: 0,
+        alignTimer: 2500,
         canDrag: () => true,
         nodeDragStart: undefined,
         nodeDragged: undefined,
@@ -69,6 +71,10 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         clickEdge: () => undefined,
         dblclickEdge: () => undefined,
         clickAway: () => undefined,
+        mouseOutConstraint: () => undefined,
+        mouseOverConstraint: () => undefined,
+        clickConstraint: () => undefined,
+        clickConstraintGuide: () => undefined,
         // These are "live options"
         /** nodeToPin
          * 1st bit is user set, second bit is set by d3 whilst dragging.
@@ -102,6 +108,8 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         isDragging: false,
         isImgResize: false,
         lastAlign: undefined,
+        draggedConstraintVisibility: [],
+        draggedConstraintNodes: [],
     };
     /**
      * Create the layoutOptions object with the users options
@@ -176,6 +184,33 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
     drag.on("start", (d, i, elements) => {
         layoutOptions.nodeDragStart && layoutOptions.nodeDragStart(d, elements[i]);
         internalOptions.isDragging = true;
+
+        if (d.constraint) {
+            // save dragged constraints and initial visibility
+            // set them to be visible
+            const alignConsts: AlignConstraint[] = d.constraint
+                .filter(({ type }) => type === "alignment");
+            internalOptions.draggedConstraintVisibility = alignConsts
+                .map(c => ({ constraint: c, v: c.visible }));
+            internalOptions.draggedConstraintVisibility
+                .forEach(({ constraint }) => {
+                    constraint.visible = true;
+                });
+            // unfix constrained nodes while dragging
+            // const alignedIDs = alignConsts
+            //     .map(({ nodeOffsets }) => nodeOffsets.map(({ id }) => id))
+            //     .flat();
+            // const uniqeAlignedIDs = [...new Set(alignedIDs)];
+            // internalOptions.draggedConstraintNodes = uniqeAlignedIDs
+            //     .filter(id => id !== d.id)
+            //     .map(id => nodeMap.get(id))
+            //     .map(d => ({ d, f: d.fixed }));
+            // internalOptions.draggedConstraintNodes
+            //     .forEach(({ d }) => {
+            //         d.fixed = false;
+            //     });
+        }
+
         // TODO find permanent solution in vuegraph
         if (layoutOptions.isSelect && layoutOptions.isSelect()) {
             d.class += " highlight";
@@ -184,9 +219,19 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
     })
         .on("drag", dragged)
         .on("end", (d, i, elements) => {
-            alignElements.remove();
+            alignElements.endAlign();
             layoutOptions.nodeDragEnd && layoutOptions.nodeDragEnd(d, elements[i]);
             internalOptions.isDragging = false;
+            internalOptions.draggedConstraintVisibility
+                .forEach(({ constraint, v }) => {
+                    constraint.visible = v;
+                });
+            internalOptions.draggedConstraintVisibility = [];
+            internalOptions.draggedConstraintNodes.forEach(({ d, f }) => {
+                d.fixed = f;
+            });
+            internalOptions.draggedConstraintNodes = []
+            updateStyles();
             if (layoutOptions.isSelect && layoutOptions.isSelect()) {
                 d.class = d.class.replace(" highlight", "");
                 updateStyles();
@@ -238,10 +283,13 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         .selectAll(".group");
     let link = g.append("g").attr("id", "link-container")
         .selectAll(".link");
+    let constraint: d3Selection<SVGGElement, AlignConstraint, SVGGElement, unknown> = g.append("g")
+        .attr("id", "constraint-container")
+        .selectAll(".constraint");
     const alignmentLines = g.append("g");
     let node = g.append("g").attr("id", "node-container")
         .selectAll(".node");
-    const alignElements = new AlignElemContainer(alignmentLines.node());
+    const alignElements = new AlignElemContainer(alignmentLines.node(), layoutOptions);
     /**
      * Zooming and panning behaviour.
      */
@@ -493,7 +541,52 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
      */
     function updateStyles(): Promise<void> {
         return new Promise((resolve, reject) => {
+            /** CONSTRAINTS */
+            constraint = constraint.data(<AlignConstraint[]>(constraints.filter(({ type }) => type === "alignment")));
+            constraint.exit().remove();
+            const constraintEnter = constraint.enter()
+                .append("g");
+            // draw visible line
+            constraintEnter
+                .append("line")
+                .attr("stroke", "rgb(64,158,255)")
+                .attr("stroke-width", 2)
+                .attr("shape-rendering", "crispEdges")
+                .attr("stroke-dasharray", "10")
+                .classed("cons-line", true);
 
+            // create padded line to handle mouse events
+            constraintEnter
+                .append("line")
+                .attr("stroke", "rgba(0,0,0,0)")
+                .attr("stroke-width", 18);
+            // attach mouse events
+            constraintEnter
+                .on("mouseenter", function (d) {
+                    layoutOptions.mouseOverConstraint?.(d, d3.select(this), d3.event);
+                })
+                .on("mouseleave", function (d) {
+                    layoutOptions.mouseOutConstraint?.(d, d3.select(this), d3.event);
+                })
+                .on("click", function (d) {
+                    layoutOptions.clickConstraint?.(d, d3.select(this), d3.event);
+                });
+            constraint = constraint.merge(constraintEnter);
+            // toggle visibility and update position only if constraint is visible
+            // constraints will be hidden most of the time no need to compute each time
+            constraint
+                .attr("visibility", d => d.visible ? "visible" : "hidden")
+                .filter(d => d.visible)
+                .each(function (d) {
+                    // only calculate bounds once per constraint
+                    const consBounds = d.bounds();
+                    d3.select(this)
+                        .selectAll("line")
+                        .attr("y1", consBounds.y)
+                        .attr("y2", consBounds.Y)
+                        .attr("x1", consBounds.x)
+                        .attr("x2", consBounds.X);
+                });
             /** GROUPS */
             group = group.data(groups);
             group.exit().remove();
@@ -1780,6 +1873,11 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                 consData.nodeOffsets = nodeOffsets;
             }
 
+            // if new constraint bind bounds method
+            if (!(<AlignConstraint>consData).bounds) {
+                (<AlignConstraint>consData).bounds = () => constraintBounds((<AlignConstraint>consData));
+            }
+
             if (!constraints.includes(<AlignConstraint>consData)) {
                 constraints.push(<AlignConstraint>consData);
             }
@@ -1882,6 +1980,45 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
     }
 
     /**
+     * Toggle constraint line visibility
+     * @param value - boolean value of constraint visibility
+     * @param constraint - constraint or list of constraints to toggle, leaving blank will toggle all constraints
+     * @param preventUpdate - prevent visual update (updatestyles) from occuring - will need to be done manually
+     */
+    function constraintVisibility(value: boolean = false, constraint?: AlignConstraint | AlignConstraint[], preventUpdate?: boolean) {
+        const consToToggle = constraint ?? <AlignConstraint[]>(constraints.filter(({ type }) => type === "alignment"));
+        const cons = asArray(consToToggle);
+        cons.forEach((c) => {
+            c.visible = value;
+        });
+        if (!preventUpdate) {
+            updateStyles();
+        }
+    }
+
+    const constraintBounds = (cons: AlignConstraint) => {
+        if (cons.type !== "alignment") {
+            throw new Error("Only valid for align constraints");
+        }
+        const consNodes = cons.offsets.map(o => nodes[o.node]);
+        if (cons.axis === "x") {
+            return {
+                x: consNodes[0].x,
+                X: consNodes[0].x,
+                y: Math.min(...consNodes.map(({ bounds }) => bounds.y)) - 4,
+                Y: Math.max(...consNodes.map(({ bounds }) => bounds.Y)) + 4,
+            };
+        } else {
+            return {
+                x: Math.min(...consNodes.map(({ bounds }) => bounds.x)) - 4,
+                X: Math.max(...consNodes.map(({ bounds }) => bounds.X)) - 4,
+                y: consNodes[0].y,
+                Y: consNodes[0].y,
+            };
+        }
+    };
+
+    /**
      * // TODO update this documentation
      * Serialize the graph.
      * scheme: triplets: subj:hash-predicateType-obj:hash[]
@@ -1925,6 +2062,21 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
             d.px = d.x;
             return;
         }
+        // toggle visibility and update position only if constraint is visible
+        // constraints will be hidden most of the time no need to compute each time
+        constraint
+            .attr("visibility", d => d.visible ? "visible" : "hidden")
+            .filter(d => d.visible)
+            .each(function (d) {
+                // only calculate bounds once per constraint
+                const consBounds = d.bounds();
+                d3.select(this)
+                    .selectAll("line")
+                    .attr("y1", consBounds.y)
+                    .attr("y2", consBounds.Y)
+                    .attr("x1", consBounds.x)
+                    .attr("x2", consBounds.X);
+            });
         // Multiple item drag
         if (layoutOptions.isSelect && layoutOptions.isSelect() && layoutOptions.selection().nodes.size > 1) {
             const { dx, dy } = e;
@@ -2019,23 +2171,33 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
             const yAlign = findAligns({ centreMap: gridCY, edgeMap: gridY, offset: yOffset, threshold, position: e.y });
             if (xAlign.coord) { // if X alignment found
                 const yarr = xAlign.array.reduce((acc, curr) => acc.concat(curr.data), []);
-                alignElements.create("x", {
+                const bounds = {
                     x: xAlign.coord,
                     X: xAlign.coord,
                     y: Math.min(...yarr, d.bounds.y) - 4,
                     Y: Math.max(...yarr, d.bounds.Y) + 4,
-                });
+                };
+                const centreAlign = xAlign.offset === 0;
+                const alignedID = xAlign.array.map(({ id }) => id);
+                const alignedNodes = alignedID.map(id => nodeMap.get(id));
+                const target = d;
+                alignElements.create("x", { bounds, centreAlign, alignedNodes, target });
                 d.px = xAlign.coord - xAlign.offset;
                 foundAlignment.x = true;
             }
             if (yAlign.coord) { // if Y alignment found
                 const xarr = yAlign.array.reduce((acc, curr) => acc.concat(curr.data), []);
-                alignElements.create("y", {
+                const bounds = {
                     x: Math.min(...xarr, d.bounds.x) - 4,
                     X: Math.max(...xarr, d.bounds.X) + 4,
                     y: yAlign.coord,
                     Y: yAlign.coord,
-                });
+                };
+                const centreAlign = yAlign.offset === 0;
+                const alignedID = yAlign.array.map(({ id }) => id);
+                const alignedNodes = alignedID.map(id => nodeMap.get(id));
+                const target = d;
+                alignElements.create("y", { bounds, centreAlign, alignedNodes, target });
                 // +1 required otherwise nodes collide.
                 const offset = yAlign.offset === 0 ? 0 : yAlign.offset > 0 ? yAlign.offset + 1 : yAlign.offset - 1;
                 d.py = yAlign.coord - offset;
@@ -2580,6 +2742,8 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         constrain,
         // remove nodes from an existing alignment constraint, remove all nodes to remove constraint
         unconstrain,
+        // toggle constraint visibility
+        constraintVisibility,
         // Show or hide group text popup
         groupTextPreview,
         // Restart styles or layout.

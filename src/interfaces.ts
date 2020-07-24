@@ -2,6 +2,7 @@ import type { Group as colaGroup, Link, Node as colaNode, Rectangle } from "webc
 import type { Selection as d3Selection } from "d3";
 // todo fix selection: - mistakenly used Selection instead of d3Selection - selection is DOM text selection
 type Selection = any;
+
 export interface LayoutOptions {
     databaseName: string;               // Force the database name
     layoutType: "linkDistance" | "flowLayout" | "jaccardLinkLengths";
@@ -17,6 +18,7 @@ export interface LayoutOptions {
     pad: number;                        // Padding outside of nodes
     margin: number;                     // Margin inside of nodes
     groupPad: number;                   // padding around group
+    alignTimer: number                  // time (milliseconds) to confirm constraint creation
 
     canDrag(): boolean;                 // True: You can drag nodes, False: You can't
 
@@ -63,6 +65,13 @@ export interface LayoutOptions {
 
     dblclickEdge(edgeObject?: Edge, d3Selection?: Selection, event?: MouseEvent): void;
 
+    mouseOverConstraint(constraint?: AlignConstraint, d3Selection?: d3Selection<SVGGElement, AlignConstraint, null, undefined>, event?: MouseEvent): void;
+
+    mouseOutConstraint(constraint?: AlignConstraint, d3Selection?: d3Selection<SVGGElement, AlignConstraint, null, undefined>, event?: MouseEvent): void;
+
+    clickConstraint(constraint?: AlignConstraint, d3Selection?: d3Selection<SVGGElement, AlignConstraint, null, undefined>, event?: MouseEvent): void;
+
+    clickConstraintGuide(d: Node, alignedNodes: Node[], axis: "x" | "y"): void
 
     // These are "live options"
     nodeToPin: boolean | { (d?: Node, i?: number): boolean };
@@ -117,6 +126,7 @@ export type Id = string;
 export interface InputAlignConstraint {
     type: "alignment";
     axis: "x" | "y";
+    visible?: boolean;
     nodeOffsets?: { id: Id; offset: number }[]; // might not be passed in
     offsets?: { node: number; offset: number }[]; // computed internally
 }
@@ -126,6 +136,8 @@ export interface AlignConstraint extends InputAlignConstraint {
     nodeOffsets: { id: Id; offset: number }[];
     // node index computed internally
     offsets: { node: number; offset: number }[];
+    // return constraint boundary, bound on creation
+    bounds: () => { x: number; X: number; y: number; Y: number; }
 }
 
 export interface InputSeparationConstraint {
@@ -209,7 +221,7 @@ export interface Graph {
     getLayoutOptions(): LayoutOptions;
 
     // Get SVG element. If you want the node use `graph.getSVGElement().node();`
-    getSVGElement(): d3Selection<SVGElement, Node, HTMLElement, any>;
+    getSVGElement(): d3Selection<SVGElement, undefined, HTMLDivElement, any>;
 
     // Get Stringified representation of the graph.
     saveGraph(): Promise<string>;
@@ -246,6 +258,9 @@ export interface Graph {
 
     // remove nodes from an existing alignment constraint; remove all nodes to remove constraint
     unconstrain(nodeId: Id | Id[], constraint?: Constraint): void;
+
+    // toggle constraint visibility
+    constraintVisibility(value: boolean, constraint?: AlignConstraint | AlignConstraint[], preventUpdate?: boolean): void,
 
     // Show or hide group text popup
     groupTextPreview(show: boolean, groupId: Id | Id[], text?: string): void;

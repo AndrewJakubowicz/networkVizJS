@@ -98,3 +98,7 @@ export function isIE() {
     // eslint-disable-next-line
     return ((navigator.appName == "Microsoft Internet Explorer") || ((navigator.appName == "Netscape") && (new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})").exec(navigator.userAgent) != undefined)));
 }
+
+export function asArray<T>(item: T | T[]): T[] {
+    return Array.isArray(item) ? item : [item];
+}
