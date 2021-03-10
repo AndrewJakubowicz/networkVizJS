@@ -45,6 +45,6 @@
     "interactjs": "^1.9.20",
     "level": "^6.0.1",
     "levelgraph": "2.1.1",
-    "webcola": "git+https://github.com/theya222/WebCola.git#a84a2ade5112458287f1ba5e45545dfed992e705"
+    "webcola": "git+https://github.com/yusufades/WebCola.git#b22bcfd3396bb0713cc146a0ace5dd6524ea6e39"
   }
 }
