@@ -21,3 +21,6 @@ src/util/*.js
 /networkVizJS.iml
 /dist/
 /__tests__/networkViz.test.js
+
+
+package-lock.json
