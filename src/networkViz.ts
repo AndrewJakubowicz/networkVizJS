@@ -82,6 +82,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
          */
         nodeToPin: d => (typeof d?.fixed === "boolean" && d.fixed === true) || d?.fixed % 2 === 1,
         nodeToColor: d => d.color ?? "#AADCDC",
+        nodeToText: d => d.shortname ?? d.id,
         nodeStrokeWidth: () => 1,
         nodeStrokeColor: () => "grey",
         edgeColor: p => p?.stroke ?? "#000000",
@@ -723,9 +724,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
 
             /** Update the text property (allowing dynamically changing text) */
             node.select("text")
-                .html(function (d) {
-                    return d.shortname || d.hash;
-                })
+                .html(layoutOptions.nodeToText)
                 .style("color", d => computeTextColor(d.color))
                 .style("max-width", d => d.fixedWidth ? d.width - layoutOptions.pad * 2 + layoutOptions.margin + "px" : "none")
                 .style("word-break", d => d.fixedWidth ? "break-word" : "normal")

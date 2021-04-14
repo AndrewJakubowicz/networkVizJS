@@ -76,6 +76,7 @@ export interface LayoutOptions {
     // These are "live options"
     nodeToPin: boolean | { (d?: Node, i?: number): boolean };
     nodeToColor: string | { (d?: Node, i?: number): string };        // Return a valid hexadecimal colour.
+    nodeToText: string | { (d?: Node, i?: number): string };        // Return text used to display in node.
     nodeStrokeWidth: number | { (d?: Node, i?: number): number };
     nodeStrokeColor: string | { (d?: Node, i?: number): string };
     edgeColor: string | { (d?: EdgeData, i?: number): string };
