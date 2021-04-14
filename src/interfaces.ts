@@ -197,6 +197,7 @@ export interface Node extends colaNode {
     px: any;
     py: any;
     innerBounds: Rectangle;
+    payload?: any;
 }
 
 export interface Graph {
