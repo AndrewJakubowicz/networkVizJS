@@ -2091,7 +2091,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         }
         // Snap to alignment
         if (layoutOptions.snapToAlignment &&
-            ((typeof layoutOptions.nodeToPin === "function" && layoutOptions.nodeToPin(d)) || layoutOptions.nodeToPin)) {
+            ((typeof layoutOptions.nodeToPin === "function" && layoutOptions.nodeToPin(d)) || (typeof layoutOptions.nodeToPin === "boolean" && layoutOptions.nodeToPin))) {
             alignElements.remove();
             const threshold = layoutOptions.snapThreshold;
             const xOffset = d.width / 2;
