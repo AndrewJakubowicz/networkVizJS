@@ -9,7 +9,7 @@
     "build:umd.min": "echo \"No umd.min.js yet\"",
     "build-ts": "tsc",
     "watch-ts": "tsc -w",
-    "test": "karma start karma.config.js",
+    "test": "echo \"No tests yet\"",
     "lint": "eslint -c .eslintrc.js --ext .ts src",
     "prepare": "npm run build-ts"
   },
@@ -32,12 +32,6 @@
     "eslint": "^7.4.0",
     "eslint-plugin-jsdoc": "^29.1.0",
     "eslint-plugin-no-null": "^1.0.2",
-    "jasmine-core": "^3.5.0",
-    "karma": "^5.1.0",
-    "karma-chrome-launcher": "^3.1.0",
-    "karma-ie-launcher": "1.0.0",
-    "karma-jasmine": "^3.3.1",
-    "karma-typescript": "^5.0.3",
     "typescript": "^3.9.6"
   },
   "dependencies": {
@@ -45,6 +39,6 @@
     "interactjs": "^1.9.20",
     "level": "^6.0.1",
     "levelgraph": "2.1.1",
-    "webcola": "git+https://github.com/yusufades/WebCola.git#b22bcfd3396bb0713cc146a0ace5dd6524ea6e39"
+    "webcola": "git+https://github.com/yusufades/WebCola.git#22967c595372a7a7324733e8048980d0551eff3d"
   }
 }
