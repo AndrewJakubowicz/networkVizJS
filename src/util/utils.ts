@@ -1,4 +1,4 @@
-import type { Constraint, Node } from "../interfaces";
+import type { Constraint, Node } from "../types/interfaces";
 
 // helper functions in here to declutter main file
 

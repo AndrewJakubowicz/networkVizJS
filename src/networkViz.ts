@@ -14,7 +14,7 @@ import {
     Constraint,
     Group,
     Node, Graph
-} from "./interfaces";
+} from "./types/interfaces";
 
 import { addConstraintToNode, computeTextColor, nodePath, boundsOverlap, isIE, asArray } from "./util/utils";
 
@@ -51,6 +51,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         groupPad: 0,
         alignTimer: 2500,
         canDrag: () => true,
+        easyConstrain: true,
         nodeDragStart: undefined,
         nodeDragged: undefined,
         nodeDragEnd: undefined,
@@ -176,7 +177,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         .links(links)
         .constraints(constraints)
         .groups(groups)
-        .start();
+        .start(10, 15, 20, 0, true, false)
     /**
      * Call nodeDragStart callback when drag event triggers.
      */
@@ -980,8 +981,12 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
      * restart function adds and removes nodes.
      * It also restarts the simulation.
      * This is where aesthetics can be changed.
+     * @param callback
+     * @param preventLayout
+     * @param constraintIterations - number of additional constraint iterations to perform
      */
-    function restart(callback?, preventLayout?) {
+    function restart(callback?, preventLayout?, constraintIterations ?: number) {
+        const ci = constraintIterations ?? 1;
         return Promise.resolve()
             .then(() => {
                 if (!preventLayout) {
@@ -994,7 +999,9 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                 simulation
                     .links(links) // Required because we create new link lists
                     .groups(groups)
-                    .start(10, 15, 20)
+                    // TODO why iterate  - avoid iteration maybe if no new additions?
+                    // .start(10, 15, 20, 0, true, false)
+                    .start(ci, ci, ci, 0, true, false)
                     .on("tick", function () {
                         node.each((d) => {
                             if (d.bounds) {
@@ -1082,7 +1089,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
     /**
      * Helper function for updating links after node mutations.
      */
-    function createNewLinks() {
+    function createNewLinks(preventLayout?:boolean) {
         return new Promise((resolve, reject) => tripletsDB.get({},
             (err, l) => {
                 if (err) {
@@ -1101,7 +1108,11 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
             });
         }).catch((err) => {
             console.error(err);
-        }).then(restart);
+        }).then(() => {
+            if (!preventLayout) {
+                return restart();
+            }
+        })
 
     }
 
@@ -2115,6 +2126,8 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
 
             nodes
                 .filter(({ id }) => id !== d.id) // exclude target node
+                .filter(d => (typeof layoutOptions.nodeToPin === 'function' && layoutOptions.nodeToPin(d))
+                    && layoutOptions.nodeToPin) // filter unpinned nodes
                 .filter((node) => {
                     // exclude nodes that have an alignment constraint to target node.
                     if (d.constraint) {

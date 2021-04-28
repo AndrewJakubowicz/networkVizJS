@@ -89,6 +89,7 @@ export interface LayoutOptions {
     groupFillColor: string | { (g?: Group): string };
     snapToAlignment: boolean;                               // Enable snap to alignment whilst dragging
     snapThreshold: number;                                  // Snap to alignment threshold
+    easyConstrain: boolean;                                 // enable easy constraint creation on drag snapping.
     palette: string[];  // colour palette selection
 
     zoomScale(scale: number): void;     // Triggered when zooming
@@ -274,9 +275,9 @@ export interface Graph {
         // Aligns text to centre of node
         textAlign(): Promise<void>;
         // Redraw the edges
-        redrawEdges(): Promise<void>;
+        redrawEdges(preventLayout?:boolean): Promise<void>;
         // restart simulation and redraw layout
-        layout(callback: { (): void }, preventLayout?: boolean): Promise<void>;
+        layout(callback: { (): void }, preventLayout?: boolean, constraintIterations ?: number): Promise<void>;
         // Handle disconnected graph components
         handleDisconnects(): void;
         // Aligns group text

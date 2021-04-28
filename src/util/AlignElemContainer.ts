@@ -1,5 +1,5 @@
 import { select, transition, easePolyOut } from "d3";
-import { LayoutOptions } from "../interfaces";
+import { LayoutOptions } from "../types/interfaces";
 
 export default class AlignElemContainer {
     templateLine;
@@ -52,20 +52,25 @@ export default class AlignElemContainer {
         this.remove("yDist");
         ["x", "y"].filter(axis => !this[axis + "CA"])
             .forEach(axis => this.remove(axis));
-        const t = transition()
-            .delay(this.layoutOptions.alignTimer ?? 0)
-            .ease(easePolyOut);
-        ["x", "y"].filter(axis => this[axis + "CA"])
-            .forEach(axis => {
-                select(this[axis])
-                    .attr("stroke", "rgb(64,158,255)")
-                    .attr("stroke-width", 2)
-                    .attr("stroke-dasharray", "10")
-                    .transition(t)
-                    .style("opacity", 0);
-                this[axis + "Timer"] = setTimeout((axis) => this.remove(axis), (this.layoutOptions.alignTimer ?? 0) + 100);
-            });
 
+        if (this.layoutOptions.easyConstrain) {
+            const t = transition()
+                .delay(this.layoutOptions.alignTimer ?? 0)
+                .ease(easePolyOut);
+            ["x", "y"].filter(axis => this[axis + "CA"])
+                .forEach(axis => {
+                    select(this[axis])
+                        .attr("stroke", "rgb(64,158,255)")
+                        .attr("stroke-width", 2)
+                        .attr("stroke-dasharray", "10")
+                        .transition(t)
+                        .style("opacity", 0);
+                    this[axis + "Timer"] = setTimeout((axis) => this.remove(axis), (this.layoutOptions.alignTimer ?? 0) + 100);
+                });
+        } else {
+            ["x", "y"].filter(axis => this[axis + "CA"])
+                .forEach(axis => this.remove(axis));
+        }
     }
 
     remove(axis?: string): void {
@@ -112,15 +117,18 @@ export default class AlignElemContainer {
                     .attr("x1", bounds.x)
                     .attr("x2", bounds.X);
                 this.parent.append(this[axis]);
-                select(this[baxis])
+                const centre = select(this[baxis])
                     .attr("y1", bounds.y)
                     .attr("y2", bounds.Y)
                     .attr("x1", bounds.x)
-                    .attr("x2", bounds.X)
-                    .on("click", () => {
+                    .attr("x2", bounds.X);
+                if (this.layoutOptions.easyConstrain) {
+                    centre.on("click", () => {
                         this.remove(axis);
                         this.layoutOptions.clickConstraintGuide(payload.target, payload.alignedNodes, axis);
                     });
+                }
+
                 this.parent.append(this[baxis]);
             } else {
                 this[axis + "CA"] = false;
