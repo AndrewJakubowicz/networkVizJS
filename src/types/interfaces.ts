@@ -10,6 +10,7 @@ export interface LayoutOptions {
     avoidOverlaps: boolean;             // True: No overlaps, False: Overlaps
     handleDisconnected: boolean;        // False by default, clumps disconnected nodes
     flowDirection: "x" | "y";
+    color_defs: {color: string[]; id: string}[];
     enableEdgeRouting: boolean;         // Edges route around nodes
     nodeShape: string;                  // default node shape text description
     nodePath: string | { (nodeObject?: Node): string };   // function returns node path from shape descriptor
@@ -203,6 +204,8 @@ export interface Node extends colaNode {
 
 export interface Graph {
     // Check if node is drawn.
+    addColourDef: (color: string[], id: string) => void;
+
     hasNode(id: Id): boolean;
 
     // Public access to the levelgraph db.
