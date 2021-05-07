@@ -83,7 +83,6 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
          * hence check LSB if d.fixed is not bool
          */
         nodeToPin: d => (typeof d?.fixed === "boolean" && d.fixed === true) || d?.fixed % 2 === 1,
-        //TODO: replace this with sik function
         nodeToColor: d => d.color ?? "#AADCDC",
         nodeToText: d => d.shortname ?? d.id,
         nodeStrokeWidth: () => 1,

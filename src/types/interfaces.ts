@@ -72,7 +72,7 @@ export interface LayoutOptions {
 
     clickConstraint(constraint?: AlignConstraint, d3Selection?: d3Selection<SVGGElement, AlignConstraint, null, undefined>, event?: MouseEvent): void;
 
-    clickConstraintGuide(d: Node, alignedNodes: Node[], axis: "x" | "y"): void;
+    clickConstraintGuide(d: Node, alignedNodes: Node[], axis: "x" | "y"): void
 
     // These are "live options"
     nodeToPin: boolean | { (d?: Node, i?: number): boolean };
@@ -140,7 +140,7 @@ export interface AlignConstraint extends InputAlignConstraint {
     // node index computed internally
     offsets: { node: number; offset: number }[];
     // return constraint boundary, bound on creation
-    bounds: () => { x: number; X: number; y: number; Y: number };
+    bounds: () => { x: number; X: number; y: number; Y: number; }
 }
 
 export interface InputSeparationConstraint {
@@ -266,7 +266,7 @@ export interface Graph {
     unconstrain(nodeId: Id | Id[], constraint?: Constraint): void;
 
     // toggle constraint visibility
-    constraintVisibility(value: boolean, constraint?: AlignConstraint | AlignConstraint[], preventUpdate?: boolean): void;
+    constraintVisibility(value: boolean, constraint?: AlignConstraint | AlignConstraint[], preventUpdate?: boolean): void,
 
     // Show or hide group text popup
     groupTextPreview(show: boolean, groupId: Id | Id[], text?: string): void;
@@ -278,9 +278,9 @@ export interface Graph {
         // Aligns text to centre of node
         textAlign(): Promise<void>;
         // Redraw the edges
-        redrawEdges(preventLayout?: boolean): Promise<void>;
+        redrawEdges(preventLayout?:boolean): Promise<void>;
         // restart simulation and redraw layout
-        layout(callback: { (): void }, preventLayout?: boolean, constraintIterations?: number): Promise<void>;
+        layout(callback: { (): void }, preventLayout?: boolean, constraintIterations ?: number): Promise<void>;
         // Handle disconnected graph components
         handleDisconnects(): void;
         // Aligns group text
