@@ -36,6 +36,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         databaseName: `Userdb-${Math.random() * 100}-${Math.random() * 100}-${Math.random() * 100}-${Math.random() * 100}`,
         layoutType: "flowLayout",
         jaccardModifier: 0.7,
+        color_defs: [],
         avoidOverlaps: true,
         handleDisconnected: false,
         flowDirection: "y",
@@ -82,6 +83,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
          * hence check LSB if d.fixed is not bool
          */
         nodeToPin: d => (typeof d?.fixed === "boolean" && d.fixed === true) || d?.fixed % 2 === 1,
+        //TODO: replace this with sik function
         nodeToColor: d => d.color ?? "#AADCDC",
         nodeToText: d => d.shortname ?? d.id,
         nodeStrokeWidth: () => 1,
@@ -266,6 +268,8 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         .append("path")
         .attr("d", "M 50 0 L 50 40 L 0 20 Z")
         .attr("fill", "rgb(150,150,150)");
+
+    layoutOptions.color_defs.forEach(({color, id}) => addColourDef(color, id));
 
     const arrowDefsDict = {};
 
@@ -2681,6 +2685,18 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         simulation.stop();
     };
 
+    function addColourDef(colours: string[], id: string) {
+        const el = defs.append("linearGradient")
+            .attr("id", id)
+            .attr("gradientTransform", "rotate(5)");
+        // console.log(colours)
+        colours.forEach((c) => {
+            el.append("stop")
+                .attr("offset", String(1 / colours.length))
+                .attr("stop-color", c);
+        });
+    }
+
     /**
      * Get node object
      * @param [id] - node id, leave blank for all nodes
@@ -2714,6 +2730,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
      * - Maybe have a "this" reference passed into the callbacks.
      */
     return {
+        addColourDef,
         // Check if node is drawn.
         hasNode: (id: Id) => nodes.filter(v => v.hash == id).length === 1,
         // Public access to the levelgraph db.
