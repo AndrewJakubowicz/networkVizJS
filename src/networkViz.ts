@@ -2689,9 +2689,13 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
             .attr("id", id)
             .attr("gradientTransform", "rotate(5)");
         // console.log(colours)
-        colours.forEach((c) => {
+        colours.forEach((c, index) => {
             el.append("stop")
-                .attr("offset", String(1 / colours.length))
+                .attr("offset", String(index / colours.length))
+                .attr("stop-color", c);
+
+            el.append("stop")
+                .attr("offset", String((index+1) / colours.length))
                 .attr("stop-color", c);
         });
     }
