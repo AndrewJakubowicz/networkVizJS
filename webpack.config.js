@@ -10,7 +10,7 @@ module.exports = {
         library: 'networkVizJS',
         filename: 'networkviz.js',
     },
-    devtool: 'source-map',
+    devtool: 'inline-source-map',
     mode: 'development',
     resolve: {
         modules: [
