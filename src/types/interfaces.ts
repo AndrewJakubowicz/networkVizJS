@@ -80,6 +80,9 @@ export interface LayoutOptions {
     nodeToText: string | { (d?: Node, i?: number): string };        // Return text used to display in node.
     nodeStrokeWidth: number | { (d?: Node, i?: number): number };
     nodeStrokeColor: string | { (d?: Node, i?: number): string };
+    nodeFontSize: string | { (d?: Node, i?: number): string };
+    edgeFontSize: string | { (d?: Node, i?: number): string };      // return string number with "px" appended
+    groupFontSize: string | { (d?: Node, i?: number): string };
     edgeColor: string | { (d?: EdgeData, i?: number): string };
     edgeArrowhead: number | { (d?: EdgeData, i?: number): number };  // edgeArrowhead: 0 - None, 1 - Right, -1 - Left, 2 - Bidirectional
     edgeStroke: number | { (d?: EdgeData, i?: number): number };
@@ -204,7 +207,6 @@ export interface Node extends colaNode {
 
 export interface Graph {
     // Check if node is drawn.
-    addColourDef: (color: string[], id: string) => void;
 
     hasNode(id: Id): boolean;
 
@@ -270,6 +272,12 @@ export interface Graph {
 
     // Show or hide group text popup
     groupTextPreview(show: boolean, groupId: Id | Id[], text?: string): void;
+
+    // add def to allow gradients in nodes
+    addColourDef: (color: string[], id: string) => void;
+
+    // modify colour defs
+    updateColourDef: (colours: { color: string[], id: string }[]) => void;
 
     // Restart styles or layout.
     restart: {

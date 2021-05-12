@@ -87,6 +87,9 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         nodeToText: d => d.shortname ?? d.id,
         nodeStrokeWidth: () => 1,
         nodeStrokeColor: () => "grey",
+        nodeFontSize: () => "22px",
+        edgeFontSize: () => "20px",
+        groupFontSize: () => "22px",
         edgeColor: p => p?.stroke ?? "#000000",
         // edgeArrowhead: 0 - None, 1 - Right, -1 - Left, 2 - Bidirectional
         edgeArrowhead: p => (typeof p?.arrowhead === "number") ? p.arrowhead : 1,
@@ -178,7 +181,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         .links(links)
         .constraints(constraints)
         .groups(groups)
-        .start(10, 15, 20, 0, true, false)
+        .start(10, 15, 20, 0, true, false);
     /**
      * Call nodeDragStart callback when drag event triggers.
      */
@@ -233,7 +236,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
             internalOptions.draggedConstraintNodes.forEach(({ d, f }) => {
                 d.fixed = f;
             });
-            internalOptions.draggedConstraintNodes = []
+            internalOptions.draggedConstraintNodes = [];
             updateStyles();
             if (layoutOptions.isSelect && layoutOptions.isSelect()) {
                 d.class = d.class.replace(" highlight", "");
@@ -268,7 +271,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         .attr("d", "M 50 0 L 50 40 L 0 20 Z")
         .attr("fill", "rgb(150,150,150)");
 
-    layoutOptions.color_defs.forEach(({color, id}) => addColourDef(color, id));
+    layoutOptions.color_defs.forEach(({ color, id }) => addColourDef(color, id));
 
     const arrowDefsDict = {};
 
@@ -633,7 +636,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                 .style("display", "inline-block")
                 .style("text-align", "center")
                 .style("font-weight", "100")
-                .style("font-size", "22px")
+                .style("font-size", layoutOptions.groupFontSize)
                 .style("font-family", "\"Source Sans Pro\", sans-serif")
                 .style("white-space", "pre-wrap")
                 .style("word-break", "break-word")
@@ -685,7 +688,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                 .style("cursor", "text")
                 .style("text-align", "center")
                 .style("font-weight", "100")
-                .style("font-size", "22px")
+                .style("font-size", layoutOptions.nodeFontSize)
                 .style("font-family", "\"Source Sans Pro\", sans-serif")
                 .classed("editable", true)
                 .style("display", "inline-block");
@@ -832,7 +835,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                 .style("display", "inline-block")
                 .style("text-align", "center")
                 .style("font-weight", "100")
-                .style("font-size", "22px")
+                .style("font-size", layoutOptions.edgeFontSize)
                 .style("font-family", "\"Source Sans Pro\", sans-serif")
                 .style("white-space", "pre")
                 .style("background-color", "rgba(255,255,255,0.85")
@@ -1092,7 +1095,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
     /**
      * Helper function for updating links after node mutations.
      */
-    function createNewLinks(preventLayout?:boolean) {
+    function createNewLinks(preventLayout?: boolean) {
         return new Promise((resolve, reject) => tripletsDB.get({},
             (err, l) => {
                 if (err) {
@@ -1115,7 +1118,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
             if (!preventLayout) {
                 return restart();
             }
-        })
+        });
 
     }
 
@@ -2129,7 +2132,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
 
             nodes
                 .filter(({ id }) => id !== d.id) // exclude target node
-                .filter(d => (typeof layoutOptions.nodeToPin === 'function' && layoutOptions.nodeToPin(d))
+                .filter(d => (typeof layoutOptions.nodeToPin === "function" && layoutOptions.nodeToPin(d))
                     && layoutOptions.nodeToPin) // filter unpinned nodes
                 .filter((node) => {
                     // exclude nodes that have an alignment constraint to target node.
@@ -2694,9 +2697,14 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                 .attr("stop-color", c);
 
             el.append("stop")
-                .attr("offset", String((index+1) / colours.length))
+                .attr("offset", String((index + 1) / colours.length))
                 .attr("stop-color", c);
         });
+    }
+
+    function updateColourDef(colours: { color: string[], id: string }[]): void {
+        defs.selectAll("linearGradient").remove();
+        colours.forEach(({ color, id }) => addColourDef(color, id));
     }
 
     /**
@@ -2732,7 +2740,6 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
      * - Maybe have a "this" reference passed into the callbacks.
      */
     return {
-        addColourDef,
         // Check if node is drawn.
         hasNode: (id: Id) => nodes.filter(v => v.hash == id).length === 1,
         // Public access to the levelgraph db.
@@ -2777,6 +2784,10 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         constraintVisibility,
         // Show or hide group text popup
         groupTextPreview,
+        // add gradient def
+        addColourDef,
+        // update color def
+        updateColourDef,
         // Restart styles or layout.
         restart: {
             styles: updateStyles,
