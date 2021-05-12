@@ -636,7 +636,6 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                 .style("display", "inline-block")
                 .style("text-align", "center")
                 .style("font-weight", "100")
-                .style("font-size", layoutOptions.groupFontSize)
                 .style("font-family", "\"Source Sans Pro\", sans-serif")
                 .style("white-space", "pre-wrap")
                 .style("word-break", "break-word")
@@ -649,6 +648,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
 
             // allow for text updating
             group.select("text")
+                .style("font-size", layoutOptions.groupFontSize)
                 .style("color", d => computeTextColor(d.data.color))
                 .html(d => d.data.text || "");
 
@@ -688,7 +688,6 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                 .style("cursor", "text")
                 .style("text-align", "center")
                 .style("font-weight", "100")
-                .style("font-size", layoutOptions.nodeFontSize)
                 .style("font-family", "\"Source Sans Pro\", sans-serif")
                 .classed("editable", true)
                 .style("display", "inline-block");
@@ -733,6 +732,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
             node.select("text")
                 .html(layoutOptions.nodeToText)
                 .style("color", d => computeTextColor(d.color))
+                .style("font-size", layoutOptions.nodeFontSize)
                 .style("max-width", d => d.fixedWidth ? d.width - layoutOptions.pad * 2 + layoutOptions.margin + "px" : "none")
                 .style("word-break", d => d.fixedWidth ? "break-word" : "normal")
                 .style("white-space", d => d.fixedWidth ? "pre-wrap" : "pre");
@@ -835,7 +835,6 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                 .style("display", "inline-block")
                 .style("text-align", "center")
                 .style("font-weight", "100")
-                .style("font-size", layoutOptions.edgeFontSize)
                 .style("font-family", "\"Source Sans Pro\", sans-serif")
                 .style("white-space", "pre")
                 .style("background-color", "rgba(255,255,255,0.85")
@@ -844,14 +843,16 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
             link = link.merge(linkEnter);
             /** Optional label text */
             if (typeof layoutOptions.edgeLabelText === "function") {
-                link.select("text").html((d) => {
-                    if (typeof d.predicate.hash === "string") {
+                link.select("text")
+                    .html((d) => {
+                        if (typeof d.predicate.hash === "string") {
+                            return typeof layoutOptions.edgeLabelText === "function" ?
+                                layoutOptions.edgeLabelText(predicateMap.get(d.predicate.hash)) : layoutOptions.edgeLabelText;
+                        }
                         return typeof layoutOptions.edgeLabelText === "function" ?
-                            layoutOptions.edgeLabelText(predicateMap.get(d.predicate.hash)) : layoutOptions.edgeLabelText;
-                    }
-                    return typeof layoutOptions.edgeLabelText === "function" ?
-                        layoutOptions.edgeLabelText(d.predicate) : layoutOptions.edgeLabelText;
-                });
+                            layoutOptions.edgeLabelText(d.predicate) : layoutOptions.edgeLabelText;
+                    })
+                    .style("font-size", layoutOptions.edgeFontSize);
             }
             link.select(".line-front")
                 .attr("marker-start", d => {
