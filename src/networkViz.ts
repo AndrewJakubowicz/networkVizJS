@@ -2841,7 +2841,8 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                         simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
                     } else {
                         layoutOptions.layoutType = "flowLayout";
-                        simulation = updateColaLayout(layoutOptions);
+                        simulation.stop();
+                        simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
                     }
                     restart(callback);
                 },
@@ -2851,14 +2852,37 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                         simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
                     } else {
                         layoutOptions.layoutType = "flowLayout";
-                        simulation = updateColaLayout(layoutOptions);
+                        simulation.stop();
+                        simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
                     }
                     restart(callback);
                 }
+            },
+            forceLayout: (callback) => {
+                if (layoutOptions.layoutType !== "jaccardLinkLengths") {
+                    layoutOptions.layoutType = "jaccardLinkLengths";
+                    simulation.stop();
+                    // @ts-ignore
+                    simulation._directedLinkConstraints = null;
+                    simulation.jaccardLinkLengths(layoutOptions.edgeLength, layoutOptions.jaccardModifier);
+                }
+                restart(callback);
+            },
+            edgeLength: (edgeLen, callback) => {
+                layoutOptions.edgeLength = edgeLen;
+                if (layoutOptions.layoutType === "jaccardLinkLengths") {
+                    simulation.stop();
+                    simulation.jaccardLinkLengths(layoutOptions.edgeLength, layoutOptions.jaccardModifier);
+                } else if (layoutOptions.layoutType === "flowLayout") {
+                    simulation.flowLayout(layoutOptions.flowDirection, layoutOptions.edgeLength);
+                } else {
+                    simulation.linkDistance(layoutOptions.edgeLength);
+                }
+                restart(callback);
             }
         }
     };
-}
+};
 
 exports.default = networkVizJS;
 // # sourceMappingURL=networkViz.js.map

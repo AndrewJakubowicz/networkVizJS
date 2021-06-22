@@ -10,7 +10,7 @@ export interface LayoutOptions {
     avoidOverlaps: boolean;             // True: No overlaps, False: Overlaps
     handleDisconnected: boolean;        // False by default, clumps disconnected nodes
     flowDirection: "x" | "y";
-    color_defs: {color: string[]; id: string}[];
+    color_defs: { color: string[]; id: string }[];
     enableEdgeRouting: boolean;         // Edges route around nodes
     nodeShape: string;                  // default node shape text description
     nodePath: string | { (nodeObject?: Node): string };   // function returns node path from shape descriptor
@@ -88,7 +88,7 @@ export interface LayoutOptions {
     edgeStroke: number | { (d?: EdgeData, i?: number): number };
     edgeStrokePad: number | { (d?: EdgeData, i?: number): number };  // size of clickable area behind edge
     edgeDasharray: number | { (d?: EdgeData): number };
-    edgeLength: number | { (d?: Edge, i?: number): number };
+    edgeLength: number;
     edgeSmoothness: number;                                 // amount of smoothing applied to vertices in edges
     groupFillColor: string | { (g?: Group): string };
     snapToAlignment: boolean;                               // Enable snap to alignment whilst dragging
@@ -286,7 +286,7 @@ export interface Graph {
         // Aligns text to centre of node
         textAlign(): Promise<void>;
         // Redraw the edges
-        redrawEdges(preventLayout?:boolean): Promise<void>;
+        redrawEdges(preventLayout?: boolean): Promise<void>;
         // restart simulation and redraw layout
         layout(callback: { (): void }, preventLayout?: boolean, constraintIterations ?: number): Promise<void>;
         // Handle disconnected graph components
@@ -322,6 +322,8 @@ export interface Graph {
         flowLayout: {
             down(callback: { (): void }): void;
             right(callback: { (): void }): void;
-        };
+        },
+        forceLayout(callback: { (): void }): void;
+        edgeLength(edgeLen: number, callback: { (): void }): void;
     };
 }
