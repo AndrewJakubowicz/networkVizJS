@@ -12,6 +12,7 @@ export interface LayoutOptions {
     flowDirection: "x" | "y";
     color_defs: { color: string[]; id: string }[];
     enableEdgeRouting: boolean;         // Edges route around nodes
+    edgeTextOrientWithPath: boolean,    // Only garuanteed to work with straight edges, ie no edge routing
     nodeShape: string;                  // default node shape text description
     nodePath: string | { (nodeObject?: Node): string };   // function returns node path from shape descriptor
     width: number;                      // SVG width
