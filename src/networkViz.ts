@@ -41,6 +41,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         handleDisconnected: false,
         flowDirection: "y",
         enableEdgeRouting: true,
+        edgeTextOrientWithPath: false,
         // groupCompactness: 5e-6,
         // convergenceThreshold: 0.1,
         nodeShape: "capsule",
@@ -1023,10 +1024,17 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                             `translate(${d.innerBounds.x},${d.innerBounds.y})`
                             : `translate(${d.x},${d.y})`);
                         updatePathDimensions();
-                        link.selectAll("path").attr("d", d => {
+                        link.selectAll("path").attr("d", function (d) {
                             let route;
                             try {
                                 route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
+                                if (layoutOptions.edgeTextOrientWithPath) {
+                                    const e = route.sourceIntersection;
+                                    const s = route.arrowStart;
+                                    d3.select(this.parentNode)
+                                        .select("text")
+                                        .style("transform", () => `rotate(${Math.atan((e.y - s.y) / (e.x - s.x))}rad)`);
+                                }
                             } catch (err) {
                                 console.error(err);
                                 return;
