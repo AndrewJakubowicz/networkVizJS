@@ -839,6 +839,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                 .style("font-family", "\"Source Sans Pro\", sans-serif")
                 .style("white-space", "pre")
                 .style("background-color", "rgba(255,255,255,0.85")
+                .style("border-radius", "7px")
                 .html(d => typeof layoutOptions.edgeLabelText === "function" ?
                     layoutOptions.edgeLabelText(d.predicate) : layoutOptions.edgeLabelText);
             link = link.merge(linkEnter);
