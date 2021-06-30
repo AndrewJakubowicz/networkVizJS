@@ -97,7 +97,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         edgeStroke: p => p?.strokeWidth ?? 2,
         edgeStrokePad: 20,
         edgeDasharray: p => p?.strokeDasharray ?? 0,
-        edgeLength: () => 150,
+        edgeLength: 150,
         edgeSmoothness: 15,
         edgeRemove: undefined,
         groupFillColor: g => g?.data?.color ?? "#F6ECAF",
