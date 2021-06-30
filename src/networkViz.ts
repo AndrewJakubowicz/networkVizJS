@@ -88,6 +88,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         nodeToText: d => d.shortname ?? d.id,
         nodeStrokeWidth: () => 1,
         nodeStrokeColor: () => "grey",
+        nodeStrokeDash: "",
         nodeFontSize: () => "22px",
         edgeFontSize: () => "20px",
         groupFontSize: () => "22px",
@@ -750,7 +751,8 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
             updateShapes
                 .attr("fill", layoutOptions.nodeToColor)
                 .attr("stroke", layoutOptions.nodeStrokeColor)
-                .attr("stroke-width", layoutOptions.nodeStrokeWidth);
+                .attr("stroke-width", layoutOptions.nodeStrokeWidth)
+                .attr("stroke-dasharray", layoutOptions.nodeStrokeDash);
             // update size
             updatePathDimensions();
             // These CANNOT be arrow functions or 'this' context becomes wrong.

@@ -81,6 +81,7 @@ export interface LayoutOptions {
     nodeToText: string | { (d?: Node, i?: number): string };        // Return text used to display in node.
     nodeStrokeWidth: number | { (d?: Node, i?: number): number };
     nodeStrokeColor: string | { (d?: Node, i?: number): string };
+    nodeStrokeDash: string | { (d?: Node, i?: number): string };
     nodeFontSize: string | { (d?: Node, i?: number): string };
     edgeFontSize: string | { (d?: Node, i?: number): string };      // return string number with "px" appended
     groupFontSize: string | { (d?: Node, i?: number): string };
