@@ -5,18 +5,19 @@ import updateColaLayout from "./updateColaLayout";
 import createColorArrow from "./util/createColorArrow";
 import * as cola from "webcola";
 import {
-    LayoutOptions,
+    AlignConstraint,
+    Constraint,
+    Graph,
+    Group,
     Id,
     InputAlignConstraint,
-    AlignConstraint,
     InputSeparationConstraint,
-    SeparationConstraint,
-    Constraint,
-    Group,
-    Node, Graph
-} from "./types/interfaces";
+    LayoutOptions,
+    Node,
+    SeparationConstraint
+} from "interfaces";
 
-import { addConstraintToNode, computeTextColor, nodePath, boundsOverlap, isIE, asArray } from "./util/utils";
+import { addConstraintToNode, asArray, boundsOverlap, computeTextColor, isIE, nodePath } from "./util/utils";
 
 // TODO fix the type errors
 import type { Selection as d3Selection } from "d3";
@@ -1134,6 +1135,50 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
 
     }
 
+
+    function reverseTriplets(): Promise<void> {
+        return new Promise<{ subject: string, object: string, predicate: any }[]>((resolve, reject) => {
+            // get all existing edges
+            tripletsDB.get({}, (err, l) => {
+                if (err) {
+                    console.error(err);
+                    reject(err);
+                } else {
+                    resolve(l);
+                }
+            });
+        }).then((l) => {
+            // delete edges from database
+            return new Promise<{ subject: string, object: string, predicate: any }[]>((resolve, reject) => {
+                tripletsDB.del(l, (err) => {
+                    if (err) {
+                        console.error(err);
+                        reject(err);
+                    }
+                    resolve(l);
+                });
+            });
+        }).then((l) => {
+            // reverse the links
+            const reversedLinks = l.map(({ subject, object, predicate }) => {
+                predicate.subject = object;
+                predicate.object = subject;
+                return { subject: object, predicate, object: subject };
+            });
+            // update links array
+            links = reversedLinks.map(({ subject, object, predicate }) => {
+                const source = nodeMap.get(subject);
+                const target = nodeMap.get(object);
+                predicateMap.set(predicate.hash, predicate);
+                return { source, target, predicate };
+            });
+            return reversedLinks;
+        }).then((l) => {
+            // repopulate database
+            tripletsDB.put(l);
+        });
+    }
+
     /**
      * Take a node object or list of nodes and add them.
      * @param {object | object[]} nodeObjectOrArray
@@ -2197,8 +2242,20 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                 }, alignments);
                 return alignments;
             };
-            const xAlign = findAligns({ centreMap: gridCX, edgeMap: gridX, offset: xOffset, threshold, position: e.x });
-            const yAlign = findAligns({ centreMap: gridCY, edgeMap: gridY, offset: yOffset, threshold, position: e.y });
+            const xAlign = findAligns({
+                centreMap: gridCX,
+                edgeMap: gridX,
+                offset: xOffset,
+                threshold,
+                position: e.x
+            });
+            const yAlign = findAligns({
+                centreMap: gridCY,
+                edgeMap: gridY,
+                offset: yOffset,
+                threshold,
+                position: e.y
+            });
             if (xAlign.coord) { // if X alignment found
                 const yarr = xAlign.array.reduce((acc, curr) => acc.concat(curr.data), []);
                 const bounds = {
@@ -2890,10 +2947,11 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                     simulation.linkDistance(layoutOptions.edgeLength);
                 }
                 restart(callback);
-            }
+            },
+            reverseTriplets,
         }
     };
-};
+}
 
 exports.default = networkVizJS;
 // # sourceMappingURL=networkViz.js.map

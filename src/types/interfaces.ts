@@ -327,5 +327,6 @@ export interface Graph {
         },
         forceLayout(callback: { (): void }): void;
         edgeLength(edgeLen: number, callback: { (): void }): void;
+        reverseTriplets: ()=> Promise<void>;
     };
 }
