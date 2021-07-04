@@ -400,9 +400,13 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
             })
             .attr("transform", function (d) {
                 // Scale appropriately using http://stackoverflow.com/a/9877871/6421793
-                const currentWidth = this.getBBox().width, w = d.width, currentHeight = this.getBBox().height,
-                    h = d.height, scaleW = (w - layoutOptions.margin) / currentWidth,
-                    scaleH = (h - layoutOptions.margin) / currentHeight;
+                const bbox = this.getBBox();
+                const currentWidth = bbox.width;
+                const w = d.width;
+                const currentHeight = bbox.height;
+                const h = d.height;
+                const scaleW = (w - layoutOptions.margin) / currentWidth;
+                const scaleH = (h - layoutOptions.margin) / currentHeight;
                 if (isNaN(scaleW) || isNaN(scaleH) || isNaN(w) || isNaN(h)) {
                     return "";
                 }
@@ -479,7 +483,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                     .attr("y", function (d) {
                         let img;
                         if (layoutOptions.imageNodes) {
-                          img = d3.select(this.parentNode).select("image").node();
+                            img = d3.select(this.parentNode).select("image").node();
                         }
                         const imgHeight = img ? img.getBBox().height : 0;
                         const textHeight = d3.select(this).select("text").node().offsetHeight;
