@@ -43,6 +43,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         flowDirection: "y",
         enableEdgeRouting: true,
         edgeTextOrientWithPath: false,
+        imageNodes: false,
         // groupCompactness: 5e-6,
         // convergenceThreshold: 0.1,
         nodeShape: "capsule",
@@ -319,40 +320,42 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
 
 
     /** Allow Image Resize Using Interact.js */
-    interact(".img-node")
-        .resizable({
-            edges: { left: false, right: true, bottom: true, top: false },
-            inertia: {
-                resistance: 1,
-                minSpeed: 1,
-                endSpeed: 1
-            }
-        })
-        .on("resizeend", function (event) {
-            layoutOptions.imgResize && layoutOptions.imgResize(false);
-            internalOptions.isImgResize = false;
-        })
-        .on("resizestart", function (event) {
-            layoutOptions.imgResize && layoutOptions.imgResize(true);
-            internalOptions.isImgResize = true;
-        })
-        .on("resizemove", function (event) {
-            // layoutOptions.imgResize && layoutOptions.imgResize(true);
-            internalOptions.isImgResize = true;
-            const target = event.target,
-                x = (parseFloat(target.getAttribute("data-x")) || 0),
-                y = (parseFloat(target.getAttribute("data-x")) || 0);
+    if (layoutOptions.imageNodes) {
+        interact(".img-node")
+            .resizable({
+                edges: { left: false, right: true, bottom: true, top: false },
+                inertia: {
+                    resistance: 1,
+                    minSpeed: 1,
+                    endSpeed: 1
+                }
+            })
+            .on("resizeend", function (event) {
+                layoutOptions.imgResize && layoutOptions.imgResize(false);
+                internalOptions.isImgResize = false;
+            })
+            .on("resizestart", function (event) {
+                layoutOptions.imgResize && layoutOptions.imgResize(true);
+                internalOptions.isImgResize = true;
+            })
+            .on("resizemove", function (event) {
+                // layoutOptions.imgResize && layoutOptions.imgResize(true);
+                internalOptions.isImgResize = true;
+                const target = event.target,
+                    x = (parseFloat(target.getAttribute("data-x")) || 0),
+                    y = (parseFloat(target.getAttribute("data-x")) || 0);
 
-            target.style.width = event.rect.width + "px";
-            target.style.height = event.rect.width + "px";
-            target.style.webkitTransform = target.style.transform =
-                "translate(" + x + "px," + y + "px)";
-            target.setAttribute("data-x", x);
+                target.style.width = event.rect.width + "px";
+                target.style.height = event.rect.width + "px";
+                target.style.webkitTransform = target.style.transform =
+                    "translate(" + x + "px," + y + "px)";
+                target.setAttribute("data-x", x);
 
-            restart();
-        });
+                restart();
+            });
 
-    interact.maxInteractions(Infinity);
+        interact.maxInteractions(Infinity);
+    }
 
     /**
      * Return nodes and edges within a boundary
@@ -418,7 +421,10 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
             .then(() => {
                 node.selectAll("text")
                     .each(function (d) {
-                        const img = d3.select(this.parentNode.parentNode.parentNode).select("image").node();
+                        let img;
+                        if (layoutOptions.imageNodes) {
+                            img = d3.select(this.parentNode.parentNode.parentNode).select("image").node();
+                        }
                         const imgWidth = img ? img.getBBox().width : 0;
                         const margin = layoutOptions.margin, pad = layoutOptions.pad;
                         const extra = 2 * pad + margin;
@@ -443,21 +449,25 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                     })
                     .each(function (d) {
                         // Only update the height, the width is calculated previously
-                        const img = d3.select(this.parentNode.parentNode.parentNode).select("image").node();
+                        let img;
+                        if (layoutOptions.imageNodes) {
+                            img = d3.select(this.parentNode.parentNode.parentNode).select("image").node();
+                        }
                         const imgHeight = img ? img.getBBox().height : 0;
                         const height = this.offsetHeight;
                         const extra = 2 * layoutOptions.pad + layoutOptions.margin;
                         d.height = height === 0 ? 28 + extra + imgHeight : height + extra + imgHeight;
                     });
-
-                node.select(".img-node")
-                    .attr("x", function (d) {
-                        const imgWidth = d.img ? this.getBBox().width : 0;
-                        return d.width / 2 - imgWidth / 2;
-                    })
-                    .attr("y", function (d) {
-                        return d.img ? 18 : 0;
-                    });
+                if (layoutOptions.imageNodes) {
+                    node.select(".img-node")
+                        .attr("x", function (d) {
+                            const imgWidth = d.img ? this.getBBox().width : 0;
+                            return d.width / 2 - imgWidth / 2;
+                        })
+                        .attr("y", function (d) {
+                            return d.img ? 18 : 0;
+                        });
+                }
 
                 node.select(".node-HTML-content")
                     .attr("width", function (d) {
@@ -467,7 +477,10 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                         return d3.select(this).select("text").node().offsetWidth;
                     })
                     .attr("y", function (d) {
-                        const img = d3.select(this.parentNode).select("image").node();
+                        let img;
+                        if (layoutOptions.imageNodes) {
+                          img = d3.select(this.parentNode).select("image").node();
+                        }
                         const imgHeight = img ? img.getBBox().height : 0;
                         const textHeight = d3.select(this).select("text").node().offsetHeight;
                         if (!d.img || !img) {
@@ -478,9 +491,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                     })
                     .attr("x", function (d) {
                         const textWidth = d3.select(this).select("text").node().offsetWidth;
-                        const x = d.width / 2 - textWidth / 2;
-                        d.textPosition = x; // TODO-ya is this redundant now?
-                        return x;
+                        return d.width / 2 - textWidth / 2;
                     });
 
                 link.select(".edge-foreign-object")
@@ -703,34 +714,37 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                 .classed("node-path", true);
 
             /** Append Image to Node */
-            nodeEnter
-                .insert("image", "foreignObject")
-                .on("mouseover", function (d) {
-                    nodeEnter.attr("cursor", "resize");
-                    if (internalOptions.isDragging) {
-                        return;
-                    }
-                    layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, d3.select(this.parentNode).select("path"), d3.event);
-                })
-                .on("mouseout", function (d) {
-                    nodeEnter.attr("cursor", "move");
-                });
+            if (layoutOptions.imageNodes) {
+                nodeEnter
+                    .insert("image", "foreignObject")
+                    .on("mouseover", function (d) {
+                        nodeEnter.attr("cursor", "resize");
+                        if (internalOptions.isDragging) {
+                            return;
+                        }
+                        layoutOptions.mouseOverNode && layoutOptions.mouseOverNode(d, d3.select(this.parentNode).select("path"), d3.event);
+                    })
+                    .on("mouseout", function (d) {
+                        nodeEnter.attr("cursor", "move");
+                    });
+            }
 
             /** Merge the entered nodes to the update nodes. */
             node = node.merge(nodeEnter)
                 .classed("fixed", d => d.fixed || false);
 
             /** Update Node Image Src */
-            node.select("image")
-                .attr("class", "img-node")
-                .attr("width", d => d.img ? d.img.width : 0)
-                .attr("height", d => d.img ? d.img.width : 0)
-                .attr("xlink:href", function (d) {
-                    if (d.img) {
-                        return "data:image/png;base64," + d.img.src;
-                    }
-                });
-
+            if (layoutOptions.imageNodes) {
+                node.select("image")
+                    .attr("class", "img-node")
+                    .attr("width", d => d.img ? d.img.width : 0)
+                    .attr("height", d => d.img ? d.img.width : 0)
+                    .attr("xlink:href", function (d) {
+                        if (d.img) {
+                            return "data:image/png;base64," + d.img.src;
+                        }
+                    });
+            }
             /** Update the text property (allowing dynamically changing text) */
             node.select("text")
                 .html(layoutOptions.nodeToText)

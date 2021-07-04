@@ -148,7 +148,6 @@ interface Node {
     index?: number,             // index in nodes array, this is initialized by Layout.start()         
     bounds: Rectangle;          // Rectangle of node bounds
     innerBounds: Rectangle;     // Rectangle of node bounds
-    textPosition: number;       // TODO may be deprecated
 
 // positioning is set internally but may be overwritten
     px: number;

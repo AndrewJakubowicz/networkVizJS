@@ -13,6 +13,7 @@ export interface LayoutOptions {
     color_defs: { color: string[]; id: string }[];
     enableEdgeRouting: boolean;         // Edges route around nodes
     edgeTextOrientWithPath: boolean,    // Only garuanteed to work with straight edges, ie no edge routing
+    imageNodes: boolean,               // enable images in nodes, turn off for better performance
     nodeShape: string;                  // default node shape text description
     nodePath: string | { (nodeObject?: Node): string };   // function returns node path from shape descriptor
     width: number;                      // SVG width
@@ -200,7 +201,6 @@ export interface Node extends colaNode {
     img?: any;
     color: string;
     fixedWidth?: number | boolean;
-    textPosition: number;
     px: any;
     py: any;
     innerBounds: Rectangle;
