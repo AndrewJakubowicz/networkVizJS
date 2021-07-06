@@ -79,6 +79,7 @@ export interface LayoutOptions {
     // These are "live options"
     nodeToPin: boolean | { (d?: Node, i?: number): boolean };
     nodeToColor: string | { (d?: Node, i?: number): string };        // Return a valid hexadecimal colour.
+    nodeOpacity: number | { (d?: Node, i?: number): number };
     nodeToText: string | { (d?: Node, i?: number): string };        // Return text used to display in node.
     nodeStrokeWidth: number | { (d?: Node, i?: number): number };
     nodeStrokeColor: string | { (d?: Node, i?: number): string };
@@ -327,6 +328,6 @@ export interface Graph {
         },
         forceLayout(callback: { (): void }): void;
         edgeLength(edgeLen: number, callback: { (): void }): void;
-        reverseTriplets: ()=> Promise<void>;
+        reverseTriplets: () => Promise<void>;
     };
 }

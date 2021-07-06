@@ -87,6 +87,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
          */
         nodeToPin: d => (typeof d?.fixed === "boolean" && d.fixed === true) || d?.fixed % 2 === 1,
         nodeToColor: d => d.color ?? "#AADCDC",
+        nodeOpacity: 1,
         nodeToText: d => d.shortname ?? d.id,
         nodeStrokeWidth: () => 1,
         nodeStrokeColor: () => "grey",
@@ -769,6 +770,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
             // These changes apply to both rect and circle
             updateShapes
                 .attr("fill", layoutOptions.nodeToColor)
+                .attr("opacity", layoutOptions.nodeOpacity)
                 .attr("stroke", layoutOptions.nodeStrokeColor)
                 .attr("stroke-width", layoutOptions.nodeStrokeWidth)
                 .attr("stroke-dasharray", layoutOptions.nodeStrokeDash);
