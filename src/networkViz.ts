@@ -81,6 +81,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         clickConstraint: () => undefined,
         clickConstraintGuide: () => undefined,
         // These are "live options"
+        svgColor: "white",
         /** nodeToPin
          * 1st bit is user set, second bit is set by d3 whilst dragging.
          * hence check LSB if d.fixed is not bool
@@ -173,7 +174,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         .append("svg")
         .attr("preserveAspectRatio", "xMinYMin meet")
         .attr("viewBox", `0 0 ${layoutOptions.width} ${layoutOptions.height}`)
-        .style("background-color", "white")
+        .style("background-color", layoutOptions.svgColor)
         .classed("svg-content-responsive", true);
     svg.on("click", layoutOptions.clickAway);
     /**
@@ -568,6 +569,9 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
      */
     function updateStyles(): Promise<void> {
         return new Promise((resolve, reject) => {
+            // svg color
+            svg.style("background-color", layoutOptions.svgColor);
+
             /** CONSTRAINTS */
             constraint = constraint.data(<AlignConstraint[]>(constraints.filter(({ type }) => type === "alignment")));
             constraint.exit().remove();

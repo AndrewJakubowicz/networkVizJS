@@ -77,6 +77,7 @@ export interface LayoutOptions {
     clickConstraintGuide(d: Node, alignedNodes: Node[], axis: "x" | "y"): void
 
     // These are "live options"
+    svgColor: string
     nodeToPin: boolean | { (d?: Node, i?: number): boolean };
     nodeToColor: string | { (d?: Node, i?: number): string };        // Return a valid hexadecimal colour.
     nodeOpacity: number | { (d?: Node, i?: number): number };
