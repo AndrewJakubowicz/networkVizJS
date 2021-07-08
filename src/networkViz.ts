@@ -868,7 +868,11 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                 .style("background-color", "rgba(255,255,255,0.85")
                 .style("border-radius", "7px")
                 .html(d => typeof layoutOptions.edgeLabelText === "function" ?
-                    layoutOptions.edgeLabelText(d.predicate) : layoutOptions.edgeLabelText);
+                    layoutOptions.edgeLabelText(d.predicate) : layoutOptions.edgeLabelText)
+                .each(function (d){
+                    d.predicate.textWidth = this.offsetWidth;
+                    d.predicate.textHeight = this.offsetHeight;
+                });
             link = link.merge(linkEnter);
             /** Optional label text */
             if (typeof layoutOptions.edgeLabelText === "function") {
@@ -981,15 +985,15 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
             console.error(err);
             return;
         }
-        try {
-            if (isIE())
-                link.selectAll("path").each(function (d) {
-                    this.parentNode.insertBefore(this, this);
-                });
-        } catch (err) {
-            console.error(err);
-            return;
-        }
+        // try {
+        //     if (isIE())
+        //         link.selectAll("path").each(function (d) {
+        //             this.parentNode.insertBefore(this, this);
+        //         });
+        // } catch (err) {
+        //     console.error(err);
+        //     return;
+        // }
         link.select(".edge-foreign-object")
             .attr("x", function (d) {
                 const thisSel = d3.select(this);
@@ -1051,7 +1055,8 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                         node.attr("transform", d => d.innerBounds ?
                             `translate(${d.innerBounds.x},${d.innerBounds.y})`
                             : `translate(${d.x},${d.y})`);
-                        updatePathDimensions();
+                        // updatePathDimensions();
+                        layoutOptions.nodeSizeChange && layoutOptions.nodeSizeChange();
                         link.selectAll("path").attr("d", function (d) {
                             let route;
                             try {
@@ -1069,13 +1074,13 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                             }
                             return lineFunction([route.sourceIntersection, route.arrowStart]);
                         });
-                        if (isIE())
-                            link.each(function (d) {
-                                this.parentNode.insertBefore(this, this);
-                            });
+                        // if (isIE())
+                        //     link.each(function (d) {
+                        //         this.parentNode.insertBefore(this, this);
+                        //     });
                         link.select(".edge-foreign-object")
                             .attr("x", function (d) {
-                                const textWidth = d3.select(this).select("text").node().offsetWidth;
+                                const textWidth = d.predicate.textWidth ?? d3.select(this).select("text").node().offsetWidth;
                                 let route;
                                 try {
                                     route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
@@ -1086,7 +1091,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                                 return (route.sourceIntersection.x + route.targetIntersection.x - textWidth) / 2;
                             })
                             .attr("y", function (d) {
-                                const textHeight = d3.select(this).select("text").node().offsetHeight;
+                                const textHeight =  d.predicate.textHeight ?? d3.select(this).select("text").node().offsetHeight;
                                 let route;
                                 try {
                                     route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
