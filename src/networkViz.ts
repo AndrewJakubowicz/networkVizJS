@@ -868,11 +868,8 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                 .style("background-color", "rgba(255,255,255,0.85")
                 .style("border-radius", "7px")
                 .html(d => typeof layoutOptions.edgeLabelText === "function" ?
-                    layoutOptions.edgeLabelText(d.predicate) : layoutOptions.edgeLabelText)
-                .each(function (d){
-                    d.predicate.textWidth = this.offsetWidth;
-                    d.predicate.textHeight = this.offsetHeight;
-                });
+                    layoutOptions.edgeLabelText(d.predicate) : layoutOptions.edgeLabelText);
+
             link = link.merge(linkEnter);
             /** Optional label text */
             if (typeof layoutOptions.edgeLabelText === "function") {
@@ -885,7 +882,11 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                         return typeof layoutOptions.edgeLabelText === "function" ?
                             layoutOptions.edgeLabelText(d.predicate) : layoutOptions.edgeLabelText;
                     })
-                    .style("font-size", layoutOptions.edgeFontSize);
+                    .style("font-size", layoutOptions.edgeFontSize)
+                    .each(function (d) {
+                        d.predicate.textWidth = this.offsetWidth;
+                        d.predicate.textHeight = this.offsetHeight;
+                    });
             }
             link.select(".line-front")
                 .attr("marker-start", d => {
@@ -985,15 +986,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
             console.error(err);
             return;
         }
-        // try {
-        //     if (isIE())
-        //         link.selectAll("path").each(function (d) {
-        //             this.parentNode.insertBefore(this, this);
-        //         });
-        // } catch (err) {
-        //     console.error(err);
-        //     return;
-        // }
+
         link.select(".edge-foreign-object")
             .attr("x", function (d) {
                 const thisSel = d3.select(this);
@@ -1074,10 +1067,6 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                             }
                             return lineFunction([route.sourceIntersection, route.arrowStart]);
                         });
-                        // if (isIE())
-                        //     link.each(function (d) {
-                        //         this.parentNode.insertBefore(this, this);
-                        //     });
                         link.select(".edge-foreign-object")
                             .attr("x", function (d) {
                                 const textWidth = d.predicate.textWidth ?? d3.select(this).select("text").node().offsetWidth;
