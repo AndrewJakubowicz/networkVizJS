@@ -1054,7 +1054,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                             let route;
                             try {
                                 route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
-                                if (layoutOptions.edgeTextOrientWithPath) {
+                                if (layoutOptions.edgeTextOrientWithPath && !layoutOptions.enableEdgeRouting) {
                                     const e = route.sourceIntersection;
                                     const s = route.arrowStart;
                                     d3.select(this.parentNode)
