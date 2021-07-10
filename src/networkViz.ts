@@ -1080,7 +1080,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
                                 return (route.sourceIntersection.x + route.targetIntersection.x - textWidth) / 2;
                             })
                             .attr("y", function (d) {
-                                const textHeight =  d.predicate.textHeight ?? d3.select(this).select("text").node().offsetHeight;
+                                const textHeight = d.predicate.textHeight ?? d3.select(this).select("text").node().offsetHeight;
                                 let route;
                                 try {
                                     route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, 5);
@@ -2818,6 +2818,17 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
         return typeof id !== "undefined" ? predicateMap.get(id) : [...predicateMap.values()];
     }
 
+    function shake(scale?: number, callback?: () => void): Promise<void> {
+        const e = scale ?? 100;
+        nodes
+            .filter(d => typeof layoutOptions.nodeToPin === "function" ? !layoutOptions.nodeToPin(d) : !layoutOptions.nodeToPin)
+            .forEach(d => {
+                d.x += (Math.random() - 0.5) * e;
+                d.y += (Math.random() - 0.5) * e;
+            });
+        return restart(callback);
+    }
+
 
     // Public api
     /**
@@ -2884,6 +2895,7 @@ function networkVizJS(documentId, userLayoutOptions): Graph {
             handleDisconnects: handleDisconnects,
             repositionGroupText: repositionGroupText,
             highlight: updateHighlighting,
+            shake,
         },
         canvasOptions: {
             setWidth: (width) => {

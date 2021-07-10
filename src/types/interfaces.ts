@@ -299,6 +299,7 @@ export interface Graph {
         repositionGroupText(): void;
         // Refresh highlighted elements
         highlight(): void;
+        shake(scale?: number, callback?: () => void): Promise<void>;
     };
     canvasOptions: {
         setWidth(width: number): void;
@@ -324,10 +325,10 @@ export interface Graph {
     // May be a webcola memory leak if you change the layout too many times.
     colaOptions: {
         flowLayout: {
-            down(callback: { (): void }): void;
-            right(callback: { (): void }): void;
+            down(callback?: { (): void }): void;
+            right(callback?: { (): void }): void;
         },
-        forceLayout(callback: { (): void }): void;
+        forceLayout(callback?: { (): void }): void;
         edgeLength(edgeLen: number, callback: { (): void }): void;
         reverseTriplets: () => Promise<void>;
     };
